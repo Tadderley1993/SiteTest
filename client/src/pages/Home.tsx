@@ -11,9 +11,7 @@ const HERO_VIDEO = 'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwI
 
 
 export default function Home() {
-  // DEMO MODE: set to true so sections are visible without submitting the form.
-  // Revert to useState(false) once seed data is cleared from the live site.
-  const [formCompleted, setFormCompleted] = useState(true)
+  const [formCompleted, setFormCompleted] = useState(false)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const exploreSectionRef = useRef<HTMLDivElement>(null)
 
