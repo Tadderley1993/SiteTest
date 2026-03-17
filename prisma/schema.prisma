@@ -1,0 +1,234 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../server/node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Submission {
+  id             Int      @id @default(autoincrement())
+  firstName      String
+  lastName       String
+  email          String
+  phone          String
+  clientType     String
+  services       String
+  description    String
+  teamSize       String
+  budget         String
+  timelineMonths Int?
+  timelineWeeks  Int?
+  timelineDays   Int?
+  createdAt      DateTime @default(now())
+  client         Client?
+}
+
+model Admin {
+  id           Int      @id @default(autoincrement())
+  username     String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+}
+
+model Client {
+  id           Int           @id @default(autoincrement())
+  firstName    String
+  lastName     String
+  title        String?
+  email        String
+  phone        String?
+  website      String?
+  organization String?
+  instagram    String?
+  twitter      String?
+  linkedin     String?
+  facebook     String?
+  notes        String?
+  submissionId Int?          @unique
+  submission   Submission?   @relation(fields: [submissionId], references: [id])
+  projectScope ProjectScope?
+  tasks        KanbanTask[]
+  standing     ClientStanding?
+  payments     PaymentEntry[]
+  invoices     Invoice[]
+  documents    ClientDocument[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+model ClientDocument {
+  id          Int      @id @default(autoincrement())
+  clientId    Int
+  client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  fileName    String
+  storedName  String
+  docType     String
+  mimeType    String
+  size        Int
+  createdAt   DateTime @default(now())
+}
+
+model ProjectScope {
+  id             Int      @id @default(autoincrement())
+  clientId       Int      @unique
+  client         Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  projectName    String?
+  projectType    String?
+  services       String?
+  budget         String?
+  timeline       String?
+  goals          String?
+  targetAudience String?
+  competitors    String?
+  techStack      String?
+  deliverables   String?
+  notes          String?
+  startDate      String?
+  endDate        String?
+  status         String   @default("active")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model KanbanTask {
+  id          Int      @id @default(autoincrement())
+  clientId    Int
+  client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  column      String   @default("backlog")
+  priority    String   @default("medium")
+  dueDate     String?
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model ClientStanding {
+  id            Int      @id @default(autoincrement())
+  clientId      Int      @unique
+  client        Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  currency      String   @default("USD")
+  totalContract Float    @default(0)
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model PaymentEntry {
+  id           Int      @id @default(autoincrement())
+  clientId     Int
+  client       Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  label        String
+  amount       Float
+  dueDate      String
+  status       String   @default("pending")
+  paidDate     String?
+  rearrangedTo String?
+  notes        String?
+  order        Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Proposal {
+  id               Int       @id @default(autoincrement())
+  proposalNumber   String
+  title            String
+  status           String    @default("draft")
+  clientName       String
+  clientEmail      String
+  clientPhone      String?
+  clientCompany    String?
+  clientAddress    String?
+  clientId         Int?
+  submissionId     Int?
+  date             String
+  validUntil       String?
+  executiveSummary String?
+  clientNeeds      String?
+  proposedSolution String?
+  projectScope     String?
+  deliverables     String?
+  timeline         String?
+  lineItems        String?
+  subtotal         Float     @default(0)
+  discountType     String    @default("fixed")
+  discountValue    Float     @default(0)
+  taxRate          Float     @default(0)
+  total            Float     @default(0)
+  currency         String    @default("USD")
+  paymentTerms     String?
+  termsConditions  String?
+  notes            String?
+  sentAt           DateTime?
+  signingToken     String?   @unique
+  clientSignature  String?
+  clientSignedAt   DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+}
+
+model Invoice {
+  id               Int      @id @default(autoincrement())
+  clientId         Int
+  client           Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  invoiceNumber    String
+  title            String?
+  lineItems        String?
+  currency         String   @default("USD")
+  subtotal         Float    @default(0)
+  discountType     String   @default("fixed")
+  discountValue    Float    @default(0)
+  taxRate          Float    @default(0)
+  amount           Float    @default(0)
+  issuedDate       String
+  dueDate          String
+  status           String   @default("draft")
+  notes            String?
+  termsConditions  String?
+  paypalInvoiceId  String?
+  paypalInvoiceUrl String?
+  paypalStatus     String?
+  sentAt           DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model AdminSettings {
+  id                Int      @id @default(autoincrement())
+  paypalClientId    String?
+  paypalSecret      String?
+  paypalEnvironment String   @default("sandbox")
+  paypalMerchantId  String?
+  paypalEmail       String?
+  gaPropertyId      String?
+  gaCredentials     String?
+  gaMeasurementId   String?
+  smtpHost          String?
+  smtpPort          String?
+  smtpUser          String?
+  smtpPass          String?
+  smtpFrom          String?
+  smtpSecure        Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model Expense {
+  id          Int      @id @default(autoincrement())
+  title       String
+  amount      Float
+  category    String   @default("other")
+  date        String
+  notes       String?
+  recurring   Boolean  @default(false)
+  frequency   String?
+  receiptPath String?
+  receiptName String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
