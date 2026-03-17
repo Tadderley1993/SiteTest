@@ -17,12 +17,25 @@ import { signingRouter } from './routes/signing.js'
 import { imageGenRouter } from './routes/imageGen.js'
 
 dotenv.config({ path: '../.env' })
+dotenv.config() // fallback for Railway (reads .env in cwd)
 
 const app = express()
 const PORT = process.env.PORT || 3001
 
+const ALLOWED_ORIGINS = [
+  'http://localhost:5173',
+  'https://client-ruddy-one.vercel.app',
+  /\.vercel\.app$/,
+]
+
 app.use(cors({
-  origin: 'http://localhost:5173',
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true)
+    const allowed = ALLOWED_ORIGINS.some(o =>
+      typeof o === 'string' ? o === origin : o.test(origin)
+    )
+    callback(null, allowed)
+  },
   credentials: true,
 }))
 

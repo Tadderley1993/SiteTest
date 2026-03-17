@@ -31,7 +31,7 @@ export default function Home() {
   return (
     <>
       {/* ── Sticky navbar ── */}
-      <nav className="fixed top-0 left-0 right-0 z-50 flex items-center gap-3 px-[120px] py-5 max-md:px-6">
+      <nav className="fixed top-0 left-0 right-0 z-50 flex items-center gap-3 px-6 md:px-[120px] py-4 md:py-5">
         <img src="/dbt_white.png" alt="Designs By TA" className="h-8 w-auto" />
         <span className="text-white font-body font-medium text-sm tracking-wide">Designs By TA</span>
       </nav>
@@ -43,7 +43,7 @@ export default function Home() {
       >
         {/* ── Hero ── */}
         <div
-          className="relative w-screen h-screen flex-shrink-0 overflow-hidden bg-black"
+          className="relative w-screen min-h-screen flex-shrink-0 overflow-hidden bg-black"
           style={{ scrollSnapAlign: 'start' }}
         >
           {/* Background video */}
@@ -59,54 +59,49 @@ export default function Home() {
           <div className="absolute inset-0 bg-black/50" />
 
           {/* ── Hero content ── */}
-          <div className="relative z-10 flex h-full pt-[80px]">
-          {/* Left — badge + headline + subtitle */}
-          <div
-            className="flex-1 flex flex-col justify-center px-[120px] max-md:px-6 gap-5"
-          >
-            {/* Headline */}
-            <motion.h1
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.35, duration: 0.7 }}
-              className="font-display font-medium leading-[1.1] tracking-tight max-w-[580px] text-[clamp(1.875rem,4vw,3rem)]"
-              style={{
-                background: 'linear-gradient(144.5deg, #ffffff 28%, rgba(0,0,0,0) 115%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
-              }}
-            >
-              We build digital experiences that grow your business.
-            </motion.h1>
+          <div className="relative z-10 flex flex-col md:flex-row h-full pt-[72px]">
+            {/* Left — headline + subtitle */}
+            <div className="flex-1 flex flex-col justify-center px-6 md:px-[120px] gap-4 py-10 md:py-0">
+              <motion.h1
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.35, duration: 0.7 }}
+                className="font-display font-medium leading-[1.1] tracking-tight max-w-[580px] text-[clamp(1.75rem,4vw,3rem)]"
+                style={{
+                  background: 'linear-gradient(144.5deg, #ffffff 28%, rgba(0,0,0,0) 115%)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text',
+                }}
+              >
+                We build digital experiences that grow your business.
+              </motion.h1>
 
-            {/* Subtitle */}
-            <motion.p
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5, duration: 0.6 }}
-              className="text-white/70 text-[14px] font-normal leading-relaxed max-w-[480px]"
-            >
-              From brand identity to full-stack web applications, Designs By TA delivers precision-crafted digital products that convert browsers into buyers and elevate how the world sees your brand.
-            </motion.p>
+              <motion.p
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5, duration: 0.6 }}
+                className="text-white/70 text-[14px] font-normal leading-relaxed max-w-[480px]"
+              >
+                From brand identity to full-stack web applications, Designs By TA delivers precision-crafted digital products that convert browsers into buyers and elevate how the world sees your brand.
+              </motion.p>
+            </div>
 
+            {/* Right — form (desktop: right column / mobile: below headline) */}
+            <div className="flex-1 flex items-center justify-center px-6 md:pr-[120px] md:pl-0 pb-10 md:pb-[80px]">
+              <FormPanel onComplete={() => setFormCompleted(true)} />
+            </div>
           </div>
 
-          {/* Right — form */}
-          <div className="flex-1 flex items-end justify-center pr-[120px] max-md:hidden pb-[120px]">
-            <FormPanel onComplete={() => setFormCompleted(true)} />
-          </div>
-        </div>
-
-        {/* Scroll hint after form complete */}
-        <AnimatePresence>
-          {formCompleted && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0, transition: { duration: 0.2 } }}
-              className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-3 pointer-events-none"
-            >
+          {/* Scroll hint after form complete */}
+          <AnimatePresence>
+            {formCompleted && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0, transition: { duration: 0.2 } }}
+                className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 hidden md:flex flex-col items-center gap-3 pointer-events-none"
+              >
               {/* Text — expands letter-spacing into place */}
               <motion.span
                 initial={{ opacity: 0, letterSpacing: '0.6em' }}
@@ -141,9 +136,9 @@ export default function Home() {
                 />
               </div>
             </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
+            )}
+          </AnimatePresence>
+        </div>
 
       {/* ── Sections (unlocked after form complete) ── */}
       <AnimatePresence>

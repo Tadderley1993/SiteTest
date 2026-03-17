@@ -146,7 +146,7 @@ export default function FormPanel({ onComplete }: FormPanelProps) {
         {/* Subtle inner glow */}
         <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-48 h-48 bg-white/[0.04] rounded-full blur-3xl pointer-events-none" />
 
-        <div className="relative p-7 max-h-[calc(100vh-230px)] overflow-y-auto scrollbar-none" style={{ scrollbarWidth: 'none' }}>
+        <div className="relative p-6 max-h-[calc(100svh-160px)] md:max-h-[calc(100vh-200px)] overflow-y-auto scrollbar-none" style={{ scrollbarWidth: 'none' }}>
           {!isSuccess && (
             <>
               {/* Step indicator */}
