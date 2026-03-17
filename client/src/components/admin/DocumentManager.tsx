@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Upload, FileText, Trash2, Download, File, AlertCircle, X } from 'lucide-react'
+import { Upload, Trash2, Download, AlertCircle, X } from 'lucide-react'
 import {
   ClientDocument, DOC_TYPES,
   getDocuments, uploadDocument, deleteDocument, getDocumentDownloadUrl,

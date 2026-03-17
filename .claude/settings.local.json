@@ -47,7 +47,9 @@
       "Bash(curl:*)",
       "Bash(cp:*)",
       "WebFetch(domain:www.capitalone.com)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(vercel:*)",
+      "Bash(echo:*)"
     ]
   }
 }

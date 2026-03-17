@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Shield, Zap, Globe, BarChart3, ArrowRight, CheckCircle, Star, CreditCard, TrendingUp, Building2, Wallet, ChevronRight } from 'lucide-react'
+import { Shield, Zap, Globe, BarChart3, ArrowRight, CheckCircle, Star, CreditCard, TrendingUp, Building2, Wallet } from 'lucide-react'
 import { ShimmerButton } from '@/components/ui/shimmer-button'
 import { Button } from '@/components/ui/button'
 

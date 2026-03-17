@@ -142,7 +142,7 @@ export default function OurProcessSection() {
 
           {/* Step progress */}
           <div className="flex gap-1.5 mt-2">
-            {steps.map((st, i) => (
+            {steps.map((_st, i) => (
               <button
                 key={i}
                 type="button"

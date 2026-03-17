@@ -133,6 +133,11 @@ fonts: {
 // Accent color used throughout as yellow-green highlight (#E8FF47)
 ```
 
+## Demo Mode (ACTIVE — revert when ready)
+`client/src/pages/Home.tsx` — `useState(true)` on line with `formCompleted`
+**Purpose:** Skips the form requirement so all landing sections are visible without submitting.
+**To revert:** Change `useState(true)` back to `useState(false)` once seed/test data is cleared from the live site and the form gate should be re-enabled for real visitors.
+
 ## Key Features
 - Glassmorphism UI with `backdrop-blur-xl` effects
 - Framer Motion animations (staggered word reveal, step transitions)

@@ -9,34 +9,11 @@ import ReadySection from '../components/landing/ReadySection'
 
 const HERO_VIDEO = 'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260217_030345_246c0224-10a4-422c-b324-070b7c0eceda.mp4'
 
-// Layered pill button matching the template spec
-function PillButton({
-  children, onClick, variant = 'dark', className = '',
-}: {
-  children: React.ReactNode
-  onClick?: () => void
-  variant?: 'dark' | 'light'
-  className?: string
-}) {
-  return (
-    <div className={`relative rounded-full p-[0.6px] border border-white/20 ${className}`}>
-      {/* Top glow streak */}
-      <div className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 w-1/2 h-px bg-gradient-to-r from-transparent via-white/50 to-transparent" />
-      <button
-        type="button"
-        onClick={onClick}
-        className={`relative rounded-full px-[29px] py-[11px] text-sm font-medium transition-opacity hover:opacity-80 ${
-          variant === 'dark' ? 'bg-black text-white' : 'bg-white text-black'
-        }`}
-      >
-        {children}
-      </button>
-    </div>
-  )
-}
 
 export default function Home() {
-  const [formCompleted, setFormCompleted] = useState(false)
+  // DEMO MODE: set to true so sections are visible without submitting the form.
+  // Revert to useState(false) once seed data is cleared from the live site.
+  const [formCompleted, setFormCompleted] = useState(true)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const exploreSectionRef = useRef<HTMLDivElement>(null)
 
@@ -50,10 +27,6 @@ export default function Home() {
   }, [formCompleted])
 
   const scrollToTop = () => {
-    scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
-  }
-
-  const scrollToForm = () => {
     scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
