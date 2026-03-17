@@ -1,5 +1,16 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Star, ArrowRight, Clock, MapPin, Phone, Plus } from 'lucide-react'
+
+// ── Mobile hook ───────────────────────────────────────────────────────────────
+function useIsMobile() {
+  const [m, setM] = useState(() => typeof window !== 'undefined' ? window.innerWidth < 768 : false)
+  useEffect(() => {
+    const h = () => setM(window.innerWidth < 768)
+    window.addEventListener('resize', h)
+    return () => window.removeEventListener('resize', h)
+  }, [])
+  return m
+}
 
 // ── Data ──────────────────────────────────────────────────────────────────────
 
@@ -159,6 +170,7 @@ function StampWallpaper() {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function RestaurantDemo() {
+  const mobile = useIsMobile()
   const [activeCategory, setActiveCategory] = useState('All')
   const [guests, setGuests] = useState('2')
   const [hoverNav, setHoverNav] = useState<string | null>(null)
@@ -179,7 +191,7 @@ export default function RestaurantDemo() {
       <nav style={{
         position: 'sticky', top: 0, zIndex: 50, backgroundColor: BG,
         borderBottom: '1px solid rgba(26,18,10,0.08)',
-        padding: '0 48px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 56,
+        padding: mobile ? '0 16px' : '0 48px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 56,
       }}>
         {/* Logo */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -193,7 +205,7 @@ export default function RestaurantDemo() {
         </div>
 
         {/* Links */}
-        <div style={{ display: 'flex', gap: 32 }}>
+        <div style={{ display: mobile ? 'none' : 'flex', gap: 32 }}>
           {NAV_LINKS.map(link => (
             <a
               key={link} href="#"
@@ -211,7 +223,7 @@ export default function RestaurantDemo() {
       </nav>
 
       {/* ── Hero ── */}
-      <section style={{ position: 'relative', overflow: 'hidden', maxWidth: 1280, margin: '0 auto', padding: '48px 48px 56px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 48, alignItems: 'center' }}>
+      <section style={{ position: 'relative', overflow: 'hidden', maxWidth: 1280, margin: '0 auto', padding: mobile ? '32px 16px 40px' : '48px 48px 56px', display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1fr 1fr', gap: mobile ? 32 : 48, alignItems: 'center' }}>
         <StampWallpaper />
         {/* Left: text */}
         <div style={{ position: 'relative', zIndex: 1 }}>
@@ -292,9 +304,9 @@ export default function RestaurantDemo() {
 
       {/* ── Stats strip ── */}
       <div style={{ backgroundColor: DARK, padding: '24px 48px' }}>
-        <div style={{ maxWidth: 1280, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 0 }}>
+        <div style={{ maxWidth: 1280, margin: '0 auto', display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 0 }}>
           {STATS.map((s, i) => (
-            <div key={i} style={{ textAlign: 'center', borderRight: i < 3 ? '1px solid rgba(255,255,255,0.08)' : 'none', padding: '6px 24px' }}>
+            <div key={i} style={{ textAlign: 'center', borderRight: (!mobile && i < 3) ? '1px solid rgba(255,255,255,0.08)' : 'none', padding: '6px 16px' }}>
               <div style={{ fontSize: 32, fontWeight: 900, color: WHITE, letterSpacing: '-0.02em', lineHeight: 1 }}>{s.value}</div>
               <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', marginTop: 6, letterSpacing: '0.04em' }}>{s.label}</div>
             </div>
@@ -303,7 +315,7 @@ export default function RestaurantDemo() {
       </div>
 
       {/* ── Menu section ── */}
-      <section style={{ maxWidth: 1280, margin: '0 auto', padding: '60px 48px' }}>
+      <section style={{ maxWidth: 1280, margin: '0 auto', padding: mobile ? '40px 16px' : '60px 48px' }}>
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 36 }}>
           <div>
@@ -335,7 +347,7 @@ export default function RestaurantDemo() {
         </div>
 
         {/* Dish grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 20 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: mobile ? 12 : 20 }}>
           {filtered.map((dish, i) => (
             <div
               key={dish.name}
@@ -377,8 +389,8 @@ export default function RestaurantDemo() {
       </section>
 
       {/* ── About / Story split ── */}
-      <section style={{ backgroundColor: DARK, padding: '60px 48px' }}>
-        <div style={{ maxWidth: 1280, margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 56, alignItems: 'center' }}>
+      <section style={{ backgroundColor: DARK, padding: mobile ? '40px 16px' : '60px 48px' }}>
+        <div style={{ maxWidth: 1280, margin: '0 auto', display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1fr 1fr', gap: mobile ? 32 : 56, alignItems: 'center' }}>
           {/* Left: Visual */}
           <div style={{ position: 'relative' }}>
             <div style={{ borderRadius: 20, overflow: 'hidden', aspectRatio: '1/1', position: 'relative' }}>
@@ -440,7 +452,7 @@ export default function RestaurantDemo() {
       </section>
 
       {/* ── Reviews ── */}
-      <section style={{ maxWidth: 1280, margin: '0 auto', padding: '60px 48px' }}>
+      <section style={{ maxWidth: 1280, margin: '0 auto', padding: mobile ? '40px 16px' : '60px 48px' }}>
         <div style={{ textAlign: 'center', marginBottom: 36 }}>
           <div style={{ fontSize: 10, fontWeight: 700, color: RED, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 8 }}>What People Say</div>
           <h2 style={{ fontSize: 40, fontWeight: 900, color: DARK, letterSpacing: '-0.02em', lineHeight: 1 }}>
@@ -448,7 +460,7 @@ export default function RestaurantDemo() {
           </h2>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : 'repeat(3, 1fr)', gap: 16 }}>
           {REVIEWS.map((r, i) => (
             <div key={i} style={{ backgroundColor: WHITE, borderRadius: 16, padding: '24px', boxShadow: '0 2px 16px rgba(26,18,10,0.07)' }}>
               {/* Stars */}
@@ -473,10 +485,10 @@ export default function RestaurantDemo() {
       </section>
 
       {/* ── Reservation ── */}
-      <section style={{ maxWidth: 1280, margin: '0 88px', borderRadius: 20, backgroundColor: DARK, overflow: 'hidden' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
+      <section style={{ maxWidth: 1280, margin: mobile ? '0 16px 40px' : '0 88px', borderRadius: 20, backgroundColor: DARK, overflow: 'hidden' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1fr 1fr' }}>
           {/* Left: Info */}
-          <div style={{ padding: '52px 48px', position: 'relative', overflow: 'hidden' }}>
+          <div style={{ padding: mobile ? '32px 20px' : '52px 48px', position: 'relative', overflow: 'hidden' }}>
             {/* Background image */}
             <img
               src="/imgs/restaurant-reservation.png"
@@ -510,7 +522,7 @@ export default function RestaurantDemo() {
           </div>
 
           {/* Right: Form */}
-          <div style={{ padding: '52px 48px', backgroundColor: SURFACE }}>
+          <div style={{ padding: mobile ? '28px 20px' : '52px 48px', backgroundColor: SURFACE }}>
             <h3 style={{ fontSize: 18, fontWeight: 800, color: DARK, marginBottom: 24 }}>Make a Reservation</h3>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
@@ -565,11 +577,11 @@ export default function RestaurantDemo() {
       </section>
 
       {/* ── Footer ── */}
-      <footer style={{ padding: '20px 48px', borderTop: '1px solid rgba(26,18,10,0.08)', marginTop: 40 }}>
-        <div style={{ maxWidth: 1280, margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <footer style={{ padding: mobile ? '16px' : '20px 48px', borderTop: '1px solid rgba(26,18,10,0.08)', marginTop: 40 }}>
+        <div style={{ maxWidth: 1280, margin: '0 auto', display: 'flex', flexDirection: mobile ? 'column' : 'row', gap: mobile ? 6 : 0, justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ fontWeight: 900, fontSize: 15, color: DARK, letterSpacing: '0.06em' }}>PRIME & CO.</div>
           <p style={{ fontSize: 12, color: 'rgba(26,18,10,0.3)' }}>© 2026 Prime & Co. · Demo by Designs by TA</p>
-          <div style={{ display: 'flex', gap: 20 }}>
+          <div style={{ display: mobile ? 'none' : 'flex', gap: 20 }}>
             {['Menu', 'Locations', 'Privacy', 'Terms'].map(l => (
               <a key={l} href="#" style={{ fontSize: 12, color: 'rgba(26,18,10,0.35)', textDecoration: 'none' }}>{l}</a>
             ))}

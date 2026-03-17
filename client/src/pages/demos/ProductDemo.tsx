@@ -115,6 +115,17 @@ function HoverBorderButton({
   )
 }
 
+// ── Mobile hook ───────────────────────────────────────────────────────────────
+function useIsMobile() {
+  const [m, setM] = useState(() => typeof window !== 'undefined' ? window.innerWidth < 768 : false)
+  useEffect(() => {
+    const h = () => setM(window.innerWidth < 768)
+    window.addEventListener('resize', h)
+    return () => window.removeEventListener('resize', h)
+  }, [])
+  return m
+}
+
 // ── Detail Section ────────────────────────────────────────────────────────────
 
 const LINES = [
@@ -182,6 +193,7 @@ const HERO_GLOW: React.CSSProperties = {
 }
 
 export default function ProductDemo() {
+  const mobile = useIsMobile()
   const [hoveredNav, setHoveredNav] = useState<string | null>(null)
 
   return (
@@ -192,13 +204,13 @@ export default function ProductDemo() {
         position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
         height: 52,
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '0 48px',
+        padding: mobile ? '0 16px' : '0 48px',
         backgroundColor: 'rgba(0,0,0,0.8)',
         backdropFilter: 'saturate(180%) blur(20px)',
         borderBottom: '1px solid rgba(255,255,255,0.06)',
       }}>
         <span style={{ fontSize: 20, fontWeight: 700, letterSpacing: 3, color: '#fff' }}>APEX</span>
-        <div style={{ display: 'flex', gap: 32 }}>
+        <div style={{ display: mobile ? 'none' : 'flex', gap: 32 }}>
           {['Products', 'Technology', 'Sound Lab', 'Support'].map(link => (
             <a
               key={link} href="#"
@@ -254,7 +266,7 @@ export default function ProductDemo() {
       </section>
 
       {/* ── Cinematic statement ── */}
-      <section style={{ padding: '72px 48px', textAlign: 'center', backgroundColor: '#000' }}>
+      <section style={{ padding: mobile ? '48px 20px' : '72px 48px', textAlign: 'center', backgroundColor: '#000' }}>
         <p style={{ fontSize: 12, color: CYAN, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 16 }}>Apex Sound Engine</p>
         <h2 style={{ fontSize: 'clamp(28px, 5vw, 60px)', fontWeight: 700, color: '#f5f5f7', lineHeight: 1.06, letterSpacing: '-0.03em', maxWidth: 820, margin: '0 auto 20px' }}>
           The most advanced audio<br />
@@ -270,9 +282,9 @@ export default function ProductDemo() {
 
       {/* ── Highlight stats ── */}
       <section style={{ backgroundColor: '#000', padding: '64px 48px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-        <div style={{ maxWidth: 1100, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 1, backgroundColor: 'rgba(255,255,255,0.06)' }}>
+        <div style={{ maxWidth: 1100, margin: '0 auto', display: 'grid', gridTemplateColumns: mobile ? 'repeat(2,1fr)' : 'repeat(4,1fr)', gap: 1, backgroundColor: 'rgba(255,255,255,0.06)' }}>
           {HIGHLIGHTS.map((h, i) => (
-            <div key={i} style={{ backgroundColor: '#000', padding: '36px 28px', textAlign: 'center' }}>
+            <div key={i} style={{ backgroundColor: '#000', padding: mobile ? '24px 16px' : '36px 28px', textAlign: 'center' }}>
               <div style={{ fontSize: 'clamp(36px, 4vw, 56px)', fontWeight: 700, color: '#fff', letterSpacing: '-0.04em', lineHeight: 1, marginBottom: 6 }}>
                 {h.value}<span style={{ color: CYAN }}>{h.unit}</span>
               </div>
@@ -283,7 +295,7 @@ export default function ProductDemo() {
       </section>
 
       {/* ── Lifestyle split ── */}
-      <section style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', minHeight: '70vh' }}>
+      <section style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1fr 1fr', minHeight: mobile ? 'auto' : '70vh' }}>
         {/* Image */}
         <div style={{ position: 'relative', overflow: 'hidden' }}>
           <img
@@ -295,7 +307,7 @@ export default function ProductDemo() {
         </div>
 
         {/* Text */}
-        <div style={{ backgroundColor: '#000', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '56px 48px' }}>
+        <div style={{ backgroundColor: '#000', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: mobile ? '36px 20px' : '56px 48px' }}>
           <p style={{ fontSize: 11, color: CYAN, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 14 }}>Active Noise Cancellation</p>
           <h2 style={{ fontSize: 'clamp(26px, 3vw, 42px)', fontWeight: 700, color: '#f5f5f7', lineHeight: 1.06, letterSpacing: '-0.025em', marginBottom: 16 }}>
             Silence the world.<br />Hear only what matters.
@@ -315,7 +327,7 @@ export default function ProductDemo() {
       </section>
 
       {/* ── Battery section ── */}
-      <section style={{ backgroundColor: '#111', padding: '72px 48px', textAlign: 'center', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+      <section style={{ backgroundColor: '#111', padding: mobile ? '48px 20px' : '72px 48px', textAlign: 'center', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
         <p style={{ fontSize: 11, color: CYAN, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 14 }}>Battery Life</p>
         <h2 style={{ fontSize: 'clamp(32px, 6vw, 76px)', fontWeight: 700, color: '#f5f5f7', lineHeight: 1, letterSpacing: '-0.04em', marginBottom: 16 }}>
           40 hours.<br /><span style={{ color: 'rgba(245,245,247,0.3)' }}>Not a typo.</span>
@@ -326,7 +338,7 @@ export default function ProductDemo() {
       </section>
 
       {/* ── Specs ── */}
-      <section style={{ borderTop: '1px solid rgba(255,255,255,0.06)', backgroundColor: '#000', padding: '64px 48px' }}>
+      <section style={{ borderTop: '1px solid rgba(255,255,255,0.06)', backgroundColor: '#000', padding: mobile ? '40px 20px' : '64px 48px' }}>
         <div style={{ maxWidth: 720, margin: '0 auto' }}>
           <h2 style={{ fontSize: 32, fontWeight: 700, color: '#f5f5f7', letterSpacing: '-0.025em', marginBottom: 36, textAlign: 'center' }}>Tech specs</h2>
           {SPECS.map((spec, i) => (
@@ -343,7 +355,7 @@ export default function ProductDemo() {
       </section>
 
       {/* ── Reviews ── */}
-      <section style={{ borderTop: '1px solid rgba(255,255,255,0.06)', position: 'relative', padding: '64px 48px', overflow: 'hidden' }}>
+      <section style={{ borderTop: '1px solid rgba(255,255,255,0.06)', position: 'relative', padding: mobile ? '40px 20px' : '64px 48px', overflow: 'hidden' }}>
         {/* Background image */}
         <img
           src="/imgs/apex-crowd.png"
@@ -354,7 +366,7 @@ export default function ProductDemo() {
         <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.82)' }} />
         <div style={{ maxWidth: 1100, margin: '0 auto', position: 'relative', zIndex: 1 }}>
           <h2 style={{ fontSize: 30, fontWeight: 700, color: '#f5f5f7', letterSpacing: '-0.025em', marginBottom: 36, textAlign: 'center' }}>People love it.</h2>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 2, backgroundColor: 'rgba(255,255,255,0.06)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : 'repeat(3,1fr)', gap: 2, backgroundColor: 'rgba(255,255,255,0.06)' }}>
             {REVIEWS.map((r, i) => (
               <div key={i} style={{ backgroundColor: '#000', padding: '28px 28px' }}>
                 <div style={{ display: 'flex', gap: 3, marginBottom: 14 }}>
@@ -371,7 +383,7 @@ export default function ProductDemo() {
       </section>
 
       {/* ── Order ── */}
-      <section style={{ backgroundColor: '#000', borderTop: '1px solid rgba(255,255,255,0.06)', padding: '72px 48px', textAlign: 'center' }}>
+      <section style={{ backgroundColor: '#000', borderTop: '1px solid rgba(255,255,255,0.06)', padding: mobile ? '48px 20px' : '72px 48px', textAlign: 'center' }}>
         <p style={{ fontSize: 12, color: 'rgba(245,245,247,0.45)', letterSpacing: '0.02em', marginBottom: 12 }}>Apex Pro · 3rd Generation</p>
         <h2 style={{ fontSize: 'clamp(32px, 5vw, 64px)', fontWeight: 700, color: '#f5f5f7', letterSpacing: '-0.03em', lineHeight: 1.02, marginBottom: 8 }}>
           From <span style={{ color: CYAN }}>$249.</span>
@@ -393,11 +405,11 @@ export default function ProductDemo() {
       </section>
 
       {/* ── Footer ── */}
-      <footer style={{ borderTop: '1px solid rgba(255,255,255,0.08)', padding: '18px 48px', backgroundColor: '#111' }}>
-        <div style={{ maxWidth: 1100, margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <footer style={{ borderTop: '1px solid rgba(255,255,255,0.08)', padding: mobile ? '16px 20px' : '18px 48px', backgroundColor: '#111' }}>
+        <div style={{ maxWidth: 1100, margin: '0 auto', display: 'flex', flexDirection: mobile ? 'column' : 'row', gap: mobile ? 6 : 0, justifyContent: 'space-between', alignItems: 'center' }}>
           <span style={{ fontSize: 14, fontWeight: 700, letterSpacing: 3, color: 'rgba(245,245,247,0.2)' }}>APEX</span>
           <p style={{ fontSize: 12, color: 'rgba(245,245,247,0.18)' }}>© 2026 Apex Audio · Demo by Designs by TA</p>
-          <div style={{ display: 'flex', gap: 20 }}>
+          <div style={{ display: mobile ? 'none' : 'flex', gap: 20 }}>
             {['Privacy', 'Warranty', 'Contact'].map(link => (
               <a key={link} href="#" style={{ fontSize: 12, color: 'rgba(245,245,247,0.2)', textDecoration: 'none' }}>{link}</a>
             ))}

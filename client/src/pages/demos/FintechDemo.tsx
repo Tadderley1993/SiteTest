@@ -3,6 +3,17 @@ import { Shield, Zap, Globe, BarChart3, ArrowRight, CheckCircle, Star, CreditCar
 import { ShimmerButton } from '@/components/ui/shimmer-button'
 import { Button } from '@/components/ui/button'
 
+// ── Mobile hook ───────────────────────────────────────────────────────────────
+function useIsMobile() {
+  const [m, setM] = useState(() => typeof window !== 'undefined' ? window.innerWidth < 768 : false)
+  useEffect(() => {
+    const h = () => setM(window.innerWidth < 768)
+    window.addEventListener('resize', h)
+    return () => window.removeEventListener('resize', h)
+  }, [])
+  return m
+}
+
 // ── Tokens ────────────────────────────────────────────────────────────────────
 const BG           = '#090F1E'
 const BLUE         = '#1D6AFF'
@@ -220,6 +231,7 @@ function BauhausProductCard({ p, delay = '0s' }: { p: ProductShape; delay?: stri
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function FintechDemo() {
+  const mobile = useIsMobile()
   const [activeTab, setActiveTab] = useState('checking')
 
   return (
@@ -229,7 +241,7 @@ export default function FintechDemo() {
       <nav style={{
         position: 'fixed', top: 0, left: 0, right: 0, zIndex: 50,
       }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 32px', height: 52, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto', padding: mobile ? '0 16px' : '0 32px', height: 52, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <div style={{ width: 26, height: 26, borderRadius: 7, backgroundColor: BLUE, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Zap size={13} color="#fff" />
@@ -237,7 +249,7 @@ export default function FintechDemo() {
             <span style={{ fontFamily: FONT_DISPLAY, fontSize: 18, letterSpacing: 2, color: '#fff' }}>NexaBank</span>
           </div>
 
-          <div style={{ display: 'flex', gap: 28 }}>
+          <div style={{ display: mobile ? 'none' : 'flex', gap: 28 }}>
             {NAV_LINKS.map(link => (
               <a
                 key={link} href="#"
@@ -272,7 +284,7 @@ export default function FintechDemo() {
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(9,15,30,0.9) 0%, transparent 55%)' }} />
 
         {/* Content card */}
-        <div style={{ position: 'relative', zIndex: 2, maxWidth: 1200, margin: '0 auto', padding: '0 48px', width: '100%' }}>
+        <div style={{ position: 'relative', zIndex: 2, maxWidth: 1200, margin: '0 auto', padding: mobile ? '0 20px' : '0 48px', width: '100%' }}>
           <div style={{ maxWidth: 580 }}>
             <h1 style={{ fontFamily: FONT_DISPLAY, fontSize: 'clamp(40px, 5.5vw, 72px)', lineHeight: 0.93, color: '#fff', marginBottom: 16, letterSpacing: 2 }}>
               Banking Built<br />
@@ -301,7 +313,7 @@ export default function FintechDemo() {
 
       {/* ── Trust bar (Capital One FDIC banner style) ── */}
       <div style={{ backgroundColor: 'rgba(29,106,255,0.07)', borderBottom: '1px solid rgba(29,106,255,0.14)', padding: '13px 32px' }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', justifyContent: 'center', gap: 48 }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: mobile ? 16 : 48 }}>
           {TRUST_ITEMS.map((item, i) => (
             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <CheckCircle size={13} color={BLUE} />
@@ -313,7 +325,7 @@ export default function FintechDemo() {
 
       {/* ── Tab navigation + Product cards ── */}
       <section style={{ backgroundColor: 'rgba(255,255,255,0.012)', borderBottom: `1px solid ${BORDER}` }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 32px' }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto', padding: mobile ? '0 12px' : '0 32px' }}>
 
           {/* Eyebrow */}
           <div style={{ paddingTop: 36, paddingBottom: 0, textAlign: 'center' }}>
@@ -334,7 +346,7 @@ export default function FintechDemo() {
                   style={{
                     background: 'none', border: 'none', cursor: 'pointer', fontFamily: FONT_BODY,
                     display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
-                    padding: '14px 36px 12px',
+                    padding: mobile ? '10px 14px 8px' : '14px 36px 12px',
                     color: active ? TEXT : MUTED,
                     borderBottom: active ? `2px solid ${BLUE}` : '2px solid transparent',
                     marginBottom: -1,
@@ -357,7 +369,7 @@ export default function FintechDemo() {
           </div>
 
           {/* Product cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 16, padding: '24px 0 32px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : 'repeat(2,1fr)', gap: 16, padding: '24px 0 32px' }}>
             {(PRODUCTS[activeTab] ?? []).map((p, i) => (
               <BauhausProductCard key={`${activeTab}-${i}`} p={p} delay={`${i * 0.5}s`} />
             ))}
@@ -367,9 +379,9 @@ export default function FintechDemo() {
 
       {/* ── Stats bar ── */}
       <div style={{ borderBottom: `1px solid ${BORDER}`, backgroundColor: 'rgba(255,255,255,0.018)' }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(4,1fr)' }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto', display: 'grid', gridTemplateColumns: mobile ? 'repeat(2,1fr)' : 'repeat(4,1fr)' }}>
           {STATS.map((s, i) => (
-            <div key={i} style={{ padding: '28px 16px', borderRight: i < 3 ? `1px solid ${BORDER}` : 'none', textAlign: 'center' }}>
+            <div key={i} style={{ padding: '20px 12px', borderRight: (!mobile && i < 3) ? `1px solid ${BORDER}` : 'none', textAlign: 'center' }}>
               <div style={{ fontFamily: FONT_DISPLAY, fontSize: 36, color: BLUE, lineHeight: 1, marginBottom: 4 }}>{s.value}</div>
               <div style={{ fontSize: 11, color: DIM, letterSpacing: '0.03em' }}>{s.label}</div>
             </div>
@@ -378,7 +390,7 @@ export default function FintechDemo() {
       </div>
 
       {/* ── Features ── */}
-      <section style={{ maxWidth: 1200, margin: '0 auto', padding: '60px 32px' }}>
+      <section style={{ maxWidth: 1200, margin: '0 auto', padding: mobile ? '40px 16px' : '60px 32px' }}>
         <div style={{ textAlign: 'center', marginBottom: 36 }}>
           <span style={{ fontSize: 10, color: BLUE, letterSpacing: '0.2em', textTransform: 'uppercase' }}>Everything you need</span>
           <h2 style={{ fontFamily: FONT_DISPLAY, fontSize: 'clamp(28px, 3.5vw, 44px)', color: '#fff', marginTop: 8, letterSpacing: 1, lineHeight: 0.95 }}>
@@ -386,7 +398,7 @@ export default function FintechDemo() {
           </h2>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : 'repeat(2,1fr)', gap: 16 }}>
           {FEATURES.map((f, i) => (
             <div
               key={i}
@@ -418,12 +430,12 @@ export default function FintechDemo() {
       </section>
 
       {/* ── Pricing CTA ── */}
-      <section style={{ maxWidth: 1200, margin: '0 auto', padding: '0 32px 60px' }}>
+      <section style={{ maxWidth: 1200, margin: '0 auto', padding: mobile ? '0 16px 40px' : '0 32px 60px' }}>
         <div style={{
           background: 'linear-gradient(135deg, rgba(29,106,255,0.14) 0%, rgba(29,106,255,0.04) 100%)',
           border: '1px solid rgba(29,106,255,0.2)',
-          borderRadius: 20, padding: '44px 52px',
-          display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 40, alignItems: 'center',
+          borderRadius: 20, padding: mobile ? '28px 20px' : '44px 52px',
+          display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1fr 1fr', gap: mobile ? 24 : 40, alignItems: 'center',
         }}>
           <div>
             <span style={{ fontSize: 10, color: '#5B96FF', letterSpacing: '0.2em', textTransform: 'uppercase' }}>Pro Plan · $9/month</span>
@@ -450,7 +462,7 @@ export default function FintechDemo() {
       </section>
 
       {/* ── Testimonials ── */}
-      <section style={{ borderTop: `1px solid ${BORDER}`, backgroundColor: 'rgba(255,255,255,0.018)', padding: '56px 32px' }}>
+      <section style={{ borderTop: `1px solid ${BORDER}`, backgroundColor: 'rgba(255,255,255,0.018)', padding: mobile ? '36px 16px' : '56px 32px' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: 32 }}>
             <span style={{ fontSize: 10, color: BLUE, letterSpacing: '0.2em', textTransform: 'uppercase' }}>What people are saying</span>
@@ -459,7 +471,7 @@ export default function FintechDemo() {
             </h2>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : 'repeat(3,1fr)', gap: 16 }}>
             {TESTIMONIALS.map((t, i) => (
               <div key={i} style={{ backgroundColor: CARD_BG, border: `1px solid ${BORDER}`, borderRadius: 16, padding: 24 }}>
                 <div style={{ display: 'flex', gap: 3, marginBottom: 12 }}>
@@ -477,8 +489,8 @@ export default function FintechDemo() {
       </section>
 
       {/* ── Footer ── */}
-      <footer style={{ borderTop: `1px solid ${BORDER}`, padding: '24px 32px' }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <footer style={{ borderTop: `1px solid ${BORDER}`, padding: mobile ? '20px 16px' : '24px 32px' }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', flexDirection: mobile ? 'column' : 'row', gap: mobile ? 8 : 0, justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <div style={{ width: 22, height: 22, borderRadius: 6, backgroundColor: BLUE, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Zap size={11} color="#fff" />
@@ -486,7 +498,7 @@ export default function FintechDemo() {
             <span style={{ fontFamily: FONT_DISPLAY, fontSize: 16, letterSpacing: 2, color: 'rgba(232,237,245,0.3)' }}>NexaBank</span>
           </div>
           <p style={{ fontSize: 12, color: DIM }}>© 2026 NexaBank · Demo by Designs by TA · FDIC Insured · Member SIPC</p>
-          <div style={{ display: 'flex', gap: 20 }}>
+          <div style={{ display: mobile ? 'none' : 'flex', gap: 20 }}>
             {['Privacy', 'Terms', 'Security', 'Support'].map(link => (
               <a key={link} href="#" style={{ fontSize: 12, color: DIM, textDecoration: 'none' }}
                 onMouseEnter={e => (e.currentTarget.style.color = MUTED)}

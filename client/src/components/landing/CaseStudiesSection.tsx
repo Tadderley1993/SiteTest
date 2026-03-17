@@ -110,6 +110,8 @@ export default function CaseStudiesSection() {
       className="relative h-screen w-full flex flex-col items-center justify-center bg-background overflow-hidden"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
+      onTouchStart={() => setPaused(true)}
+      onTouchEnd={() => setTimeout(() => setPaused(false), 2000)}
     >
       <ShootingStars minDelay={1400} maxDelay={4000} minSpeed={8} maxSpeed={22} />
       {/* Ambient glow */}
@@ -188,7 +190,17 @@ export default function CaseStudiesSection() {
 
           {/* ── RIGHT: stacked detail cards ── */}
           <div className="flex-1 relative flex items-center justify-center py-6 lg:py-10 px-6 lg:px-10 overflow-hidden lg:border-l border-white/[0.06] bg-background">
-            <div className="relative w-full max-w-[360px]" style={{ height: 340 }}>
+            <motion.div
+              className="relative w-full max-w-[360px]"
+              style={{ height: 340, touchAction: 'pan-y' }}
+              drag="x"
+              dragConstraints={{ left: 0, right: 0 }}
+              dragElastic={0.15}
+              onDragEnd={(_, info) => {
+                if (info.offset.x < -50) setStep(s => s + 1)
+                else if (info.offset.x > 50) setStep(s => s - 1)
+              }}
+            >
               {cases.map((item, i) => {
                 const status   = cardStatus(i)
                 const isActive = status === 'active'
@@ -283,7 +295,7 @@ export default function CaseStudiesSection() {
                   </motion.div>
                 )
               })}
-            </div>
+            </motion.div>
           </div>
 
         </div>
