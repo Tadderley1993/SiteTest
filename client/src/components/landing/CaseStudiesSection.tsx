@@ -126,10 +126,10 @@ export default function CaseStudiesSection() {
 
       {/* ── Carousel container ── */}
       <div className="relative z-10 w-full max-w-6xl mx-auto px-6 sm:px-10 lg:px-20">
-        <div className="relative overflow-hidden rounded-3xl flex flex-col lg:flex-row border border-white/[0.08]" style={{ minHeight: 480 }}>
+        <div className="relative overflow-hidden rounded-3xl flex flex-col lg:flex-row border border-white/[0.08]" style={{ minHeight: 360 }}>
 
-          {/* ── LEFT: vertical chip list ── */}
-          <div className="w-full lg:w-[38%] relative z-30 flex flex-col items-start justify-center overflow-hidden px-8 lg:px-10 py-10 bg-[#0a0c10]">
+          {/* ── LEFT: vertical chip list (desktop only) ── */}
+          <div className="hidden lg:flex w-full lg:w-[38%] relative z-30 flex-col items-start justify-center overflow-hidden px-8 lg:px-10 py-10 bg-[#0a0c10]">
 
             {/* Fade masks */}
             <div className="absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-[#0a0c10] to-transparent z-40 pointer-events-none" />
@@ -187,8 +187,8 @@ export default function CaseStudiesSection() {
           </div>
 
           {/* ── RIGHT: stacked detail cards ── */}
-          <div className="flex-1 relative flex items-center justify-center py-10 px-6 lg:px-10 overflow-hidden border-t lg:border-t-0 lg:border-l border-white/[0.06] bg-background">
-            <div className="relative w-full max-w-[360px]" style={{ height: 380 }}>
+          <div className="flex-1 relative flex items-center justify-center py-6 lg:py-10 px-6 lg:px-10 overflow-hidden lg:border-l border-white/[0.06] bg-background">
+            <div className="relative w-full max-w-[360px]" style={{ height: 340 }}>
               {cases.map((item, i) => {
                 const status   = cardStatus(i)
                 const isActive = status === 'active'

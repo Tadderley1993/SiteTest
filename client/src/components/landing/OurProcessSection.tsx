@@ -115,10 +115,10 @@ export default function OurProcessSection() {
         <span className="font-body text-white/50 text-xs tracking-[0.25em] uppercase">Our Process</span>
       </div>
 
-      <div className="relative z-10 w-full max-w-6xl mx-auto px-6 sm:px-14 lg:px-20 grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+      <div className="relative z-10 w-full max-w-6xl mx-auto px-6 sm:px-14 lg:px-20 grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-20 items-center">
 
         {/* Left — static heading */}
-        <div className="flex flex-col items-start gap-6">
+        <div className="flex flex-col items-start gap-4 lg:gap-6">
           {/* Badge */}
           <div
             className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border text-xs font-medium tracking-[0.18em] uppercase"
@@ -136,7 +136,7 @@ export default function OurProcessSection() {
             From first conversation to lasting growth.
           </h2>
 
-          <p className="font-body text-text-muted text-sm leading-relaxed max-w-sm">
+          <p className="hidden lg:block font-body text-text-muted text-sm leading-relaxed max-w-sm">
             Every engagement follows the same five-step framework: built to minimize risk, maximize output, and keep you informed at every stage.
           </p>
 
@@ -169,7 +169,14 @@ export default function OurProcessSection() {
                 animate="center"
                 exit="exit"
                 transition={{ type: 'spring', stiffness: 280, damping: 28, mass: 0.8 }}
-                className="relative rounded-2xl border border-white/[0.08] bg-white/[0.03] backdrop-blur-xl overflow-hidden p-5 flex flex-col gap-4"
+                drag="x"
+                dragConstraints={{ left: 0, right: 0 }}
+                dragElastic={0.2}
+                onDragEnd={(_, info) => {
+                  if (info.offset.x < -50) go(current + 1)
+                  else if (info.offset.x > 50) go(current - 1)
+                }}
+                className="relative rounded-2xl border border-white/[0.08] bg-white/[0.03] backdrop-blur-xl overflow-hidden p-5 flex flex-col gap-4 cursor-grab active:cursor-grabbing"
               >
                 {/* Top color streak */}
                 <div

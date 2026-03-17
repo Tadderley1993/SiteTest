@@ -90,7 +90,7 @@ export default function ExampleProjectsSection() {
       </div>
 
       {/* Content */}
-      <div className="relative z-10 w-full overflow-hidden px-6 sm:px-14 lg:px-20 py-14">
+      <div className="relative z-10 w-full overflow-hidden px-6 sm:px-14 lg:px-20 py-8 lg:py-14">
         <AnimatePresence mode="wait" custom={direction}>
           <motion.div
             key={current}
@@ -100,7 +100,14 @@ export default function ExampleProjectsSection() {
             animate="center"
             exit="exit"
             transition={{ type: 'tween', duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
-            className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center max-w-6xl mx-auto"
+            drag="x"
+            dragConstraints={{ left: 0, right: 0 }}
+            dragElastic={0.2}
+            onDragEnd={(_, info) => {
+              if (info.offset.x < -50) go(current + 1)
+              else if (info.offset.x > 50) go(current - 1)
+            }}
+            className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10 items-center max-w-6xl mx-auto"
           >
             {/* Left — info */}
             <div>
@@ -121,7 +128,7 @@ export default function ExampleProjectsSection() {
               </div>
 
               <p className="font-body text-text-muted text-xs tracking-[0.2em] uppercase mb-3">{p.category}</p>
-              <h2 className="font-body font-semibold text-[clamp(2.5rem,5vw,4.5rem)] text-white leading-[1.0] tracking-tight mb-4">
+              <h2 className="font-body font-semibold text-[clamp(2rem,5vw,4.5rem)] text-white leading-[1.0] tracking-tight mb-3">
                 {p.name}
               </h2>
               <p className="font-body text-text-muted text-sm leading-relaxed mb-6">{p.description}</p>
@@ -149,8 +156,8 @@ export default function ExampleProjectsSection() {
               </a>
             </div>
 
-            {/* Right — browser mockup */}
-            <div>
+            {/* Right — browser mockup (hidden on mobile) */}
+            <div className="hidden md:block">
               <div
                 className="rounded-2xl overflow-hidden border border-white/[0.12] shadow-2xl backdrop-blur-sm"
                 style={{ boxShadow: `0 0 80px ${p.color}18` }}
