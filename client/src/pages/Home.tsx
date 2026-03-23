@@ -159,19 +159,6 @@ function ShuffleWord({ children }: { children: string }) {
   )
 }
 
-// ── Horizontal reveal line ──────────────────────────────────────────
-function _RevealLine({ className = '' }: { className?: string }) {
-  return (
-    <motion.div
-      className={`h-px bg-[rgba(0,0,0,0.1)] origin-left ${className}`}
-      initial={{ scaleX: 0 }}
-      whileInView={{ scaleX: 1 }}
-      viewport={{ once: true }}
-      transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
-    />
-  )
-}
-
 // ── Web Design icon (UX/UI monitor) ──────────────────────────────────
 function WebDesignIcon() {
   return (
@@ -222,25 +209,6 @@ const imgIcon = (src: string) => (active: boolean) => (
     }}
   />
 )
-
-// ── SEO icon ──────────────────────────────────────────────────────────
-function _SeoIcon() {
-  return (
-    <svg viewBox="0 0 512 512" width="120" height="120" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-      {/* S */}
-      <text x="0" y="375" fontSize="220" fontWeight="900" fontFamily="Arial Black, Arial, sans-serif">S</text>
-      {/* E */}
-      <text x="126" y="375" fontSize="220" fontWeight="900" fontFamily="Arial Black, Arial, sans-serif">E</text>
-      {/* Magnifying glass ring — acts as the O */}
-      <path fillRule="evenodd" d="
-        M405 84 C462 84 508 130 508 187 C508 244 462 290 405 290 C348 290 302 244 302 187 C302 130 348 84 405 84 Z
-        M405 127 C372 127 345 154 345 187 C345 220 372 247 405 247 C438 247 465 220 465 187 C465 154 438 127 405 127 Z
-      " />
-      {/* Handle */}
-      <line x1="480" y1="272" x2="506" y2="400" stroke="currentColor" strokeWidth="42" strokeLinecap="round" />
-    </svg>
-  )
-}
 
 // ── E-Commerce icon ───────────────────────────────────────────────────
 function EcommerceIcon() {
@@ -404,90 +372,6 @@ function ServiceSlideCard({
         )}
       </AnimatePresence>
     </motion.div>
-  )
-}
-
-// ── Services carousel ─────────────────────────────────────────────────
-function _ServicesSlider() {
-  const [active, setActive] = useState(0)
-  const prev = () => setActive(i => (i - 1 + SERVICES.length) % SERVICES.length)
-  const next = () => setActive(i => (i + 1) % SERVICES.length)
-
-  // Shortest-path position relative to active index
-  const getPos = (i: number) => {
-    let diff = i - active
-    const half = Math.floor(SERVICES.length / 2)
-    while (diff > half)  diff -= SERVICES.length
-    while (diff < -half) diff += SERVICES.length
-    return diff
-  }
-
-  const ArrowBtn = ({ onClick, children }: { onClick: () => void; children: React.ReactNode }) => (
-    <button
-      type="button"
-      onClick={onClick}
-      style={{
-        width: 38, height: 38,
-        border: '1px solid rgba(255,255,255,0.10)',
-        background: 'transparent',
-        color: '#F5F0E8', fontSize: 18,
-        cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        transition: 'border-color 0.2s, color 0.2s',
-        flexShrink: 0,
-      }}
-      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(198,168,75,0.55)'; (e.currentTarget as HTMLElement).style.color = '#C6A84B' }}
-      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.10)'; (e.currentTarget as HTMLElement).style.color = '#F5F0E8' }}
-    >{children}</button>
-  )
-
-  return (
-    <div>
-      {/* Header */}
-      <div className="flex items-end justify-between mb-8">
-        <div>
-          <SectionLabel number="01" label="What We Build" className="mb-3" />
-          <AnimatedHeading
-            text="Everything your brand needs to win online."
-            className="text-h2 font-medium tracking-tighter text-text-primary max-w-lg"
-          />
-        </div>
-        <Link to="/services" className="text-[13px] font-semibold tracking-[0.06em] uppercase text-accent hover:text-accent-dim transition-colors shrink-0 mb-1">
-          All services →
-        </Link>
-      </div>
-
-      {/* Carousel */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-        <ArrowBtn onClick={prev}>←</ArrowBtn>
-
-        {/* Clipping window — only 3 cards wide */}
-        <div style={{
-          position: 'relative',
-          flex: 1,
-          height: 340,
-          overflow: 'hidden',
-        }}>
-          {SERVICES.map((service, i) => (
-            <ServiceSlideCard
-              key={i}
-              service={service}
-              pos={getPos(i)}
-              onPrev={prev}
-              onNext={next}
-            />
-          ))}
-        </div>
-
-        <ArrowBtn onClick={next}>→</ArrowBtn>
-      </div>
-
-      {/* Counter */}
-      <div style={{ textAlign: 'center', marginTop: 20 }}>
-        <span style={{ fontSize: 11, color: 'rgba(245,240,232,0.28)', letterSpacing: '0.1em', fontVariantNumeric: 'tabular-nums' }}>
-          {String(active + 1).padStart(2, '0')} / {String(SERVICES.length).padStart(2, '0')}
-        </span>
-      </div>
-    </div>
   )
 }
 
