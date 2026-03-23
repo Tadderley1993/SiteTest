@@ -79,7 +79,7 @@ export default function Step3Details({
           <input
             type="text"
             value={budget}
-            onChange={(e) => onBudgetChange(e.target.value)}
+            onChange={(e) => onBudgetChange(e.target.value.replace(/[^\d,]/g, ''))}
             className={`${inputCls} pl-8`}
             placeholder="10,000"
           />

@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { Monitor, Smartphone, Palette, RefreshCw, Megaphone } from 'lucide-react'
+import { Monitor, Smartphone, Palette, RefreshCw, Megaphone, Search } from 'lucide-react'
 import { HoverBorderGradient } from '../ui/HoverBorderGradient'
 
 const services = [
@@ -8,6 +8,7 @@ const services = [
   { id: 'brand', label: 'Brand Identity', icon: Palette },
   { id: 'revamp', label: 'Identity Revamp', icon: RefreshCw },
   { id: 'marketing', label: 'Marketing Material', icon: Megaphone },
+  { id: 'seo', label: 'SEO Optimization', icon: Search },
 ]
 
 interface Props {

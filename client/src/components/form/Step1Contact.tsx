@@ -78,7 +78,18 @@ export default function Step1Contact({ data, onChange, onNext, errors }: Props) 
         <input
           type="tel"
           value={data.phone}
-          onChange={(e) => onChange('phone', e.target.value)}
+          onChange={(e) => {
+            const digits = e.target.value.replace(/\D/g, '').slice(0, 10)
+            let formatted = ''
+            if (digits.length <= 3) {
+              formatted = digits.length ? `(${digits}` : ''
+            } else if (digits.length <= 6) {
+              formatted = `(${digits.slice(0, 3)}) ${digits.slice(3)}`
+            } else {
+              formatted = `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`
+            }
+            onChange('phone', formatted)
+          }}
           className={inputCls}
           placeholder="(555) 123-4567"
         />

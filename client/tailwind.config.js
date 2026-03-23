@@ -7,19 +7,28 @@ export default {
   theme: {
     extend: {
       colors: {
-        background: '#000000',
-        surface: 'rgba(255,255,255,0.03)',
-        border: 'rgba(255,255,255,0.08)',
-        accent: '#ffffff',
-        'accent-secondary': '#8a8f98',
-        'text-primary': '#ffffff',
-        'text-muted': '#8a8f98',
-        'slate-grey': '#1a1c23',
-        'cool-grey': '#8a8f98',
+        background:         '#F0EBE3',
+        surface:            'rgba(0,0,0,0.03)',
+        border:             'rgba(0,0,0,0.08)',
+        accent:             '#C6A84B',
+        'accent-dim':       '#A08030',
+        'accent-secondary': '#A08030',
+        'text-primary':     '#1C1917',
+        'text-muted':       '#78706A',
+        'gold-glow':        'rgba(198,168,75,0.15)',
+        // Admin dark theme stays explicit in admin components
+        'admin-bg':         '#08090D',
       },
       fontFamily: {
-        display: ['General Sans', 'sans-serif'],
-        body: ['General Sans', 'sans-serif'],
+        sans:    ['Satoshi', 'sans-serif'],
+        display: ['Satoshi', 'sans-serif'],
+        body:    ['Satoshi', 'sans-serif'],
+      },
+      fontSize: {
+        'display': ['clamp(56px,8vw,96px)',  { lineHeight: '1.05', fontWeight: '900' }],
+        'h1':      ['clamp(40px,5vw,64px)',  { lineHeight: '1.1',  fontWeight: '700' }],
+        'h2':      ['clamp(28px,3.5vw,44px)',{ lineHeight: '1.2',  fontWeight: '700' }],
+        'h3':      ['clamp(18px,2vw,24px)',  { lineHeight: '1.3',  fontWeight: '500' }],
       },
       backdropBlur: {
         xl: '24px',
@@ -34,10 +43,15 @@ export default {
           '65%, 85%': { transform: 'translateZ(0) rotate(270deg)' },
           '100%':     { transform: 'translateZ(0) rotate(360deg)' },
         },
+        'fade-up': {
+          '0%':   { opacity: '0', transform: 'translateY(24px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
       },
       animation: {
         'shimmer-slide': 'shimmer-slide var(--speed) ease-in-out infinite alternate',
         'spin-around':   'spin-around calc(var(--speed) * 2) infinite linear',
+        'fade-up':       'fade-up 0.6s ease forwards',
       },
     },
   },

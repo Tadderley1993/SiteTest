@@ -1,12 +1,25 @@
 import { useEffect } from 'react'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
+import { HelmetProvider } from 'react-helmet-async'
 import { AuthProvider } from './context/AuthContext'
+import PublicLayout from './components/layout/PublicLayout'
 import Home from './pages/Home'
 import Admin from './pages/Admin'
 import FintechDemo from './pages/demos/FintechDemo'
 import RestaurantDemo from './pages/demos/RestaurantDemo'
 import ProductDemo from './pages/demos/ProductDemo'
 import SignProposal from './pages/SignProposal'
+import WhyChooseMe from './pages/WhyChooseMe'
+import About from './pages/About'
+import Services from './pages/Services'
+import Portfolio from './pages/Portfolio'
+import CaseStudies from './pages/CaseStudies'
+
+function ScrollToTop() {
+  const { pathname } = useLocation()
+  useEffect(() => { window.scrollTo(0, 0) }, [pathname])
+  return null
+}
 
 function GtagInjector() {
   useEffect(() => {
@@ -31,19 +44,27 @@ function GtagInjector() {
 
 function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <GtagInjector />
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/admin" element={<Admin />} />
-          <Route path="/demo/fintech" element={<FintechDemo />} />
-          <Route path="/demo/restaurant" element={<RestaurantDemo />} />
-          <Route path="/demo/product" element={<ProductDemo />} />
-          <Route path="/sign/:token" element={<SignProposal />} />
-        </Routes>
-      </BrowserRouter>
-    </AuthProvider>
+    <HelmetProvider>
+      <AuthProvider>
+        <BrowserRouter>
+          <ScrollToTop />
+          <GtagInjector />
+          <Routes>
+            <Route path="/" element={<PublicLayout><Home /></PublicLayout>} />
+            <Route path="/why-choose-me" element={<PublicLayout><WhyChooseMe /></PublicLayout>} />
+            <Route path="/about" element={<PublicLayout><About /></PublicLayout>} />
+            <Route path="/services" element={<PublicLayout><Services /></PublicLayout>} />
+            <Route path="/portfolio" element={<PublicLayout><Portfolio /></PublicLayout>} />
+            <Route path="/case-studies" element={<PublicLayout><CaseStudies /></PublicLayout>} />
+            <Route path="/admin" element={<Admin />} />
+            <Route path="/demo/fintech" element={<FintechDemo />} />
+            <Route path="/demo/restaurant" element={<RestaurantDemo />} />
+            <Route path="/demo/product" element={<ProductDemo />} />
+            <Route path="/sign/:token" element={<SignProposal />} />
+          </Routes>
+        </BrowserRouter>
+      </AuthProvider>
+    </HelmetProvider>
   )
 }
 

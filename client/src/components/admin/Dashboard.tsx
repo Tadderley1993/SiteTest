@@ -78,7 +78,7 @@ export default function Dashboard({ onLogout }: Props) {
   )
 
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className="min-h-screen bg-[#08090D] flex">
       {/* Sidebar */}
       <aside className="w-56 border-r border-white/[0.08] flex flex-col py-6 px-3 flex-shrink-0">
         {/* Logo */}

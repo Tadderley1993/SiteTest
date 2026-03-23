@@ -1,4 +1,15 @@
 import { useState } from 'react'
+
+const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
+
+const DISPOSABLE_DOMAINS = new Set([
+  'mailinator.com', 'guerrillamail.com', 'temp-mail.org', 'throwaway.email',
+  'yopmail.com', 'maildrop.cc', 'fakeinbox.com', 'trashmail.com', 'trashmail.net',
+  'trashmail.me', 'tempinbox.com', 'sharklasers.com', 'guerrillamail.info',
+  'spam4.me', 'tempr.email', 'discard.email', 'getairmail.com', 'filzmail.com',
+  'getnada.com', 'mailnesia.com', 'mailnull.com', 'spamgourmet.com',
+  'spamgourmet.net', 'spamgourmet.org', 'spamhereplease.com',
+])
 import { AnimatePresence, motion } from 'framer-motion'
 import Step1Contact from './Step1Contact'
 import Step2Services from './Step2Services'
@@ -72,8 +83,13 @@ export default function FormPanel({ onComplete }: FormPanelProps) {
     if (!formData.firstName.trim()) e.firstName = 'Required'
     if (!formData.lastName.trim()) e.lastName = 'Required'
     if (!formData.email.trim()) e.email = 'Required'
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) e.email = 'Invalid email'
+    else if (!EMAIL_REGEX.test(formData.email)) e.email = 'Enter a valid email address'
+    else {
+      const domain = formData.email.split('@')[1]?.toLowerCase() ?? ''
+      if (DISPOSABLE_DOMAINS.has(domain)) e.email = 'Please use a valid business email'
+    }
     if (!formData.phone.trim()) e.phone = 'Required'
+    else if (formData.phone.replace(/\D/g, '').length !== 10) e.phone = 'Enter a valid 10-digit phone number'
     if (!formData.clientType) e.clientType = 'Please select an option'
     setErrors(e)
     return Object.keys(e).length === 0
@@ -91,6 +107,7 @@ export default function FormPanel({ onComplete }: FormPanelProps) {
     const e: FormErrors = {}
     if (!formData.teamSize) e.teamSize = 'Please select a team size'
     if (!formData.budget.trim()) e.budget = 'Required'
+    else if (!/^\d[\d,]*$/.test(formData.budget.trim())) e.budget = 'Enter numbers only (e.g. 10000)'
     setErrors(e)
     return Object.keys(e).length === 0
   }

@@ -52,7 +52,18 @@
       "Bash(echo:*)",
       "Bash(railway:*)",
       "Bash(RAILWAY_TOKEN=b472df11-6231-4412-b9d2-f67b1f611144 railway whoami 2>&1)",
-      "Bash(RAILWAY_TOKEN=642d6acc-9af1-4b46-90e4-1710eeb7cf8c railway whoami 2>&1)"
+      "Bash(RAILWAY_TOKEN=642d6acc-9af1-4b46-90e4-1710eeb7cf8c railway whoami 2>&1)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(find:*)",
+      "WebFetch(domain:testsitedbta.multiscreensite.com)",
+      "WebFetch(domain:www.lexus.com)",
+      "Bash(cp \"C:/Users/mlero/Downloads/brett-jordan-D44kHt8Ex14-unsplash.jpg\" \"C:/Users/mlero/OneDrive/Desktop/dta/client/public/imgs/svc-brand.jpg\")",
+      "Bash(cp \"C:/Users/mlero/Downloads/stephen-phillips-hostreviews-co-uk-shr_Xn8S8QU-unsplash.jpg\" \"C:/Users/mlero/OneDrive/Desktop/dta/client/public/imgs/svc-seo.jpg\")",
+      "Bash(cp \"C:/Users/mlero/Downloads/hal-gatewood-tZc3vjPCk-Q-unsplash.jpg\" \"C:/Users/mlero/OneDrive/Desktop/dta/client/public/imgs/svc-webdesign.jpg\")",
+      "Bash(cp \"C:/Users/mlero/Downloads/daniel-korpai-pKRNxEguRgM-unsplash.jpg\" \"C:/Users/mlero/OneDrive/Desktop/dta/client/public/imgs/svc-webdev.jpg\")",
+      "Bash(cp \"C:/Users/mlero/Downloads/vitaly-gariev-1JnN9QhmTGU-unsplash.jpg\" \"C:/Users/mlero/OneDrive/Desktop/dta/client/public/imgs/svc-ecomm.jpg\")"
     ]
   }
 }
