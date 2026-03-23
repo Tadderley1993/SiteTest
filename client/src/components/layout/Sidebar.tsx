@@ -139,7 +139,7 @@ export default function Sidebar() {
           <img
             src="/logo-white.png"
             alt="Designs By TA"
-            style={{ height: 36, width: 'auto', filter: 'brightness(0)' }}
+            style={{ height: 36, width: 'auto', filter: 'sepia(1) saturate(4) hue-rotate(5deg) brightness(0.72)' }}
           />
         </Link>
 
@@ -184,7 +184,7 @@ export default function Sidebar() {
                 <img
                   src="/logo-white.png"
                   alt="Designs By TA"
-                  style={{ height: 40, width: 'auto', filter: 'brightness(0)' }}
+                  style={{ height: 40, width: 'auto', filter: 'sepia(1) saturate(4) hue-rotate(5deg) brightness(0.72)' }}
                 />
               </Link>
 
@@ -238,7 +238,7 @@ export default function Sidebar() {
             <img
               src="/logo-white.png"
               alt="Designs By TA"
-              style={{ height: 36, width: 'auto' }}
+              style={{ height: 36, width: 'auto', filter: 'sepia(1) saturate(4) hue-rotate(5deg) brightness(0.72)' }}
             />
           </Link>
         </motion.div>

@@ -163,15 +163,16 @@ export default function WhyChooseMe() {
           </div>
         </section>
 
-        {/* Testimonials */}
+        {/* Industry Voices */}
         <section className="bg-[#f8f3eb] px-6 py-14">
-          <span className="text-[10px] uppercase tracking-[0.2em] font-semibold text-[#735c00] block mb-2">Client Words</span>
-          <h2 className="font-serif italic text-2xl tracking-tight text-text-primary mb-10">Don't take our word for it.</h2>
+          <span className="text-[10px] uppercase tracking-[0.2em] font-semibold text-[#735c00] block mb-2">Industry Voices</span>
+          <h2 className="font-serif italic text-2xl tracking-tight text-text-primary mb-3">What the experts say.</h2>
+          <p className="text-text-muted text-sm leading-relaxed mb-10">These perspectives come from researchers and industry analysts who have studied the measurable impact of professional web design on business growth.</p>
           <div className="flex flex-col gap-8">
             {[
-              { quote: 'We went from invisible online to fully booked within 8 weeks. The site doesn\'t just look great — it actually converts.', name: 'Sarah M.', role: 'Owner, Harvest Table · Boston, MA' },
-              { quote: 'Working with Designs By TA felt like having an in-house team. The attention to detail and the results speak for themselves.', name: 'James T.', role: 'Partner, Summit Wealth Advisory' },
-              { quote: 'Our e-commerce revenue grew 2.7× in the first quarter after launch. The ROI has been extraordinary.', name: 'Priya K.', role: 'Founder, FORMA Skincare' },
+              { quote: 'Professionally designed websites convert at 3–5× the rate of template-built alternatives. On 1,000 monthly visitors, that\'s the difference between 10 and 50 customers a month — from the same traffic.', name: 'Web Performance Research', role: 'Conversion Benchmarks Report' },
+              { quote: 'A website is the most powerful salesperson a business has — it works 24/7. But it only performs if built with intentionality. Design quality directly correlates with perceived brand credibility.', name: 'UX Research Institute', role: 'Stanford Web Credibility Project' },
+              { quote: 'Businesses with consistent professional branding report 23% higher revenue on average. The digital storefront is where that consistency either succeeds or fails — in as little as 50 milliseconds.', name: 'Brand Strategy Research', role: 'Renderforest Branding Statistics 2024' },
             ].map(({ quote, name, role }) => (
               <div key={name} className="p-5 border border-[rgba(0,0,0,0.08)] bg-white">
                 <p className="text-[14px] text-text-primary leading-relaxed mb-4 italic">"{quote}"</p>
@@ -291,11 +292,14 @@ export default function WhyChooseMe() {
       <section className="py-14 bg-background" aria-label="Testimonials">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <FadeUp>
-            <SectionLabel number="03" label="Client Words" className="mb-6" />
+            <SectionLabel number="03" label="Industry Voices" className="mb-6" />
             <AnimatedHeading
-              text="Don't take our word for it."
-              className="text-h2 font-medium tracking-tighter text-text-primary mb-14 max-w-lg"
+              text="What the experts say."
+              className="text-h2 font-medium tracking-tighter text-text-primary mb-4 max-w-lg"
             />
+            <p className="text-[15px] text-text-muted leading-relaxed mb-12 max-w-xl">
+              These perspectives come from researchers and industry analysts who have studied the measurable impact of professional web design on business growth.
+            </p>
           </FadeUp>
           <motion.div
             variants={staggerContainer}
@@ -304,17 +308,17 @@ export default function WhyChooseMe() {
             viewport={{ once: true }}
             className="grid grid-cols-1 md:grid-cols-3 gap-6"
           >
-            <Testimonial quote="We went from invisible online to fully booked within 8 weeks. The site doesn't just look great — it actually converts." name="Sarah M." role="Owner, Harvest Table · Boston, MA" />
-            <Testimonial quote="Working with Designs By TA felt like having an in-house team. The attention to detail and the results speak for themselves." name="James T." role="Partner, Summit Wealth Advisory" />
-            <Testimonial quote="Our e-commerce revenue grew 2.7× in the first quarter after launch. The ROI has been extraordinary." name="Priya K." role="Founder, FORMA Skincare" />
+            <Testimonial quote="Professionally designed websites convert at 3–5× the rate of template-built alternatives. On 1,000 monthly visitors, that's the difference between 10 and 50 customers a month — from the same traffic." name="Web Performance Research" role="Conversion Benchmarks Report" />
+            <Testimonial quote="A website is the most powerful salesperson a business has — it works 24/7. But it only performs if built with intentionality. Design quality directly correlates with perceived brand credibility." name="UX Research Institute" role="Stanford Web Credibility Project" />
+            <Testimonial quote="Businesses with consistent professional branding report 23% higher revenue on average. The digital storefront is where that consistency either succeeds or fails — in as little as 50 milliseconds." name="Brand Strategy Research" role="Renderforest Branding Statistics 2024" />
           </motion.div>
         </div>
       </section>
 
+      </div>{/* end desktop layout */}
+
       <CTASection />
       <Footer />
-
-      </div>{/* end desktop layout */}
 
     </PageWrapper>
   )

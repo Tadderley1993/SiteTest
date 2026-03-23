@@ -351,10 +351,10 @@ export default function CaseStudies() {
         </div>
       </section>
 
+      </div>{/* end desktop layout */}
+
       <CTASection />
       <Footer />
-
-      </div>{/* end desktop layout */}
 
     </PageWrapper>
   )

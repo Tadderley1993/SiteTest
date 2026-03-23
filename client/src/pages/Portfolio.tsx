@@ -124,7 +124,7 @@ export default function Portfolio() {
         {/* Editorial project grid */}
         <section className="px-6 pb-16 flex flex-col gap-16">
           {filtered.map((project, i) => (
-            <article key={project.name} className={`group ${i % 2 === 1 ? 'pl-6' : ''}`}>
+            <article key={project.name} className="group">
               <div className="aspect-[4/5] overflow-hidden bg-[#ece8e0] mb-5">
                 <img
                   src={
@@ -205,10 +205,10 @@ export default function Portfolio() {
         </div>
       </section>
 
+      </div>{/* end desktop layout */}
+
       <CTASection />
       <Footer />
-
-      </div>{/* end desktop layout */}
 
     </PageWrapper>
   )

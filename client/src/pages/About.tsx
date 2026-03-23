@@ -93,7 +93,6 @@ export default function About() {
           <a href="#start-project" className="inline-block bg-[#C6A84B] text-[#1C1917] px-10 py-4 font-bold text-xs tracking-widest uppercase hover:opacity-90 transition-opacity">
             Book a Consult
           </a>
-          <p className="mt-8 font-serif italic text-[rgba(255,255,255,0.6)] text-sm underline underline-offset-4">hello@designsbyta.com</p>
         </section>
 
       </div>
@@ -230,10 +229,10 @@ export default function About() {
         </div>
       </section>
 
+      </div>{/* end desktop layout */}
+
       <CTASection />
       <Footer />
-
-      </div>{/* end desktop layout */}
 
     </PageWrapper>
   )

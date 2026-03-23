@@ -161,38 +161,31 @@ export default function Services() {
 
         {/* Service cards — asymmetric editorial layout */}
         <section className="px-6 pb-16 flex flex-col gap-10">
-          {SERVICES.map((s, i) => {
-            const offset = i % 2 === 1
-            return (
+          {SERVICES.map((s, i) => (
               <div
                 key={s.num}
-                className={`p-8 flex flex-col gap-5 ${
-                  offset
-                    ? 'bg-white -mr-6 ml-3 shadow-[0_10px_30px_-10px_rgba(29,28,23,0.07)]'
-                    : 'bg-[#f8f3eb]'
-                }`}
+                className={`p-8 flex flex-col items-center gap-5 text-center ${i % 2 === 0 ? 'bg-[#f8f3eb]' : 'bg-white border border-[rgba(0,0,0,0.06)]'}`}
               >
-                <div className="flex justify-between items-start">
-                  <span className="text-[10px] uppercase tracking-widest font-semibold text-[#735c00]">{s.title}</span>
-                  <span className="font-serif italic text-3xl text-[rgba(127,118,101,0.25)]">{s.num}</span>
+                <div className="flex flex-col items-center gap-1">
+                  <span className="font-serif italic text-3xl text-[rgba(127,118,101,0.3)]">{s.num}</span>
+                  <span className="text-[11px] uppercase tracking-widest font-semibold text-[#735c00]">{s.title}</span>
                 </div>
                 <p className="text-text-muted text-sm leading-loose">{s.desc}</p>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-2 justify-center">
                   {s.deliverables.slice(0, 2).map(d => (
                     <span key={d} className="text-[10px] uppercase tracking-widest font-semibold text-text-muted border border-[rgba(0,0,0,0.1)] px-3 py-1">{d}</span>
                   ))}
                 </div>
-                <p className="font-serif italic text-sm text-[#735c00] border-t border-[rgba(0,0,0,0.06)] pt-4">
+                <p className="font-serif italic text-sm text-[#735c00] border-t border-[rgba(0,0,0,0.06)] pt-4 w-full text-center">
                   "{s.outcome}"
                 </p>
               </div>
-            )
-          })}
+          ))}
         </section>
 
         {/* Stats */}
         <section className="bg-[#f8f3eb] py-14 px-6">
-          <div className="flex gap-10 flex-wrap">
+          <div className="flex gap-10 flex-wrap justify-center">
             {[
               { stat: '6', label: 'Service disciplines' },
               { stat: '10+', label: 'Industries served' },
@@ -332,10 +325,10 @@ export default function Services() {
         </div>
       </section>
 
+      </div>{/* end desktop layout */}
+
       <CTASection />
       <Footer />
-
-      </div>{/* end desktop layout */}
 
     </PageWrapper>
   )

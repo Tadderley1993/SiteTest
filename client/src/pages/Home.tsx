@@ -459,12 +459,44 @@ export default function Home() {
           {/* Bottom gradient for text legibility */}
           <div className="absolute bottom-0 left-0 right-0 h-72 bg-gradient-to-t from-black/70 to-transparent pointer-events-none" />
 
+          {/* Mobile: DESIGN + POWER — vertical left edge, no padding, top to bottom */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 1, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
+            className="md:hidden absolute left-0 inset-y-0 flex flex-col justify-between pointer-events-none select-none overflow-hidden"
+            aria-hidden="true"
+          >
+            <span style={{
+              writingMode: 'vertical-lr',
+              fontSize: '8.5dvh',
+              fontWeight: 900,
+              letterSpacing: '-0.04em',
+              lineHeight: 1,
+              color: '#ffffff',
+              textShadow: '0 4px 12px rgba(0,0,0,0.5), 0 12px 40px rgba(0,0,0,0.35)',
+            }}>
+              DESIGN
+            </span>
+            <span style={{
+              writingMode: 'vertical-lr',
+              fontSize: '8.5dvh',
+              fontWeight: 900,
+              letterSpacing: '-0.04em',
+              lineHeight: 1,
+              color: '#C6A84B',
+              textShadow: '0 4px 12px rgba(0,0,0,0.5), 0 12px 40px rgba(0,0,0,0.35)',
+            }}>
+              POWER
+            </span>
+          </motion.div>
+
           {/* DESIGN — left · POWER — right, baseline flush to section edge */}
           <motion.div
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
-            className="absolute bottom-0 left-0 right-0 flex items-end justify-between px-6 md:px-10 pointer-events-none select-none overflow-hidden"
+            className="absolute bottom-0 left-0 right-0 hidden md:flex items-end justify-between md:px-10 pointer-events-none select-none overflow-hidden"
             aria-hidden="true"
           >
             <span
@@ -517,8 +549,8 @@ export default function Home() {
               </Link>
             </article>
 
-            {/* Project 02 — Chez Laurent (offset right) */}
-            <article className="group self-end w-[90%] ml-auto">
+            {/* Project 02 — Chez Laurent */}
+            <article className="group">
               <div className="aspect-square overflow-hidden bg-[#ece8e0] mb-5">
                 <img src="/imgs/restaurant-hero-main.png" alt="Chez Laurent — Restaurant Branding" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
               </div>
