@@ -160,7 +160,7 @@ function ShuffleWord({ children }: { children: string }) {
 }
 
 // ── Horizontal reveal line ──────────────────────────────────────────
-function RevealLine({ className = '' }: { className?: string }) {
+function _RevealLine({ className = '' }: { className?: string }) {
   return (
     <motion.div
       className={`h-px bg-[rgba(0,0,0,0.1)] origin-left ${className}`}
@@ -224,7 +224,7 @@ const imgIcon = (src: string) => (active: boolean) => (
 )
 
 // ── SEO icon ──────────────────────────────────────────────────────────
-function SeoIcon() {
+function _SeoIcon() {
   return (
     <svg viewBox="0 0 512 512" width="120" height="120" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
       {/* S */}
@@ -408,7 +408,7 @@ function ServiceSlideCard({
 }
 
 // ── Services carousel ─────────────────────────────────────────────────
-function ServicesSlider() {
+function _ServicesSlider() {
   const [active, setActive] = useState(0)
   const prev = () => setActive(i => (i - 1 + SERVICES.length) % SERVICES.length)
   const next = () => setActive(i => (i + 1) % SERVICES.length)
