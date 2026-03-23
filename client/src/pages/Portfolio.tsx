@@ -89,6 +89,82 @@ export default function Portfolio() {
       description="View Designs By TA's web design portfolio. NexaBank, Chez Laurent, Apex Audio — real projects with real results from our Boston MA design studio."
       canonical="https://designsbyta.com/portfolio"
     >
+      {/* ── MOBILE layout ─────────────────────────────────────────── */}
+      <div className="md:hidden bg-background">
+
+        {/* Hero */}
+        <section className="pt-8 pb-14 px-6">
+          <span className="text-[10px] uppercase tracking-[0.2em] font-semibold text-[#735c00] block mb-4">Portfolio</span>
+          <h1 className="font-serif italic text-[2.75rem] leading-[1.1] tracking-tight text-text-primary mb-5">
+            Work that speaks<br /><span className="text-accent">for itself.</span>
+          </h1>
+          <p className="text-[#4c4637] text-base leading-relaxed">
+            A curated selection spanning fintech, hospitality, and electronics — each built to perform, not just impress.
+          </p>
+        </section>
+
+        {/* Filter */}
+        <div className="px-6 pb-8 flex flex-wrap gap-2">
+          {FILTERS.map(f => (
+            <button
+              key={f}
+              type="button"
+              onClick={() => setActiveFilter(f)}
+              className={`px-4 py-1.5 text-[12px] font-medium transition-all ${
+                activeFilter === f
+                  ? 'bg-accent text-[#1C1917]'
+                  : 'border border-[rgba(0,0,0,0.12)] text-text-muted hover:border-accent hover:text-accent'
+              }`}
+            >
+              {f}
+            </button>
+          ))}
+        </div>
+
+        {/* Editorial project grid */}
+        <section className="px-6 pb-16 flex flex-col gap-16">
+          {filtered.map((project, i) => (
+            <article key={project.name} className={`group ${i % 2 === 1 ? 'pl-6' : ''}`}>
+              <div className="aspect-[4/5] overflow-hidden bg-[#ece8e0] mb-5">
+                <img
+                  src={
+                    project.name === 'NexaBank' ? '/imgs/nexa-hero.png'
+                    : project.name === 'Chez Laurent' ? '/imgs/restaurant-hero-main.png'
+                    : '/imgs/apex-hero.png'
+                  }
+                  alt={project.name}
+                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                />
+              </div>
+              <div className="flex justify-between items-baseline mb-2">
+                <span className="text-[10px] uppercase tracking-widest text-text-muted">{project.tags[0]} &amp; {project.tags[1]}</span>
+                <span className="font-serif italic text-[#C6A84B] text-sm">0{i + 1}</span>
+              </div>
+              <h3 className="font-serif italic text-2xl tracking-tight text-text-primary mb-2">{project.name}</h3>
+              <p className="text-text-muted text-sm leading-relaxed mb-4">{project.desc}</p>
+              <Link
+                to={project.demoUrl}
+                className="inline-flex items-center gap-1.5 text-[#735c00] font-serif italic text-base border-b border-[rgba(198,168,75,0.4)] pb-0.5 hover:opacity-70 transition-opacity"
+              >
+                View Demo
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M7 17L17 7M17 7H7M17 7v10"/></svg>
+              </Link>
+            </article>
+          ))}
+        </section>
+
+        {/* CTA */}
+        <section className="bg-[#1C1917] py-16 px-6 text-center">
+          <h2 className="font-serif italic text-3xl text-[#F5F0E8] mb-6">Start a Commission</h2>
+          <a href="#start-project" className="inline-block bg-accent text-[#1C1917] px-10 py-4 font-bold text-xs tracking-widest uppercase hover:bg-accent-dim transition-colors">
+            Book a Consultation
+          </a>
+        </section>
+
+      </div>
+
+      {/* ── DESKTOP layout ─────────────────────────────────────────── */}
+      <div className="hidden md:block">
 
 
       <section className="relative pt-28 pb-14 px-6 lg:px-8 bg-background overflow-hidden" aria-label="Portfolio hero">
@@ -131,6 +207,9 @@ export default function Portfolio() {
 
       <CTASection />
       <Footer />
+
+      </div>{/* end desktop layout */}
+
     </PageWrapper>
   )
 }

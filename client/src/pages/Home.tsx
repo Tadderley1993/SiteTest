@@ -484,25 +484,90 @@ export default function Home() {
 
       </section>
 
-      {/* ── Mobile: replaces 3D tablet section ── */}
-      <div className="md:hidden bg-[#1C1917] py-14 px-6 text-center">
-        <p className="text-[11px] tracking-[0.14em] uppercase text-[#78706A] mb-4">Where precision meets prestige.</p>
-        <p
-          className="font-black tracking-tighter leading-[1.05] mb-5"
-          style={{ fontSize: 'clamp(34px, 9vw, 52px)', color: '#F5F0E8' }}
-        >
-          See,{' '}
-          <span style={{ color: '#C6A84B', fontStyle: 'italic' }}>I told ya.</span>
-        </p>
-        <p className="text-[14px] text-[#78706A] leading-relaxed mb-8 max-w-xs mx-auto">
-          Custom design, clean code, and real results — for businesses serious about growing online.
-        </p>
-        <a
-          href="#start-project"
-          className="inline-flex items-center px-6 py-3 rounded-full bg-accent text-[#1C1917] text-[14px] font-semibold tracking-[0.03em] hover:bg-accent-dim transition-colors"
-        >
-          Start Your Project
-        </a>
+      {/* ── Mobile: editorial layout (Stitch design) ── */}
+      <div className="md:hidden">
+
+        {/* Selected Works */}
+        <section className="bg-[#f8f3eb] py-16 px-6">
+          <div className="flex justify-between items-end mb-10">
+            <div>
+              <span className="text-[10px] uppercase tracking-[0.2em] font-semibold text-[#735c00] block mb-2">Curation</span>
+              <h2 className="font-serif italic text-3xl leading-tight tracking-tight text-text-primary">Selected Works</h2>
+            </div>
+            <Link to="/portfolio" className="text-accent">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M7 17L17 7M17 7H7M17 7v10"/></svg>
+            </Link>
+          </div>
+
+          <div className="flex flex-col gap-14">
+            {/* Project 01 — NexaBank */}
+            <article className="group">
+              <div className="aspect-[4/5] overflow-hidden bg-[#ece8e0] mb-5">
+                <img src="/imgs/nexa-hero.png" alt="NexaBank — Fintech Web App" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+              </div>
+              <div className="flex justify-between items-baseline mb-2">
+                <span className="text-[10px] uppercase tracking-widest text-text-muted">Fintech &amp; Web App</span>
+                <span className="text-[10px] text-text-muted font-serif italic text-[#C6A84B]">01</span>
+              </div>
+              <h3 className="font-serif italic text-2xl tracking-tight text-text-primary mb-2">NexaBank</h3>
+              <p className="text-text-muted text-sm leading-relaxed mb-4">A modern digital banking platform with real-time transaction feeds, account management, and a clean onboarding flow.</p>
+              <Link to="/demo/fintech" className="inline-flex items-center gap-1.5 text-[#735c00] font-serif italic text-base border-b border-[rgba(198,168,75,0.4)] pb-0.5 hover:opacity-70 transition-opacity">
+                View Demo
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M7 17L17 7M17 7H7M17 7v10"/></svg>
+              </Link>
+            </article>
+
+            {/* Project 02 — Chez Laurent (offset right) */}
+            <article className="group self-end w-[90%] ml-auto">
+              <div className="aspect-square overflow-hidden bg-[#ece8e0] mb-5">
+                <img src="/imgs/restaurant-hero-main.png" alt="Chez Laurent — Restaurant Branding" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+              </div>
+              <div className="flex justify-between items-baseline mb-2">
+                <span className="text-[10px] uppercase tracking-widest text-text-muted">Hospitality &amp; Branding</span>
+                <span className="text-[10px] text-text-muted font-serif italic text-[#C6A84B]">02</span>
+              </div>
+              <h3 className="font-serif italic text-2xl tracking-tight text-text-primary mb-2">Chez Laurent</h3>
+              <p className="text-text-muted text-sm leading-relaxed mb-4">Fine dining brand identity and website — elegant typography, reservation system, and a menu that makes you hungry.</p>
+              <Link to="/demo/restaurant" className="inline-flex items-center gap-1.5 text-[#735c00] font-serif italic text-base border-b border-[rgba(198,168,75,0.4)] pb-0.5 hover:opacity-70 transition-opacity">
+                View Demo
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M7 17L17 7M17 7H7M17 7v10"/></svg>
+              </Link>
+            </article>
+          </div>
+        </section>
+
+        {/* Our Expertise */}
+        <section className="bg-background py-16 px-6">
+          <h2 className="font-serif italic text-3xl leading-tight tracking-tight text-text-primary mb-10">Our Expertise</h2>
+          <div className="flex flex-col divide-y divide-[rgba(0,0,0,0.07)]">
+            {[
+              { num: '01', title: 'Brand Identity', desc: 'A cohesive visual system that makes your business instantly recognizable — from logo through every touchpoint.' },
+              { num: '02', title: 'Web Design', desc: 'Conversion-optimized, pixel-perfect designs that balance aesthetic impact with measurable function.' },
+              { num: '03', title: 'Web Development', desc: 'Fast, clean, accessible code built on modern frameworks — deployed and ready to scale.' },
+            ].map(({ num, title, desc }) => (
+              <div key={num} className="flex gap-5 py-10">
+                <span className="font-serif italic text-xl text-[#C6A84B] pt-0.5 shrink-0">{num}</span>
+                <div>
+                  <h4 className="font-semibold text-sm uppercase tracking-widest text-text-primary mb-2">{title}</h4>
+                  <p className="text-text-muted text-sm leading-relaxed">{desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+          <Link to="/services" className="inline-flex items-center gap-2 mt-6 text-[#735c00] font-serif italic text-base border-b border-[rgba(198,168,75,0.4)] pb-0.5 hover:opacity-70 transition-opacity">
+            All Services →
+          </Link>
+        </section>
+
+        {/* Dark CTA block */}
+        <section className="bg-[#1C1917] py-16 px-6 text-center">
+          <h3 className="font-serif italic text-3xl text-[#F5F0E8] mb-6">Ready to transcend?</h3>
+          <p className="text-[#78706A] text-sm mb-8 px-4 leading-relaxed">Custom design, clean code, and real results — for businesses serious about growing online.</p>
+          <a href="#start-project" className="inline-block bg-accent text-[#1C1917] px-10 py-4 font-bold text-xs tracking-widest uppercase hover:bg-accent-dim transition-colors">
+            Start Your Project
+          </a>
+        </section>
+
       </div>
 
       {/* ── Tablet sticky section — desktop only, must live outside overflow-hidden ancestors ── */}
@@ -607,6 +672,9 @@ export default function Home() {
         </div>
 
       </div>
+
+      {/* ── Desktop-only sections ── */}
+      <div className="hidden md:block">
 
       {/* ── CTA strip ── */}
       <section className="bg-white py-6" aria-label="Call to action">
@@ -784,6 +852,8 @@ export default function Home() {
           </motion.div>
         </div>
       </section>
+
+      </div>{/* end desktop-only sections */}
 
       <CTASection />
       <Footer />

@@ -23,6 +23,7 @@ export default {
         sans:    ['Satoshi', 'sans-serif'],
         display: ['Satoshi', 'sans-serif'],
         body:    ['Satoshi', 'sans-serif'],
+        serif:   ['Noto Serif', 'Georgia', 'serif'],
       },
       fontSize: {
         'display': ['clamp(56px,8vw,96px)',  { lineHeight: '1.05', fontWeight: '900' }],

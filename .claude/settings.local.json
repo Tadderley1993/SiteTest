@@ -63,7 +63,18 @@
       "Bash(cp \"C:/Users/mlero/Downloads/stephen-phillips-hostreviews-co-uk-shr_Xn8S8QU-unsplash.jpg\" \"C:/Users/mlero/OneDrive/Desktop/dta/client/public/imgs/svc-seo.jpg\")",
       "Bash(cp \"C:/Users/mlero/Downloads/hal-gatewood-tZc3vjPCk-Q-unsplash.jpg\" \"C:/Users/mlero/OneDrive/Desktop/dta/client/public/imgs/svc-webdesign.jpg\")",
       "Bash(cp \"C:/Users/mlero/Downloads/daniel-korpai-pKRNxEguRgM-unsplash.jpg\" \"C:/Users/mlero/OneDrive/Desktop/dta/client/public/imgs/svc-webdev.jpg\")",
-      "Bash(cp \"C:/Users/mlero/Downloads/vitaly-gariev-1JnN9QhmTGU-unsplash.jpg\" \"C:/Users/mlero/OneDrive/Desktop/dta/client/public/imgs/svc-ecomm.jpg\")"
+      "Bash(cp \"C:/Users/mlero/Downloads/vitaly-gariev-1JnN9QhmTGU-unsplash.jpg\" \"C:/Users/mlero/OneDrive/Desktop/dta/client/public/imgs/svc-ecomm.jpg\")",
+      "Bash(npx tsc:*)",
+      "Bash(wc:*)",
+      "Bash(grep -E \"\\\\.\\(ts|js\\)$\")",
+      "Bash(cp /c/Users/mlero/OneDrive/Desktop/dta/client/dist/index.html \"/c/Users/mlero/OneDrive/Desktop/temp files/index.html\")",
+      "Bash(cp /c/Users/mlero/OneDrive/Desktop/dta/client/dist/assets/index-DSgz-z90.css \"/c/Users/mlero/OneDrive/Desktop/temp files/compiled.css\")",
+      "Bash(cp /c/Users/mlero/OneDrive/Desktop/dta/client/src/index.css \"/c/Users/mlero/OneDrive/Desktop/temp files/custom.css\")",
+      "Bash(cp /c/Users/mlero/OneDrive/Desktop/dta/client/src/pages/Home.tsx \"/c/Users/mlero/OneDrive/Desktop/temp files/Home.tsx\")",
+      "Bash(cp /c/Users/mlero/OneDrive/Desktop/dta/client/src/pages/Services.tsx \"/c/Users/mlero/OneDrive/Desktop/temp files/Services.tsx\")",
+      "Bash(cp /c/Users/mlero/OneDrive/Desktop/dta/client/src/pages/Portfolio.tsx \"/c/Users/mlero/OneDrive/Desktop/temp files/Portfolio.tsx\")",
+      "Bash(cp /c/Users/mlero/OneDrive/Desktop/dta/client/src/pages/About.tsx \"/c/Users/mlero/OneDrive/Desktop/temp files/About.tsx\")",
+      "Bash(cp /c/Users/mlero/OneDrive/Desktop/dta/client/src/pages/CaseStudies.tsx \"/c/Users/mlero/OneDrive/Desktop/temp files/CaseStudies.tsx\")"
     ]
   }
 }

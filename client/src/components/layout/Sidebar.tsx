@@ -116,7 +116,7 @@ export default function Sidebar() {
   return (
     <>
       {/* ── Mobile top bar ─────────────────────────────────────────── */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 flex items-center justify-between h-14 px-4 bg-[rgba(15,12,10,0.72)] backdrop-blur-md border-b border-[rgba(255,255,255,0.06)]">
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 flex items-center justify-between h-14 px-4 bg-background/90 backdrop-blur-md border-b border-[rgba(0,0,0,0.08)]">
 
         {/* Hamburger */}
         <motion.button
@@ -124,11 +124,11 @@ export default function Sidebar() {
           onClick={() => setMobileOpen(v => !v)}
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.92 }}
-          className="flex items-center justify-center w-9 h-9 rounded-full text-white/80"
+          className="flex items-center justify-center w-9 h-9 rounded-full text-text-primary"
           aria-label="Toggle menu"
           style={{
-            background: 'rgba(255,255,255,0.1)',
-            boxShadow: '0 0 0 1px rgba(255,255,255,0.12)',
+            background: 'rgba(0,0,0,0.06)',
+            boxShadow: '0 0 0 1px rgba(0,0,0,0.1)',
           }}
         >
           {mobileOpen ? <X size={17} /> : <Menu size={17} />}
@@ -139,7 +139,7 @@ export default function Sidebar() {
           <img
             src="/logo-white.png"
             alt="Designs By TA"
-            style={{ height: 36, width: 'auto' }}
+            style={{ height: 36, width: 'auto', filter: 'brightness(0)' }}
           />
         </Link>
 
@@ -184,7 +184,7 @@ export default function Sidebar() {
                 <img
                   src="/logo-white.png"
                   alt="Designs By TA"
-                  style={{ height: 40, width: 'auto' }}
+                  style={{ height: 40, width: 'auto', filter: 'brightness(0)' }}
                 />
               </Link>
 

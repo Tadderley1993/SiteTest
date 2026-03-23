@@ -145,6 +145,80 @@ export default function Services() {
       description="Brand identity, web design, web development, SEO, e-commerce, and maintenance. Boston MA web design services tailored to your business."
       canonical="https://designsbyta.com/services"
     >
+      {/* ── MOBILE layout ─────────────────────────────────────────── */}
+      <div className="md:hidden bg-background">
+
+        {/* Hero */}
+        <section className="pt-8 pb-16 px-6">
+          <span className="text-[10px] uppercase tracking-[0.2em] font-semibold text-[#735c00] block mb-4">Our Expertise</span>
+          <h1 className="font-serif italic text-[2.75rem] leading-[1.1] tracking-tight text-text-primary mb-5">
+            Everything you need.<br />Nothing you don't.
+          </h1>
+          <p className="text-[#4c4637] text-base leading-relaxed max-w-[85%]">
+            Full-service digital design in Boston, MA. Each engagement is scoped precisely to your goals — no templates, no packages, no guessing.
+          </p>
+        </section>
+
+        {/* Service cards — asymmetric editorial layout */}
+        <section className="px-6 pb-16 flex flex-col gap-10">
+          {SERVICES.map((s, i) => {
+            const offset = i % 2 === 1
+            return (
+              <div
+                key={s.num}
+                className={`p-8 flex flex-col gap-5 ${
+                  offset
+                    ? 'bg-white -mr-6 ml-3 shadow-[0_10px_30px_-10px_rgba(29,28,23,0.07)]'
+                    : 'bg-[#f8f3eb]'
+                }`}
+              >
+                <div className="flex justify-between items-start">
+                  <span className="text-[10px] uppercase tracking-widest font-semibold text-[#735c00]">{s.title}</span>
+                  <span className="font-serif italic text-3xl text-[rgba(127,118,101,0.25)]">{s.num}</span>
+                </div>
+                <p className="text-text-muted text-sm leading-loose">{s.desc}</p>
+                <div className="flex flex-wrap gap-2">
+                  {s.deliverables.slice(0, 2).map(d => (
+                    <span key={d} className="text-[10px] uppercase tracking-widest font-semibold text-text-muted border border-[rgba(0,0,0,0.1)] px-3 py-1">{d}</span>
+                  ))}
+                </div>
+                <p className="font-serif italic text-sm text-[#735c00] border-t border-[rgba(0,0,0,0.06)] pt-4">
+                  "{s.outcome}"
+                </p>
+              </div>
+            )
+          })}
+        </section>
+
+        {/* Stats */}
+        <section className="bg-[#f8f3eb] py-14 px-6">
+          <div className="flex gap-10 flex-wrap">
+            {[
+              { stat: '6', label: 'Service disciplines' },
+              { stat: '10+', label: 'Industries served' },
+              { stat: '100%', label: 'Custom — never templated' },
+            ].map(({ stat, label }) => (
+              <div key={label}>
+                <p className="text-4xl font-black tracking-tighter text-text-primary leading-none">{stat}</p>
+                <p className="text-xs text-text-muted mt-1 tracking-wide">{label}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* CTA */}
+        <section className="bg-[#1C1917] py-16 px-6 text-center">
+          <h2 className="font-serif italic text-3xl text-[#F5F0E8] mb-6">Ready to elevate your presence?</h2>
+          <a href="#start-project" className="inline-block bg-accent text-[#1C1917] px-10 py-4 font-bold text-xs tracking-widest uppercase hover:bg-accent-dim transition-colors">
+            Book a Consult
+          </a>
+        </section>
+
+      </div>
+
+      {/* ── DESKTOP layout ─────────────────────────────────────────── */}
+      <div className="hidden md:block">
+
       <Helmet>
         <script type="application/ld+json">{JSON.stringify({
           '@context': 'https://schema.org', '@type': 'ProfessionalService',
@@ -260,6 +334,9 @@ export default function Services() {
 
       <CTASection />
       <Footer />
+
+      </div>{/* end desktop layout */}
+
     </PageWrapper>
   )
 }

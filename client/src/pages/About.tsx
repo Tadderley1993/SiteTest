@@ -29,6 +29,77 @@ export default function About() {
       description="Meet Terrence Adderley, the designer and developer behind Designs By TA. Built by obsession, driven by results — Boston-based freelance web design agency."
       canonical="https://designsbyta.com/about"
     >
+      {/* ── MOBILE layout ─────────────────────────────────────────── */}
+      <div className="md:hidden bg-background">
+
+        {/* Hero */}
+        <section className="pt-8 pb-16 px-6">
+          <span className="text-[10px] uppercase tracking-[0.2em] font-semibold text-[#735c00] block mb-5">About the Studio</span>
+          <h1 className="font-serif italic text-[2.75rem] leading-[1.1] tracking-tight text-text-primary mb-6">
+            Built by <span className="text-accent">obsession.</span><br />Driven by results.
+          </h1>
+          <div className="w-full aspect-[4/5] bg-[#ece8e0] overflow-hidden mb-6">
+            <img src="/imgs/about-hero.png" alt="Terrence Adderley — Designs By TA, Boston MA" className="w-full h-full object-cover" />
+          </div>
+        </section>
+
+        {/* Story */}
+        <section className="px-6 pb-16">
+          <h3 className="text-xs uppercase tracking-widest font-semibold text-text-muted mb-4">The Story</h3>
+          <p className="text-xl font-serif leading-relaxed italic text-text-primary mb-6 pr-6">
+            "We believe that every pixel is a deliberate choice, every interaction a curated conversation."
+          </p>
+          <div className="flex flex-col gap-4 text-text-muted text-[15px] leading-[1.75]">
+            <p>Terrence Adderley is the designer, developer, and strategist behind Designs By TA — a Boston-based freelance web design agency built around one idea: your website should work as hard as you do.</p>
+            <p>I didn't fall into web design — I was pulled toward it. The intersection of code and creativity, logic and intuition, is where I've always wanted to work.</p>
+            <p>Designs By TA is the product of that synthesis — a studio that combines design craft, engineering rigor, and growth strategy under one roof. Based in Boston, MA, serving clients everywhere.</p>
+          </div>
+          <div className="mt-6 inline-flex items-center gap-2 px-4 py-2 bg-[rgba(198,168,75,0.1)] border border-[rgba(198,168,75,0.25)]">
+            <span className="text-[13px] font-semibold text-accent">Boston, MA</span>
+            <span className="text-[12px] text-text-muted">· Available worldwide</span>
+          </div>
+        </section>
+
+        {/* Skills */}
+        <section className="bg-[#f8f3eb] py-16 px-6">
+          <h3 className="text-xs uppercase tracking-widest font-semibold text-text-muted mb-3">Tools &amp; Skills</h3>
+          <div className="w-10 h-px bg-accent mb-8" />
+          <div className="flex flex-wrap gap-2.5">
+            {SKILLS.map(skill => (
+              <span key={skill} className="px-4 py-1.5 border border-[rgba(0,0,0,0.1)] bg-white text-[11px] uppercase tracking-widest text-text-muted">{skill}</span>
+            ))}
+          </div>
+        </section>
+
+        {/* Philosophy */}
+        <section className="px-6 py-16">
+          <h3 className="text-xs uppercase tracking-widest font-semibold text-text-muted mb-10 text-center">Our Philosophy</h3>
+          <div className="flex flex-col gap-12">
+            {PHILOSOPHY.map(({ title, desc }, i) => (
+              <div key={title}>
+                <div className="flex items-baseline gap-4 mb-3">
+                  <span className="font-serif italic text-3xl text-[rgba(127,118,101,0.25)]">0{i + 1}</span>
+                  <h4 className="font-serif italic text-xl text-text-primary">{title}</h4>
+                </div>
+                <p className="text-text-muted text-sm leading-relaxed pl-10 border-l border-[rgba(198,168,75,0.2)]">{desc}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* CTA */}
+        <section className="bg-[#735c00] py-14 px-6 text-center">
+          <h2 className="font-serif italic text-3xl text-white mb-6">Start the Conversation</h2>
+          <a href="#start-project" className="inline-block bg-[#C6A84B] text-[#1C1917] px-10 py-4 font-bold text-xs tracking-widest uppercase hover:opacity-90 transition-opacity">
+            Book a Consult
+          </a>
+          <p className="mt-8 font-serif italic text-[rgba(255,255,255,0.6)] text-sm underline underline-offset-4">hello@designsbyta.com</p>
+        </section>
+
+      </div>
+
+      {/* ── DESKTOP layout ─────────────────────────────────────────── */}
+      <div className="hidden md:block">
 
 
       {/* ── Hero ── */}
@@ -161,6 +232,9 @@ export default function About() {
 
       <CTASection />
       <Footer />
+
+      </div>{/* end desktop layout */}
+
     </PageWrapper>
   )
 }

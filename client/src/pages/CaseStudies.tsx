@@ -216,6 +216,72 @@ export default function CaseStudies() {
       description="Research-backed articles on digital footprints, web design credibility, SEO, branding, and why professional web design outperforms DIY."
       canonical="https://designsbyta.com/case-studies"
     >
+      {/* ── MOBILE layout ─────────────────────────────────────────── */}
+      <div className="md:hidden bg-background">
+
+        {/* Hero */}
+        <section className="pt-8 pb-14 px-6">
+          <span className="text-[10px] uppercase tracking-[0.2em] font-semibold text-[#735c00] block mb-4">Digital Footprint</span>
+          <h1 className="font-serif italic text-[2.5rem] leading-[1.1] tracking-tight text-text-primary mb-5">
+            Why your online presence is your most valuable asset.
+          </h1>
+          <p className="text-[#4c4637] text-base leading-relaxed">
+            Research-backed reading on what a digital footprint is, why it matters, and what separates a website that wins business from one that loses it.
+          </p>
+        </section>
+
+        {/* Stats grid */}
+        <section className="bg-[#f8f3eb] py-12 px-6">
+          <span className="text-[10px] uppercase tracking-[0.2em] font-semibold text-[#735c00] block mb-8">By The Numbers</span>
+          <div className="grid grid-cols-2 gap-4">
+            {STATS.map(s => (
+              <div key={s.stat} className="p-4 border border-[rgba(198,168,75,0.2)] bg-white">
+                <p className="text-3xl font-black tracking-tighter text-accent leading-none mb-2">{s.stat}</p>
+                <p className="text-[12px] text-text-primary leading-snug mb-2">{s.label}</p>
+                <a href={s.url} target="_blank" rel="noopener noreferrer" className="text-[10px] uppercase tracking-widest text-text-muted hover:text-accent transition-colors font-medium">
+                  {s.source} ↗
+                </a>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Articles */}
+        <section className="px-6 py-12">
+          <span className="text-[10px] uppercase tracking-[0.2em] font-semibold text-[#735c00] block mb-8">The Research</span>
+          <div className="flex flex-col divide-y divide-[rgba(0,0,0,0.07)]">
+            {ARTICLES.map(({ num, tag, title, body, source }) => (
+              <div key={num} className="py-10">
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="text-[11px] font-semibold tracking-[0.1em] text-accent/60">{num}</span>
+                  <span className="text-[10px] font-semibold tracking-[0.12em] uppercase text-text-muted">{tag}</span>
+                </div>
+                <h3 className="font-serif italic text-xl tracking-tight text-text-primary leading-snug mb-4">{title}</h3>
+                <p className="text-text-muted text-sm leading-[1.75]">{body[0]}</p>
+                {source && (
+                  <a href={source.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 mt-4 text-[11px] uppercase tracking-widest text-text-muted hover:text-accent font-semibold transition-colors">
+                    {source.label} ↗
+                  </a>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* CTA */}
+        <section className="bg-[#1C1917] py-16 px-8">
+          <span className="text-[10px] uppercase tracking-[0.2em] font-semibold text-[#735c00] block mb-4">What This Means For You</span>
+          <h2 className="font-serif italic text-2xl text-[#F5F0E8] mb-4 leading-snug">The data is clear. The question is what you do with it.</h2>
+          <p className="text-[#78706A] text-sm leading-relaxed mb-8">Every one of these statistics represents a real opportunity — or a real risk, depending on where your business stands today.</p>
+          <a href="#start-project" className="inline-block bg-accent text-[#1C1917] px-8 py-4 font-bold text-xs tracking-widest uppercase hover:bg-accent-dim transition-colors">
+            Start the Conversation
+          </a>
+        </section>
+
+      </div>
+
+      {/* ── DESKTOP layout ─────────────────────────────────────────── */}
+      <div className="hidden md:block">
 
       {/* ── Hero ───────────────────────────────────────────────── */}
       <section className="relative pt-28 pb-14 px-6 lg:px-8 bg-background overflow-hidden" aria-label="Page hero">
@@ -287,6 +353,9 @@ export default function CaseStudies() {
 
       <CTASection />
       <Footer />
+
+      </div>{/* end desktop layout */}
+
     </PageWrapper>
   )
 }
