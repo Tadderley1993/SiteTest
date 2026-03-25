@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express'
+import jwt from 'jsonwebtoken'
 import { tokenService } from '../services/token.service.js'
 
 export interface AuthRequest extends Request {
@@ -29,8 +30,6 @@ export function authMiddleware(req: AuthRequest, res: Response, next: NextFuncti
   } catch {
     // Fall back to old token format (24h tokens already issued)
     try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const jwt = require('jsonwebtoken') as typeof import('jsonwebtoken')
       const legacy = jwt.verify(
         token,
         process.env.JWT_SECRET ?? 'fallback-secret',

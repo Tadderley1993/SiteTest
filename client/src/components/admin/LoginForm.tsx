@@ -9,6 +9,7 @@ interface Props {
 export default function LoginForm({ onSuccess }: Props) {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const { login } = useAuth()
@@ -65,14 +66,23 @@ export default function LoginForm({ onSuccess }: Props) {
               <label className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">
                 Password
               </label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-[#f3f3f3] border-none rounded-lg px-4 py-3 text-black placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-black/10 text-sm"
-                placeholder="••••••••"
-                required
-              />
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full bg-[#f3f3f3] border-none rounded-lg px-4 py-3 pr-12 text-black placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-black/10 text-sm"
+                  placeholder="••••••••"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(v => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-700 transition-colors text-xs font-medium"
+                >
+                  {showPassword ? 'Hide' : 'Show'}
+                </button>
+              </div>
             </div>
 
             {error && (
