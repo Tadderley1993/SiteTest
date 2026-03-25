@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { LogOut, Users, Inbox, FileText, Settings as SettingsIcon, BarChart2, TrendingUp, Receipt } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { getSubmissions, getClients, createClient, Submission, Client, Proposal } from '../../lib/api'
 import SubmissionsTable from './SubmissionsTable'
@@ -13,12 +12,50 @@ import Financials from './Financials'
 import Analytics from './Analytics'
 import InvoicesView from './InvoicesView'
 import ExportContacts from './ExportContacts'
+import DashboardOverview from './DashboardOverview'
+import DealsView from './DealsView'
+import FilesView from './FilesView'
+import AutomationsView from './AutomationsView'
+import ProjectsView from './ProjectsView'
 
 interface Props {
   onLogout: () => void
 }
 
-type View = 'submissions' | 'clients' | 'proposals' | 'invoices' | 'settings' | 'financials' | 'analytics'
+type View =
+  | 'dashboard'
+  | 'submissions'
+  | 'clients'
+  | 'proposals'
+  | 'invoices'
+  | 'financials'
+  | 'analytics'
+  | 'settings'
+  | 'deals'
+  | 'projects'
+  | 'files'
+  | 'automations'
+
+interface NavItem {
+  id: View
+  label: string
+  icon: string
+}
+
+const NAV_ITEMS: NavItem[] = [
+  { id: 'dashboard',    label: 'Dashboard',    icon: 'dashboard' },
+  { id: 'submissions',  label: 'Submissions',  icon: 'send' },
+  { id: 'clients',      label: 'Clients',      icon: 'group' },
+  { id: 'deals',        label: 'Deals',        icon: 'handshake' },
+  { id: 'projects',     label: 'Projects',     icon: 'account_tree' },
+  { id: 'proposals',    label: 'Proposals',    icon: 'description' },
+  { id: 'invoices',     label: 'Invoices',     icon: 'receipt_long' },
+  { id: 'financials',   label: 'Financials',   icon: 'payments' },
+  { id: 'files',        label: 'Files',        icon: 'folder' },
+  { id: 'analytics',    label: 'Analytics',    icon: 'insights' },
+  { id: 'automations',  label: 'Automations',  icon: 'auto_awesome' },
+  { id: 'settings',     label: 'Settings',     icon: 'settings' },
+]
 
 export default function Dashboard({ onLogout }: Props) {
   const { username, logout } = useAuth()
@@ -26,7 +63,7 @@ export default function Dashboard({ onLogout }: Props) {
   const [clients, setClients] = useState<Client[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
-  const [view, setView] = useState<View>('submissions')
+  const [view, setView] = useState<View>('dashboard')
   const [selectedClientId, setSelectedClientId] = useState<number | null>(null)
   const [editingProposal, setEditingProposal] = useState<Proposal | 'new' | null>(null)
 
@@ -63,94 +100,135 @@ export default function Dashboard({ onLogout }: Props) {
     onLogout()
   }
 
-  const navItem = (id: View, label: string, icon: React.ReactNode) => (
-    <button
-      onClick={() => { setView(id); setSelectedClientId(null); setEditingProposal(null) }}
-      className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium w-full transition-colors ${
-        view === id
-          ? 'bg-accent/10 text-accent border border-accent/15'
-          : 'text-text-muted hover:text-text-primary hover:bg-white/5'
-      }`}
-    >
-      {icon}
-      {label}
-    </button>
-  )
+  const handleNavClick = (id: View) => {
+    setView(id)
+    setSelectedClientId(null)
+    setEditingProposal(null)
+  }
 
   return (
-    <div className="min-h-screen bg-[#08090D] flex">
+    <div className="min-h-screen bg-[#f9f9f9] font-['Inter',sans-serif]">
       {/* Sidebar */}
-      <aside className="w-56 border-r border-white/[0.08] flex flex-col py-6 px-3 flex-shrink-0">
-        {/* Logo */}
-        <div className="px-3 mb-8">
-          <img src="/logo.png" alt="Designs By TA" className="h-7 w-auto mb-1" />
-          <p className="text-xs text-text-muted mt-0.5">Admin Dashboard</p>
+      <aside className="h-screen w-64 fixed left-0 top-0 bg-[#f3f3f3] flex flex-col p-6 z-50">
+        <div className="mb-8">
+          <h1 className="text-lg font-bold tracking-tighter text-black leading-tight">
+            Designs by Terrence Adderley
+          </h1>
+          <p className="text-xs text-zinc-500 font-medium tracking-wide uppercase mt-1">Agency OS</p>
         </div>
 
-        {/* Nav */}
-        <nav className="flex-1 space-y-1">
-          {navItem('submissions', 'Submissions', <Inbox className="w-4 h-4" />)}
-          {navItem('clients', 'Current Clients', <Users className="w-4 h-4" />)}
-          {navItem('proposals', 'Proposals', <FileText className="w-4 h-4" />)}
-          {navItem('invoices', 'Invoices', <Receipt className="w-4 h-4" />)}
-          {navItem('financials', 'Financials', <BarChart2 className="w-4 h-4" />)}
-          {navItem('analytics', 'Analytics', <TrendingUp className="w-4 h-4" />)}
-          {navItem('settings', 'Settings', <SettingsIcon className="w-4 h-4" />)}
+        <nav className="flex-1 space-y-1 overflow-y-auto">
+          {NAV_ITEMS.map(item => {
+            const isActive = view === item.id
+            return (
+              <button
+                key={item.id}
+                onClick={() => handleNavClick(item.id)}
+                className={`flex items-center gap-3 px-3 py-2 w-full rounded-lg text-sm transition-colors text-left ${
+                  isActive
+                    ? 'bg-white text-black font-semibold shadow-sm'
+                    : 'text-zinc-500 hover:bg-zinc-200/50 font-medium'
+                }`}
+              >
+                <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
+                <span>{item.label}</span>
+              </button>
+            )
+          })}
         </nav>
 
-        {/* User + logout */}
-        <div className="border-t border-white/[0.08] pt-4 px-3 space-y-2">
-          <p className="text-xs text-text-muted">
-            Signed in as <span className="text-text-primary">{username}</span>
-          </p>
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-2 text-sm text-text-muted hover:text-red-400 transition-colors w-full"
-          >
-            <LogOut className="w-4 h-4" />
-            Sign Out
+        {/* Bottom: new button + user */}
+        <div className="mt-auto pt-6 border-t border-zinc-200">
+          <button className="w-full bg-black text-white py-2.5 rounded-lg font-semibold flex items-center justify-center gap-2 mb-4 hover:bg-zinc-800 transition-colors text-sm">
+            <span>+</span>
+            <span>New</span>
           </button>
+          <div className="flex items-center gap-3">
+            <div className="h-8 w-8 rounded-full bg-zinc-200 flex items-center justify-center text-xs font-bold text-black flex-shrink-0">
+              TA
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-bold text-black truncate">Terrence Adderley</p>
+              <p className="text-[10px] text-zinc-500">{username ?? 'Admin'}</p>
+            </div>
+            <button
+              onClick={handleLogout}
+              className="text-zinc-400 hover:text-black transition-colors"
+              title="Sign out"
+            >
+              <span className="material-symbols-outlined text-[18px]">logout</span>
+            </button>
+          </div>
         </div>
       </aside>
 
+      {/* Top header */}
+      <header className="fixed top-0 right-0 w-[calc(100%-16rem)] h-16 z-40 bg-[#f9f9f9]/80 backdrop-blur-xl border-b border-zinc-200/60 flex justify-between items-center px-8">
+        <div className="relative">
+          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 text-[18px]">search</span>
+          <input
+            className="bg-[#e8e8e8] border-none rounded-lg py-2 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-black/10 w-72"
+            placeholder="Search..."
+          />
+        </div>
+        <div className="flex items-center gap-4">
+          <button className="text-zinc-500 hover:text-black transition-colors">
+            <span className="material-symbols-outlined">notifications</span>
+          </button>
+          <a
+            href="/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm font-medium text-zinc-500 hover:text-black flex items-center gap-2 transition-colors"
+          >
+            <span>View Site</span>
+            <span className="material-symbols-outlined text-[18px]">open_in_new</span>
+          </a>
+        </div>
+      </header>
+
       {/* Main content */}
-      <main className="flex-1 overflow-auto">
-        <div className="max-w-7xl mx-auto px-6 py-8">
+      <main className="ml-64 pt-16 min-h-screen bg-[#f9f9f9]">
+        <div className="p-8 max-w-7xl mx-auto">
+
+          {/* ── DASHBOARD OVERVIEW ── */}
+          {view === 'dashboard' && (
+            <motion.div key="dashboard" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
+              <DashboardOverview />
+            </motion.div>
+          )}
+
           {/* ── SUBMISSIONS VIEW ── */}
           {view === 'submissions' && (
-            <motion.div
-              key="submissions"
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
-              <div className="mb-6 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Inbox className="w-5 h-5 text-accent" />
-                  <h2 className="text-xl font-semibold text-text-primary">Submissions</h2>
+            <motion.div key="submissions" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
+              <div className="mb-8 flex items-start justify-between">
+                <div>
+                  <nav className="flex items-center gap-2 mb-2 text-[10px] font-bold uppercase tracking-widest text-zinc-400">
+                    <span>Agency OS</span>
+                    <span>/</span>
+                    <span className="text-black">Submissions</span>
+                  </nav>
+                  <h1 className="text-4xl font-bold tracking-tighter">Submissions</h1>
                 </div>
                 <ExportContacts submissions={submissions} clients={clients} />
               </div>
               {isLoading ? (
-                <div className="text-center py-12 text-text-muted">Loading submissions...</div>
+                <div className="text-center py-12 text-zinc-400">Loading submissions...</div>
               ) : error ? (
-                <div className="text-center py-12 text-red-400">{error}</div>
+                <div className="text-center py-12 text-red-500">{error}</div>
               ) : (
                 <SubmissionsTable
-              submissions={submissions}
-              onQuickAdd={handleQuickAdd}
-              clientSubmissionIds={clientSubmissionIds}
-            />
+                  submissions={submissions}
+                  onQuickAdd={handleQuickAdd}
+                  clientSubmissionIds={clientSubmissionIds}
+                />
               )}
             </motion.div>
           )}
 
           {/* ── CLIENTS LIST VIEW ── */}
           {view === 'clients' && selectedClientId === null && (
-            <motion.div
-              key="clients-list"
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
+            <motion.div key="clients-list" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
               <div className="mb-4 flex justify-end">
                 <ExportContacts submissions={submissions} clients={clients} />
               </div>
@@ -171,13 +249,23 @@ export default function Dashboard({ onLogout }: Props) {
             />
           )}
 
+          {/* ── DEALS VIEW ── */}
+          {view === 'deals' && (
+            <motion.div key="deals" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
+              <DealsView />
+            </motion.div>
+          )}
+
+          {/* ── PROJECTS VIEW ── */}
+          {view === 'projects' && (
+            <motion.div key="projects" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
+              <ProjectsView />
+            </motion.div>
+          )}
+
           {/* ── PROPOSALS LIST VIEW ── */}
           {view === 'proposals' && editingProposal === null && (
-            <motion.div
-              key="proposals-list"
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
+            <motion.div key="proposals-list" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
               <ProposalsList
                 onNew={() => setEditingProposal('new')}
                 onEdit={(p) => setEditingProposal(p)}
@@ -209,10 +297,24 @@ export default function Dashboard({ onLogout }: Props) {
             </motion.div>
           )}
 
+          {/* ── FILES VIEW ── */}
+          {view === 'files' && (
+            <motion.div key="files" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
+              <FilesView />
+            </motion.div>
+          )}
+
           {/* ── ANALYTICS VIEW ── */}
           {view === 'analytics' && (
             <motion.div key="analytics" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
               <Analytics />
+            </motion.div>
+          )}
+
+          {/* ── AUTOMATIONS VIEW ── */}
+          {view === 'automations' && (
+            <motion.div key="automations" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
+              <AutomationsView />
             </motion.div>
           )}
 
@@ -222,6 +324,7 @@ export default function Dashboard({ onLogout }: Props) {
               <Settings />
             </motion.div>
           )}
+
         </div>
       </main>
     </div>

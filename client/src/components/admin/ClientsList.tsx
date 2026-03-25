@@ -1,12 +1,35 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { UserPlus, Search, Globe, Mail, Phone, Building2, ArrowRight } from 'lucide-react'
 import { Client, Submission, getClients, createClient, ClientFormData } from '../../lib/api'
 import AddClientModal from './AddClientModal'
 
 interface Props {
   submissions: Submission[]
   onSelectClient: (id: number) => void
+}
+
+function getInitials(firstName: string, lastName: string) {
+  return `${firstName[0] ?? ''}${lastName[0] ?? ''}`.toUpperCase()
+}
+
+function getStatusStyle(status: string) {
+  switch (status) {
+    case 'active':    return 'bg-green-50 text-green-700'
+    case 'completed': return 'bg-blue-50 text-blue-700'
+    case 'onhold':    return 'bg-amber-50 text-amber-700'
+    case 'onboarding': return 'bg-violet-50 text-violet-700'
+    default:          return 'bg-zinc-100 text-zinc-500'
+  }
+}
+
+function getStatusLabel(status: string) {
+  switch (status) {
+    case 'active':    return 'Active'
+    case 'completed': return 'Completed'
+    case 'onhold':    return 'Paused'
+    case 'onboarding': return 'Onboarding'
+    default:          return status
+  }
 }
 
 export default function ClientsList({ submissions, onSelectClient }: Props) {
@@ -44,7 +67,6 @@ export default function ClientsList({ submissions, onSelectClient }: Props) {
     `${c.firstName} ${c.lastName} ${c.email} ${c.organization ?? ''}`.toLowerCase().includes(search.toLowerCase())
   )
 
-  // Available submissions (not already converted to clients)
   const usedSubmissionIds = new Set(clients.map(c => c.submissionId).filter(Boolean))
   const availableSubmissions = submissions.filter(s => !usedSubmissionIds.has(s.id))
 
@@ -52,44 +74,44 @@ export default function ClientsList({ submissions, onSelectClient }: Props) {
     <>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-start justify-between">
           <div>
-            <h2 className="text-xl font-semibold text-text-primary">Current Clients</h2>
-            <p className="text-sm text-text-muted mt-0.5">{clients.length} active client{clients.length !== 1 ? 's' : ''}</p>
+            <nav className="flex items-center gap-2 mb-2 text-[10px] font-bold uppercase tracking-widest text-zinc-400">
+              <span>Agency OS</span>
+              <span>/</span>
+              <span className="text-black">Clients</span>
+            </nav>
+            <h1 className="text-4xl font-bold tracking-tighter">Client Ecosystem</h1>
+            <p className="text-zinc-400 text-sm mt-1">
+              {clients.length} client{clients.length !== 1 ? 's' : ''} in your network
+            </p>
           </div>
           <button
+            type="button"
             onClick={() => setShowModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-accent text-black rounded-lg font-medium text-sm hover:bg-accent/90 transition-colors"
+            className="bg-black text-white px-4 py-2.5 rounded-lg font-semibold text-sm flex items-center gap-2 hover:bg-zinc-800 transition-colors"
           >
-            <UserPlus className="w-4 h-4" />
-            Add Client
+            <span className="material-symbols-outlined text-[18px]">person_add</span>
+            Add New Client
           </button>
         </div>
 
         {/* Search */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
+        <div className="relative max-w-sm">
+          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 text-[18px]">search</span>
           <input
             type="text"
             placeholder="Search clients..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full bg-white/5 border border-white/10 rounded-lg pl-9 pr-4 py-2 text-text-primary placeholder-text-muted/50 focus:outline-none focus:border-accent/40 text-sm transition-colors"
+            className="w-full bg-[#e8e8e8] border-none rounded-full py-2 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-black/10 placeholder-zinc-400"
           />
         </div>
 
-        {/* Error */}
-        {error && <p className="text-red-400 text-sm">{error}</p>}
+        {error && <p className="text-red-500 text-sm">{error}</p>}
 
-        {/* Loading */}
         {isLoading ? (
-          <div className="py-16 text-center text-text-muted">Loading clients...</div>
-        ) : filtered.length === 0 ? (
-          <div className="py-16 text-center">
-            <p className="text-text-muted text-sm">
-              {search ? 'No clients match your search.' : 'No current clients yet. Add your first client!'}
-            </p>
-          </div>
+          <div className="py-16 text-center text-zinc-400">Loading clients...</div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {filtered.map((client, i) => {
@@ -104,54 +126,46 @@ export default function ClientsList({ submissions, onSelectClient }: Props) {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.04 }}
                   onClick={() => onSelectClient(client.id)}
-                  className="group text-left bg-white/[0.02] hover:bg-white/[0.05] border border-white/[0.08] hover:border-white/20 rounded-xl p-5 transition-all"
+                  className="group text-left bg-white hover:shadow-xl ring-1 ring-black/[0.05] rounded-xl p-5 transition-all"
                 >
-                  {/* Avatar + name */}
+                  {/* Avatar + name + status */}
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-accent/10 border border-accent/20 flex items-center justify-center text-accent font-semibold text-sm flex-shrink-0">
-                        {client.firstName[0]}{client.lastName[0]}
+                      <div className="w-10 h-10 rounded-lg bg-zinc-900 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                        {getInitials(client.firstName, client.lastName)}
                       </div>
                       <div>
-                        <p className="font-semibold text-text-primary text-sm leading-tight">
+                        <p className="font-bold text-black text-sm leading-tight">
                           {client.firstName} {client.lastName}
                         </p>
                         {client.title && (
-                          <p className="text-xs text-text-muted mt-0.5">{client.title}</p>
+                          <p className="text-xs text-zinc-400 mt-0.5">{client.title}</p>
+                        )}
+                        {client.organization && (
+                          <p className="text-xs text-zinc-400 mt-0.5">{client.organization}</p>
                         )}
                       </div>
                     </div>
-                    <span className={`text-xs px-2 py-0.5 rounded-full flex-shrink-0 ${
-                      status === 'active' ? 'bg-green-400/10 text-green-400' :
-                      status === 'completed' ? 'bg-accent/10 text-accent' :
-                      status === 'onhold' ? 'bg-yellow-400/10 text-yellow-400' :
-                      'bg-red-400/10 text-red-400'
-                    }`}>
-                      {status}
+                    <span className={`text-[10px] px-2.5 py-1 rounded-full font-bold flex-shrink-0 ${getStatusStyle(status)}`}>
+                      {getStatusLabel(status)}
                     </span>
                   </div>
 
-                  {/* Info */}
+                  {/* Contact info */}
                   <div className="space-y-1.5 mb-4">
-                    {client.organization && (
-                      <div className="flex items-center gap-2 text-xs text-text-muted">
-                        <Building2 className="w-3 h-3 flex-shrink-0" />
-                        <span className="truncate">{client.organization}</span>
-                      </div>
-                    )}
-                    <div className="flex items-center gap-2 text-xs text-text-muted">
-                      <Mail className="w-3 h-3 flex-shrink-0" />
+                    <div className="flex items-center gap-2 text-xs text-zinc-400">
+                      <span className="material-symbols-outlined text-[14px] text-zinc-300">mail</span>
                       <span className="truncate">{client.email}</span>
                     </div>
                     {client.phone && (
-                      <div className="flex items-center gap-2 text-xs text-text-muted">
-                        <Phone className="w-3 h-3 flex-shrink-0" />
+                      <div className="flex items-center gap-2 text-xs text-zinc-400">
+                        <span className="material-symbols-outlined text-[14px] text-zinc-300">call</span>
                         <span>{client.phone}</span>
                       </div>
                     )}
                     {client.website && (
-                      <div className="flex items-center gap-2 text-xs text-text-muted">
-                        <Globe className="w-3 h-3 flex-shrink-0" />
+                      <div className="flex items-center gap-2 text-xs text-zinc-400">
+                        <span className="material-symbols-outlined text-[14px] text-zinc-300">language</span>
                         <span className="truncate">{client.website}</span>
                       </div>
                     )}
@@ -160,14 +174,14 @@ export default function ClientsList({ submissions, onSelectClient }: Props) {
                   {/* Task progress */}
                   {taskCount > 0 && (
                     <div className="mb-3">
-                      <div className="flex items-center justify-between text-xs text-text-muted mb-1">
+                      <div className="flex items-center justify-between text-xs text-zinc-400 mb-1">
                         <span>Tasks</span>
-                        <span>{doneTasks}/{taskCount}</span>
+                        <span className="font-medium">{doneTasks}/{taskCount}</span>
                       </div>
-                      <div className="h-1 bg-white/10 rounded-full overflow-hidden">
+                      <div className="h-1 bg-zinc-100 rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-accent rounded-full transition-all"
-                          style={{ width: `${taskCount > 0 ? (doneTasks / taskCount) * 100 : 0}%` }}
+                          className="h-full bg-black rounded-full transition-all"
+                          style={{ width: `${(doneTasks / taskCount) * 100}%` }}
                         />
                       </div>
                     </div>
@@ -175,21 +189,41 @@ export default function ClientsList({ submissions, onSelectClient }: Props) {
 
                   {/* Project name */}
                   {client.projectScope?.projectName && (
-                    <p className="text-xs text-accent/70 truncate mb-3">
+                    <p className="text-xs text-zinc-400 truncate mb-3 italic">
                       {client.projectScope.projectName}
                     </p>
                   )}
 
-                  <div className="flex items-center justify-between pt-1">
-                    <span className="text-xs text-text-muted">
+                  <div className="flex items-center justify-between pt-3 border-t border-zinc-100">
+                    <span className="text-xs text-zinc-400">
                       {new Date(client.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                     </span>
-                    <ArrowRight className="w-4 h-4 text-text-muted group-hover:text-accent group-hover:translate-x-0.5 transition-all" />
+                    <span className="material-symbols-outlined text-[18px] text-zinc-300 group-hover:text-black group-hover:translate-x-0.5 transition-all">
+                      arrow_forward
+                    </span>
                   </div>
                 </motion.button>
               )
             })}
+
+            {/* Add new client card */}
+            <motion.button
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: filtered.length * 0.04 }}
+              onClick={() => setShowModal(true)}
+              className="group text-left bg-white hover:bg-black ring-1 ring-black/[0.05] border-2 border-dashed border-zinc-200 hover:border-black rounded-xl p-5 transition-all flex flex-col items-center justify-center min-h-[200px] gap-3"
+            >
+              <div className="w-10 h-10 rounded-lg bg-zinc-100 group-hover:bg-white/10 flex items-center justify-center transition-colors">
+                <span className="material-symbols-outlined text-zinc-400 group-hover:text-white text-[22px] transition-colors">add</span>
+              </div>
+              <p className="text-sm font-semibold text-zinc-400 group-hover:text-white transition-colors">Add New Client</p>
+            </motion.button>
           </div>
+        )}
+
+        {!isLoading && filtered.length === 0 && search && (
+          <div className="py-16 text-center text-zinc-400 text-sm">No clients match your search.</div>
         )}
       </div>
 

@@ -29,57 +29,60 @@ export default function LoginForm({ onSuccess }: Props) {
   }
 
   return (
-    <div className="min-h-screen bg-[#08090D] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-[#f9f9f9] flex items-center justify-center p-4 font-['Inter',sans-serif]">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-md"
       >
-        <div className="backdrop-blur-xl bg-white/[0.04] border border-white/[0.08] rounded-2xl p-8">
-          <h1 className="text-2xl font-display text-text-primary mb-2">
-            Admin Login
-          </h1>
-          <p className="text-text-muted mb-8">
-            Sign in to access the dashboard
-          </p>
+        {/* Logo / brand */}
+        <div className="mb-8 text-center">
+          <h1 className="text-2xl font-bold tracking-tighter text-black">Designs by Terrence Adderley</h1>
+          <p className="text-xs text-zinc-400 font-medium tracking-wide uppercase mt-1">Agency OS</p>
+        </div>
+
+        {/* Card */}
+        <div className="bg-white rounded-2xl ring-1 ring-black/[0.06] shadow-sm p-8">
+          <h2 className="text-xl font-bold text-black mb-1">Admin Login</h2>
+          <p className="text-sm text-zinc-400 mb-8">Sign in to access the dashboard</p>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-sm text-text-muted mb-2">
+              <label className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">
                 Username
               </label>
               <input
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-text-primary placeholder-text-muted/50 focus:outline-none focus:border-accent transition-colors"
+                className="w-full bg-[#f3f3f3] border-none rounded-lg px-4 py-3 text-black placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-black/10 text-sm"
                 placeholder="admin"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-sm text-text-muted mb-2">
+              <label className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">
                 Password
               </label>
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-text-primary placeholder-text-muted/50 focus:outline-none focus:border-accent transition-colors"
-                placeholder="********"
+                className="w-full bg-[#f3f3f3] border-none rounded-lg px-4 py-3 text-black placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-black/10 text-sm"
+                placeholder="••••••••"
                 required
               />
             </div>
 
             {error && (
-              <p className="text-red-400 text-sm">{error}</p>
+              <p className="text-red-500 text-sm">{error}</p>
             )}
 
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-4 bg-accent text-background font-semibold rounded-lg hover:bg-accent/90 transition-colors disabled:opacity-50"
+              className="w-full py-3 bg-black text-white font-semibold rounded-lg hover:bg-zinc-800 transition-colors disabled:opacity-50 text-sm"
             >
               {isLoading ? 'Signing in...' : 'Sign In'}
             </button>
