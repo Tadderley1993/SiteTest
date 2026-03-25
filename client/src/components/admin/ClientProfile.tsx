@@ -5,7 +5,7 @@ import {
   Instagram, Twitter, Linkedin, Facebook, Briefcase,
   KanbanSquare, Trash2, AlertCircle, DollarSign
 } from 'lucide-react'
-import {
+import api, {
   Client, KanbanTask, ProjectScope,
   getClient, updateClient, updateProjectScope, deleteClient, ClientFormData
 } from '../../lib/api'
@@ -39,6 +39,32 @@ export default function ClientProfile({ clientId, onBack, onDelete }: Props) {
 
   // Delete confirm
   const [confirmDelete, setConfirmDelete] = useState(false)
+
+  // Portal access state
+  const [showPortalForm, setShowPortalForm] = useState(false)
+  const [portalPassword, setPortalPassword] = useState('')
+  const [portalSaving, setPortalSaving] = useState(false)
+  const [portalMsg, setPortalMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+
+  const handleSetPortalPassword = async () => {
+    if (!client) return
+    if (portalPassword.length < 6) {
+      setPortalMsg({ type: 'error', text: 'Password must be at least 6 characters' })
+      return
+    }
+    setPortalSaving(true)
+    setPortalMsg(null)
+    try {
+      await api.post(`/admin/clients/${client.id}/set-portal-password`, { password: portalPassword })
+      setPortalMsg({ type: 'success', text: 'Portal access activated. Client can now log in.' })
+      setPortalPassword('')
+      setShowPortalForm(false)
+    } catch {
+      setPortalMsg({ type: 'error', text: 'Failed to set portal password' })
+    } finally {
+      setPortalSaving(false)
+    }
+  }
 
   useEffect(() => {
     const load = async () => {
@@ -207,14 +233,63 @@ export default function ClientProfile({ clientId, onBack, onDelete }: Props) {
             )}
           </div>
         </div>
-        <button
-          onClick={() => setConfirmDelete(true)}
-          className="flex items-center gap-2 px-3 py-2 rounded-lg border border-red-400/20 text-red-400 hover:bg-red-400/10 transition-colors text-sm"
-        >
-          <Trash2 className="w-4 h-4" />
-          Remove Client
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => { setShowPortalForm(p => !p); setPortalMsg(null) }}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg border border-accent/30 text-accent hover:bg-accent/10 transition-colors text-sm"
+          >
+            Portal Access
+          </button>
+          <button
+            onClick={() => setConfirmDelete(true)}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg border border-red-400/20 text-red-400 hover:bg-red-400/10 transition-colors text-sm"
+          >
+            <Trash2 className="w-4 h-4" />
+            Remove Client
+          </button>
+        </div>
       </div>
+
+      {/* Portal Access Form */}
+      {showPortalForm && (
+        <div className="flex items-start gap-3 p-4 bg-accent/5 border border-accent/20 rounded-xl">
+          <div className="flex-1 space-y-3">
+            <p className="text-sm font-medium text-text-primary">
+              Set portal password for <strong>{client?.firstName} {client?.lastName}</strong>
+            </p>
+            <div className="flex gap-2">
+              <input
+                type="password"
+                value={portalPassword}
+                onChange={e => setPortalPassword(e.target.value)}
+                placeholder="Min. 6 characters"
+                className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-text-primary focus:outline-none focus:border-accent/50 text-sm transition-colors"
+              />
+              <button
+                type="button"
+                onClick={handleSetPortalPassword}
+                disabled={portalSaving}
+                className="px-4 py-2 bg-accent text-black text-sm font-medium rounded-lg hover:bg-accent/90 disabled:opacity-50 transition-colors"
+              >
+                {portalSaving ? 'Saving...' : 'Activate'}
+              </button>
+              <button
+                type="button"
+                onClick={() => { setShowPortalForm(false); setPortalMsg(null) }}
+                className="px-3 py-2 text-text-muted hover:text-text-primary text-sm transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+            {portalMsg && (
+              <p className={`text-xs ${portalMsg.type === 'success' ? 'text-green-400' : 'text-red-400'}`}>
+                {portalMsg.text}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Delete confirm */}
       {confirmDelete && (

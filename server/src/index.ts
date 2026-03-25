@@ -16,6 +16,8 @@ import { analyticsRouter } from './routes/analytics.js'
 import { invoicesRouter } from './routes/invoices.js'
 import { signingRouter } from './routes/signing.js'
 import { imageGenRouter } from './routes/imageGen.js'
+import { clientAuthRouter } from './routes/client-auth.js'
+import { clientPortalRouter } from './routes/client-portal.js'
 import { generalRateLimit, submissionRateLimit } from './middleware/rateLimit.js'
 import { errorHandler } from './middleware/errorHandler.js'
 import { logger } from './lib/logger.js'
@@ -67,6 +69,8 @@ app.use('/api/admin/invoices', invoicesRouter)
 
 app.use('/api/sign', signingRouter)
 app.use('/api/admin/image-gen', imageGenRouter)
+app.use('/api/client-auth', clientAuthRouter)
+app.use('/api/portal', clientPortalRouter)
 
 // Health check
 app.get('/api/health', (_, res) => {

@@ -83,6 +83,9 @@ model Client {
   payments     PaymentEntry[]
   invoices     Invoice[]
   documents    ClientDocument[]
+  passwordHash  String?
+  portalActive  Boolean   @default(false)
+  lastLoginAt   DateTime?
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 }

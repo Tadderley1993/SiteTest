@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { PrismaClient } from '@prisma/client'
+import bcrypt from 'bcryptjs'
 import { authMiddleware } from '../middleware/auth.js'
 
 const router = Router()
@@ -252,6 +253,26 @@ router.delete('/:id/invoices/:invoiceId', async (req, res) => {
   } catch (error) {
     console.error('Error deleting invoice:', error)
     res.status(500).json({ error: 'Failed to delete invoice' })
+  }
+})
+
+// POST /api/admin/clients/:id/set-portal-password
+router.post('/:id/set-portal-password', authMiddleware, async (req, res) => {
+  try {
+    const clientId = parseInt(req.params.id)
+    const { password } = req.body as { password: string }
+    if (!password || password.length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters' })
+    }
+    const hash = await bcrypt.hash(password, 10)
+    const client = await prisma.client.update({
+      where: { id: clientId },
+      data: { passwordHash: hash, portalActive: true },
+    })
+    res.json({ message: 'Portal password set', clientId: client.id, portalActive: true })
+  } catch (error) {
+    console.error('Error setting portal password:', error)
+    res.status(500).json({ error: 'Failed to set portal password' })
   }
 })
 
