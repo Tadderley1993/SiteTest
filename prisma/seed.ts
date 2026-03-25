@@ -12,6 +12,12 @@ async function main() {
     create: {
       username: 'admin',
       passwordHash,
+      isActive: true,
+      role: 'ADMIN',
+    },
+    update: {
+      isActive: true,
+      role: 'ADMIN',
     },
   })
 
