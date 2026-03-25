@@ -149,7 +149,7 @@ function AvailBadge({ appliesTo, inclSubs, inclClients }: { appliesTo: ListType[
   if (missingList) {
     // The relevant list isn't even selected — show warning badge
     return (
-      <span className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-white/[0.06] text-text-muted font-body">
+      <span className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-white/[0.06] text-zinc-500 font-body">
         <Info className="w-2.5 h-2.5" />
         {label} — not selected
       </span>
@@ -157,7 +157,7 @@ function AvailBadge({ appliesTo, inclSubs, inclClients }: { appliesTo: ListType[
   }
 
   return (
-    <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/[0.06] text-text-muted font-body">
+    <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/[0.06] text-zinc-500 font-body">
       {label}
     </span>
   )
@@ -228,7 +228,7 @@ export default function ExportContacts({ submissions, clients }: Props) {
       <button
         type="button"
         onClick={() => setOpen(v => !v)}
-        className="flex items-center gap-2 px-3 py-2 rounded-lg border border-white/10 text-text-muted hover:text-text-primary hover:bg-white/5 text-sm font-body transition-colors"
+        className="flex items-center gap-2 px-3 py-2 rounded-lg border border-zinc-200 text-zinc-500 hover:text-black hover:bg-[#f3f3f3] text-sm font-body transition-colors"
       >
         <FileSpreadsheet className="w-4 h-4" />
         Export
@@ -238,14 +238,14 @@ export default function ExportContacts({ submissions, clients }: Props) {
       {/* Panel */}
       {open && (
         <div
-          className="absolute right-0 top-full mt-2 w-[400px] rounded-2xl border border-white/[0.1] shadow-2xl z-50 flex flex-col"
+          className="absolute right-0 top-full mt-2 w-[400px] rounded-2xl border border-zinc-200 shadow-2xl z-50 flex flex-col"
           style={{ backgroundColor: '#0E1117', maxHeight: '80vh' }}
         >
           {/* ── Header ── */}
-          <div className="flex items-center justify-between px-5 py-3.5 border-b border-white/[0.06] flex-shrink-0">
+          <div className="flex items-center justify-between px-5 py-3.5 border-b border-zinc-100 flex-shrink-0">
             <div className="flex items-center gap-2">
-              <Download className="w-3.5 h-3.5 text-accent" />
-              <span className="text-xs font-semibold text-text-muted uppercase tracking-wider font-body">Export Contacts</span>
+              <Download className="w-3.5 h-3.5 text-black" />
+              <span className="text-xs font-semibold text-zinc-500 uppercase tracking-wider font-body">Export Contacts</span>
             </div>
           </div>
 
@@ -253,8 +253,8 @@ export default function ExportContacts({ submissions, clients }: Props) {
           <div className="overflow-y-auto flex-1">
 
             {/* ── Section 1: Lists ── */}
-            <div className="px-5 py-4 border-b border-white/[0.06]">
-              <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest font-body mb-3">Include Lists</p>
+            <div className="px-5 py-4 border-b border-zinc-100">
+              <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-body mb-3">Include Lists</p>
               <div className="space-y-2.5">
                 {([
                   { label: 'Submissions',      count: submissions.length, checked: inclSubs,    set: () => setInclSubs(v => !v),    color: '#E8FF47' },
@@ -262,7 +262,7 @@ export default function ExportContacts({ submissions, clients }: Props) {
                 ] as const).map(({ label, count, checked, set, color }) => (
                   <label key={label} className="flex items-center gap-3 cursor-pointer" onClick={set}>
                     <Toggle checked={checked} onChange={set} color={color} />
-                    <span className="text-sm font-medium text-text-primary font-body flex-1">{label}</span>
+                    <span className="text-sm font-medium text-black font-body flex-1">{label}</span>
                     <span
                       className="text-xs font-semibold px-2 py-0.5 rounded-full font-body"
                       style={{ backgroundColor: `${color}18`, color }}
@@ -278,11 +278,11 @@ export default function ExportContacts({ submissions, clients }: Props) {
             <div className="px-5 py-4">
               {/* Sub-header with select all/none */}
               <div className="flex items-center justify-between mb-3">
-                <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest font-body">Include Fields</p>
+                <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-body">Include Fields</p>
                 <div className="flex gap-2">
-                  <button type="button" onClick={selectAll}  className="text-[10px] text-accent hover:underline font-body">All</button>
-                  <span className="text-[10px] text-text-muted">·</span>
-                  <button type="button" onClick={selectNone} className="text-[10px] text-text-muted hover:text-text-primary font-body">None</button>
+                  <button type="button" onClick={selectAll}  className="text-[10px] text-black hover:underline font-body">All</button>
+                  <span className="text-[10px] text-zinc-500">·</span>
+                  <button type="button" onClick={selectNone} className="text-[10px] text-zinc-500 hover:text-black font-body">None</button>
                 </div>
               </div>
 
@@ -311,12 +311,12 @@ export default function ExportContacts({ submissions, clients }: Props) {
                             borderColor: allGroupOn ? '#E8FF47' : someGroupOn ? '#E8FF47' : 'rgba(255,255,255,0.2)',
                           }}
                         >
-                          {allGroupOn && <Check className="w-2.5 h-2.5 text-accent" strokeWidth={3} />}
+                          {allGroupOn && <Check className="w-2.5 h-2.5 text-black" strokeWidth={3} />}
                           {!allGroupOn && someGroupOn && (
-                            <div className="w-2 h-0.5 bg-accent rounded-full" />
+                            <div className="w-2 h-0.5 bg-black rounded-full" />
                           )}
                         </button>
-                        <span className={`text-xs font-semibold font-body ${groupApplicable ? 'text-text-primary' : 'text-text-muted'}`}>
+                        <span className={`text-xs font-semibold font-body ${groupApplicable ? 'text-black' : 'text-zinc-500'}`}>
                           {group.label}
                         </span>
                         <AvailBadge appliesTo={group.appliesTo} inclSubs={inclSubs} inclClients={inclClients} />
@@ -374,9 +374,9 @@ export default function ExportContacts({ submissions, clients }: Props) {
           </div>
 
           {/* ── Footer ── */}
-          <div className="px-5 pb-5 pt-3 border-t border-white/[0.06] flex-shrink-0 space-y-2">
+          <div className="px-5 pb-5 pt-3 border-t border-zinc-100 flex-shrink-0 space-y-2">
             {/* Summary line */}
-            <div className="flex justify-between text-[11px] font-body text-text-muted">
+            <div className="flex justify-between text-[11px] font-body text-zinc-500">
               <span>{selectedCols.size} column{selectedCols.size !== 1 ? 's' : ''} selected</span>
               {!nothingSelected && <span>{totalRecords} record{totalRecords !== 1 ? 's' : ''}</span>}
             </div>
@@ -385,7 +385,7 @@ export default function ExportContacts({ submissions, clients }: Props) {
               type="button"
               onClick={handleDownload}
               disabled={disabled}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-accent text-background font-body font-bold text-sm disabled:opacity-35 hover:bg-accent/90 transition-all"
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-black text-background font-body font-bold text-sm disabled:opacity-35 hover:bg-zinc-800 transition-all"
             >
               <Download className="w-4 h-4" />
               {nothingSelected
@@ -395,7 +395,7 @@ export default function ExportContacts({ submissions, clients }: Props) {
                 : 'Download Spreadsheet (.csv)'}
             </button>
 
-            <p className="text-[10px] text-text-muted text-center font-body">
+            <p className="text-[10px] text-zinc-500 text-center font-body">
               Opens in Excel, Google Sheets, or Numbers
             </p>
           </div>

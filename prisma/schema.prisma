@@ -83,6 +83,7 @@ model Client {
   payments     PaymentEntry[]
   invoices     Invoice[]
   documents    ClientDocument[]
+  deals        Deal[]
   passwordHash  String?
   portalActive  Boolean   @default(false)
   lastLoginAt   DateTime?
@@ -247,6 +248,47 @@ model AdminSettings {
   smtpSecure        Boolean  @default(false)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
+}
+
+model Deal {
+  id           Int      @id @default(autoincrement())
+  title        String
+  company      String?
+  contactName  String?
+  contactEmail String?
+  contactPhone String?
+  value        Float    @default(0)
+  stage        String   @default("lead")
+  notes        String?
+  clientId     Int?
+  client       Client?  @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model AutomationRule {
+  id        Int             @id @default(autoincrement())
+  name      String
+  type      String
+  enabled   Boolean         @default(false)
+  delayDays Int             @default(3)
+  subject   String?
+  body      String?
+  lastRunAt DateTime?
+  runCount  Int             @default(0)
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  logs      AutomationLog[]
+}
+
+model AutomationLog {
+  id        Int            @id @default(autoincrement())
+  ruleId    Int
+  rule      AutomationRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+  status    String
+  message   String?
+  sentTo    String?
+  createdAt DateTime       @default(now())
 }
 
 model Expense {

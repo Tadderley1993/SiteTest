@@ -89,7 +89,7 @@ function LineItemRow({
         value={item.description}
         onChange={e => onChange(item.id, 'description', e.target.value)}
         placeholder="Description of service or item"
-        className="bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent/40 font-body"
+        className="bg-[#f3f3f3] border border-zinc-200 rounded-lg px-3 py-2 text-sm text-black placeholder:text-zinc-500 focus:outline-none focus:border-black/20 font-body"
       />
       <input
         type="number"
@@ -97,26 +97,26 @@ function LineItemRow({
         step="0.01"
         value={item.quantity}
         onChange={e => onChange(item.id, 'quantity', parseFloat(e.target.value) || 0)}
-        className="bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-text-primary text-right focus:outline-none focus:border-accent/40 font-body"
+        className="bg-[#f3f3f3] border border-zinc-200 rounded-lg px-3 py-2 text-sm text-black text-right focus:outline-none focus:border-black/20 font-body"
       />
       <div className="relative">
-        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted text-sm">$</span>
+        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 text-sm">$</span>
         <input
           type="number"
           min="0"
           step="0.01"
           value={item.unitPrice}
           onChange={e => onChange(item.id, 'unitPrice', parseFloat(e.target.value) || 0)}
-          className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg pl-6 pr-3 py-2 text-sm text-text-primary text-right focus:outline-none focus:border-accent/40 font-body"
+          className="w-full bg-[#f3f3f3] border border-zinc-200 rounded-lg pl-6 pr-3 py-2 text-sm text-black text-right focus:outline-none focus:border-black/20 font-body"
         />
       </div>
-      <div className="text-sm text-text-primary text-right font-medium py-2">
+      <div className="text-sm text-black text-right font-medium py-2">
         ${amount.toFixed(2)}
       </div>
       <button
         type="button"
         onClick={() => onRemove(item.id)}
-        className="w-9 h-9 flex items-center justify-center rounded-lg text-text-muted hover:text-red-400 hover:bg-red-400/10 transition-all"
+        className="w-9 h-9 flex items-center justify-center rounded-lg text-zinc-500 hover:text-red-500 hover:bg-red-500/10 transition-all"
       >
         <Trash2 className="w-4 h-4" />
       </button>
@@ -165,17 +165,17 @@ function ClientSelect({
       <button
         type="button"
         onClick={() => setOpen(v => !v)}
-        className="w-full flex items-center justify-between gap-2 bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-accent/40 hover:border-white/20 transition-colors text-left"
+        className="w-full flex items-center justify-between gap-2 bg-[#f3f3f3] border border-zinc-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-black/20 hover:border-zinc-400 transition-colors text-left"
       >
         {selected ? (
-          <span className="text-text-primary font-body">
+          <span className="text-black font-body">
             {selected.firstName} {selected.lastName}
-            {selected.organization && <span className="text-text-muted ml-1.5">· {selected.organization}</span>}
+            {selected.organization && <span className="text-zinc-500 ml-1.5">· {selected.organization}</span>}
           </span>
         ) : (
-          <span className="text-text-muted font-body">Select client…</span>
+          <span className="text-zinc-500 font-body">Select client…</span>
         )}
-        <ChevronDown className={`w-4 h-4 text-text-muted flex-shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
+        <ChevronDown className={`w-4 h-4 text-zinc-500 flex-shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
 
       <AnimatePresence>
@@ -185,30 +185,30 @@ function ClientSelect({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}
             transition={{ duration: 0.15 }}
-            className="absolute z-50 top-full mt-1 left-0 right-0 rounded-xl border border-white/[0.1] shadow-2xl overflow-hidden"
+            className="absolute z-50 top-full mt-1 left-0 right-0 rounded-xl border border-zinc-200 shadow-2xl overflow-hidden"
             style={{ backgroundColor: '#0E1117' }}
           >
             {/* Search */}
-            <div className="flex items-center gap-2 px-3 py-2.5 border-b border-white/[0.06]">
-              <Search className="w-3.5 h-3.5 text-text-muted flex-shrink-0" />
+            <div className="flex items-center gap-2 px-3 py-2.5 border-b border-zinc-100">
+              <Search className="w-3.5 h-3.5 text-zinc-500 flex-shrink-0" />
               <input
                 autoFocus
                 type="text"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder="Search clients…"
-                className="flex-1 bg-transparent text-sm text-text-primary placeholder:text-text-muted focus:outline-none font-body"
+                className="flex-1 bg-transparent text-sm text-black placeholder:text-zinc-500 focus:outline-none font-body"
               />
             </div>
 
             {/* Options */}
             <div className="max-h-52 overflow-y-auto">
               {clients.length === 0 ? (
-                <div className="px-4 py-6 text-center text-sm text-text-muted font-body">
+                <div className="px-4 py-6 text-center text-sm text-zinc-500 font-body">
                   No clients found. Add a client first.
                 </div>
               ) : filtered.length === 0 ? (
-                <div className="px-4 py-4 text-center text-sm text-text-muted font-body">No match</div>
+                <div className="px-4 py-4 text-center text-sm text-zinc-500 font-body">No match</div>
               ) : (
                 filtered.map(c => (
                   <button
@@ -217,18 +217,18 @@ function ClientSelect({
                     onClick={() => { onChange(c.id); setOpen(false); setSearch('') }}
                     className="w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-white/[0.06] transition-colors"
                   >
-                    <div className="w-7 h-7 rounded-full bg-accent/10 flex items-center justify-center flex-shrink-0">
-                      <User className="w-3.5 h-3.5 text-accent" />
+                    <div className="w-7 h-7 rounded-full bg-zinc-100 flex items-center justify-center flex-shrink-0">
+                      <User className="w-3.5 h-3.5 text-black" />
                     </div>
                     <div>
-                      <div className="text-sm text-text-primary font-body">
+                      <div className="text-sm text-black font-body">
                         {c.firstName} {c.lastName}
                       </div>
-                      <div className="text-xs text-text-muted font-body">
+                      <div className="text-xs text-zinc-500 font-body">
                         {c.email}{c.organization ? ` · ${c.organization}` : ''}
                       </div>
                     </div>
-                    {value === c.id && <CheckCircle className="w-3.5 h-3.5 text-accent ml-auto flex-shrink-0" />}
+                    {value === c.id && <CheckCircle className="w-3.5 h-3.5 text-black ml-auto flex-shrink-0" />}
                   </button>
                 ))
               )}
@@ -236,11 +236,11 @@ function ClientSelect({
 
             {/* Clear option */}
             {value !== '' && (
-              <div className="border-t border-white/[0.06]">
+              <div className="border-t border-zinc-100">
                 <button
                   type="button"
                   onClick={() => { onChange(''); setOpen(false); setSearch('') }}
-                  className="w-full px-3 py-2 text-xs text-text-muted hover:text-red-400 text-left font-body hover:bg-white/[0.04] transition-colors"
+                  className="w-full px-3 py-2 text-xs text-zinc-500 hover:text-red-500 text-left font-body hover:bg-[#f3f3f3] transition-colors"
                 >
                   Clear selection
                 </button>
@@ -398,21 +398,21 @@ function InvoiceBuilder({
         <button
           type="button"
           onClick={onBack}
-          className="flex items-center gap-2 text-text-muted hover:text-text-primary transition-colors text-sm font-body"
+          className="flex items-center gap-2 text-zinc-500 hover:text-black transition-colors text-sm font-body"
         >
           <ArrowLeft className="w-4 h-4" /> Back
         </button>
         <div className="flex-1" />
-        <span className="font-body text-text-muted text-sm">{initial ? `Editing ${initial.invoiceNumber}` : 'New Invoice'}</span>
+        <span className="font-body text-zinc-500 text-sm">{initial ? `Editing ${initial.invoiceNumber}` : 'New Invoice'}</span>
       </div>
 
       {error && (
-        <div className="mb-6 px-4 py-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-body">
+        <div className="mb-6 px-4 py-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500 text-sm font-body">
           {error}
         </div>
       )}
       {sendSuccess && (
-        <div className="mb-6 px-4 py-3 rounded-lg bg-green-500/10 border border-green-500/20 text-green-400 text-sm font-body flex items-center gap-2">
+        <div className="mb-6 px-4 py-3 rounded-lg bg-green-500/10 border border-green-500/20 text-green-600 text-sm font-body flex items-center gap-2">
           <CheckCircle className="w-4 h-4 flex-shrink-0" /> {sendSuccess}
         </div>
       )}
@@ -422,61 +422,61 @@ function InvoiceBuilder({
         <div className="lg:col-span-2 space-y-6">
 
           {/* Client + meta */}
-          <div className="backdrop-blur-xl bg-white/[0.03] border border-white/[0.08] rounded-2xl p-6">
-            <h3 className="font-body text-sm font-semibold text-text-primary mb-4 uppercase tracking-widest">Invoice Details</h3>
+          <div className="bg-[#f3f3f3] border border-zinc-200 rounded-2xl p-6">
+            <h3 className="font-body text-sm font-semibold text-black mb-4 uppercase tracking-widest">Invoice Details</h3>
             <div className="grid grid-cols-2 gap-4 mb-4">
               <div>
-                <label className="block text-xs text-text-muted mb-1.5 uppercase tracking-wider font-body">Client *</label>
+                <label className="block text-xs text-zinc-500 mb-1.5 uppercase tracking-wider font-body">Client *</label>
                 <ClientSelect clients={allClients} value={clientId} onChange={setClientId} />
               </div>
               <div>
-                <label className="block text-xs text-text-muted mb-1.5 uppercase tracking-wider font-body">Invoice Number *</label>
+                <label className="block text-xs text-zinc-500 mb-1.5 uppercase tracking-wider font-body">Invoice Number *</label>
                 <input
                   value={invoiceNumber}
                   onChange={e => setInvoiceNumber(e.target.value)}
-                  className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2.5 text-sm text-text-primary focus:outline-none focus:border-accent/40 font-body"
+                  className="w-full bg-[#f3f3f3] border border-zinc-200 rounded-lg px-3 py-2.5 text-sm text-black focus:outline-none focus:border-black/20 font-body"
                 />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4 mb-4">
               <div>
-                <label className="block text-xs text-text-muted mb-1.5 uppercase tracking-wider font-body">Issue Date</label>
+                <label className="block text-xs text-zinc-500 mb-1.5 uppercase tracking-wider font-body">Issue Date</label>
                 <input
                   type="date"
                   value={issuedDate}
                   onChange={e => setIssuedDate(e.target.value)}
-                  className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2.5 text-sm text-text-primary focus:outline-none focus:border-accent/40 font-body"
+                  className="w-full bg-[#f3f3f3] border border-zinc-200 rounded-lg px-3 py-2.5 text-sm text-black focus:outline-none focus:border-black/20 font-body"
                 />
               </div>
               <div>
-                <label className="block text-xs text-text-muted mb-1.5 uppercase tracking-wider font-body">Due Date *</label>
+                <label className="block text-xs text-zinc-500 mb-1.5 uppercase tracking-wider font-body">Due Date *</label>
                 <input
                   type="date"
                   value={dueDate}
                   onChange={e => setDueDate(e.target.value)}
-                  className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2.5 text-sm text-text-primary focus:outline-none focus:border-accent/40 font-body"
+                  className="w-full bg-[#f3f3f3] border border-zinc-200 rounded-lg px-3 py-2.5 text-sm text-black focus:outline-none focus:border-black/20 font-body"
                 />
               </div>
             </div>
             <div>
-              <label className="block text-xs text-text-muted mb-1.5 uppercase tracking-wider font-body">Title / Subject (optional)</label>
+              <label className="block text-xs text-zinc-500 mb-1.5 uppercase tracking-wider font-body">Title / Subject (optional)</label>
               <input
                 value={title}
                 onChange={e => setTitle(e.target.value)}
                 placeholder="e.g. Website Redesign — Phase 1"
-                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2.5 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent/40 font-body"
+                className="w-full bg-[#f3f3f3] border border-zinc-200 rounded-lg px-3 py-2.5 text-sm text-black placeholder:text-zinc-500 focus:outline-none focus:border-black/20 font-body"
               />
             </div>
           </div>
 
           {/* Line Items */}
-          <div className="backdrop-blur-xl bg-white/[0.03] border border-white/[0.08] rounded-2xl p-6">
-            <h3 className="font-body text-sm font-semibold text-text-primary mb-4 uppercase tracking-widest">Line Items</h3>
+          <div className="bg-[#f3f3f3] border border-zinc-200 rounded-2xl p-6">
+            <h3 className="font-body text-sm font-semibold text-black mb-4 uppercase tracking-widest">Line Items</h3>
 
             {/* Column headers */}
             <div className="grid grid-cols-[1fr_80px_110px_100px_36px] gap-2 mb-2 px-0.5">
               {['Description', 'Qty', 'Unit Price', 'Amount', ''].map((h, i) => (
-                <div key={i} className={`text-xs text-text-muted uppercase tracking-wider font-body ${i >= 2 ? 'text-right' : ''}`}>{h}</div>
+                <div key={i} className={`text-xs text-zinc-500 uppercase tracking-wider font-body ${i >= 2 ? 'text-right' : ''}`}>{h}</div>
               ))}
             </div>
 
@@ -489,34 +489,34 @@ function InvoiceBuilder({
             <button
               type="button"
               onClick={addItem}
-              className="mt-4 flex items-center gap-2 text-sm text-accent hover:text-accent/80 transition-colors font-body"
+              className="mt-4 flex items-center gap-2 text-sm text-black hover:text-black/80 transition-colors font-body"
             >
               <Plus className="w-4 h-4" /> Add Line Item
             </button>
           </div>
 
           {/* Notes */}
-          <div className="backdrop-blur-xl bg-white/[0.03] border border-white/[0.08] rounded-2xl p-6">
-            <h3 className="font-body text-sm font-semibold text-text-primary mb-4 uppercase tracking-widest">Notes & Terms</h3>
+          <div className="bg-[#f3f3f3] border border-zinc-200 rounded-2xl p-6">
+            <h3 className="font-body text-sm font-semibold text-black mb-4 uppercase tracking-widest">Notes & Terms</h3>
             <div className="space-y-4">
               <div>
-                <label className="block text-xs text-text-muted mb-1.5 uppercase tracking-wider font-body">Note to Client</label>
+                <label className="block text-xs text-zinc-500 mb-1.5 uppercase tracking-wider font-body">Note to Client</label>
                 <textarea
                   rows={3}
                   value={notes}
                   onChange={e => setNotes(e.target.value)}
                   placeholder="Thank you for your business!"
-                  className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2.5 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent/40 resize-none font-body"
+                  className="w-full bg-[#f3f3f3] border border-zinc-200 rounded-lg px-3 py-2.5 text-sm text-black placeholder:text-zinc-500 focus:outline-none focus:border-black/20 resize-none font-body"
                 />
               </div>
               <div>
-                <label className="block text-xs text-text-muted mb-1.5 uppercase tracking-wider font-body">Terms & Conditions</label>
+                <label className="block text-xs text-zinc-500 mb-1.5 uppercase tracking-wider font-body">Terms & Conditions</label>
                 <textarea
                   rows={3}
                   value={termsConditions}
                   onChange={e => setTermsConditions(e.target.value)}
                   placeholder="Payment is due within 30 days…"
-                  className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2.5 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent/40 resize-none font-body"
+                  className="w-full bg-[#f3f3f3] border border-zinc-200 rounded-lg px-3 py-2.5 text-sm text-black placeholder:text-zinc-500 focus:outline-none focus:border-black/20 resize-none font-body"
                 />
               </div>
             </div>
@@ -525,17 +525,17 @@ function InvoiceBuilder({
 
         {/* ── Right: Summary ── */}
         <div className="space-y-4">
-          <div className="backdrop-blur-xl bg-white/[0.03] border border-white/[0.08] rounded-2xl p-6 sticky top-4">
-            <h3 className="font-body text-sm font-semibold text-text-primary mb-4 uppercase tracking-widest">Summary</h3>
+          <div className="bg-[#f3f3f3] border border-zinc-200 rounded-2xl p-6 sticky top-4">
+            <h3 className="font-body text-sm font-semibold text-black mb-4 uppercase tracking-widest">Summary</h3>
 
             {/* Discount */}
             <div className="mb-4">
-              <label className="block text-xs text-text-muted mb-1.5 uppercase tracking-wider font-body">Discount</label>
+              <label className="block text-xs text-zinc-500 mb-1.5 uppercase tracking-wider font-body">Discount</label>
               <div className="flex gap-2">
                 <select
                   value={discountType}
                   onChange={e => setDiscountType(e.target.value)}
-                  className="bg-white/[0.04] border border-white/[0.08] rounded-lg px-2 py-2 text-sm text-text-primary focus:outline-none font-body"
+                  className="bg-[#f3f3f3] border border-zinc-200 rounded-lg px-2 py-2 text-sm text-black focus:outline-none font-body"
                   style={{ backgroundColor: '#0E1117', color: '#F0F0F0' }}
                 >
                   <option value="fixed" style={{ backgroundColor: '#0E1117', color: '#F0F0F0' }}>$</option>
@@ -547,45 +547,45 @@ function InvoiceBuilder({
                   step="0.01"
                   value={discountValue}
                   onChange={e => setDiscountValue(parseFloat(e.target.value) || 0)}
-                  className="flex-1 bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-text-primary text-right focus:outline-none focus:border-accent/40 font-body"
+                  className="flex-1 bg-[#f3f3f3] border border-zinc-200 rounded-lg px-3 py-2 text-sm text-black text-right focus:outline-none focus:border-black/20 font-body"
                 />
               </div>
             </div>
 
             {/* Tax */}
             <div className="mb-6">
-              <label className="block text-xs text-text-muted mb-1.5 uppercase tracking-wider font-body">Tax Rate (%)</label>
+              <label className="block text-xs text-zinc-500 mb-1.5 uppercase tracking-wider font-body">Tax Rate (%)</label>
               <input
                 type="number"
                 min="0"
                 step="0.01"
                 value={taxRate}
                 onChange={e => setTaxRate(parseFloat(e.target.value) || 0)}
-                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-text-primary text-right focus:outline-none focus:border-accent/40 font-body"
+                className="w-full bg-[#f3f3f3] border border-zinc-200 rounded-lg px-3 py-2 text-sm text-black text-right focus:outline-none focus:border-black/20 font-body"
               />
             </div>
 
             {/* Totals */}
-            <div className="space-y-2 border-t border-white/[0.08] pt-4 mb-6">
+            <div className="space-y-2 border-t border-zinc-200 pt-4 mb-6">
               <div className="flex justify-between text-sm font-body">
-                <span className="text-text-muted">Subtotal</span>
-                <span className="text-text-primary">${subtotal.toFixed(2)}</span>
+                <span className="text-zinc-500">Subtotal</span>
+                <span className="text-black">${subtotal.toFixed(2)}</span>
               </div>
               {discountAmt > 0 && (
                 <div className="flex justify-between text-sm font-body">
-                  <span className="text-text-muted">Discount</span>
-                  <span className="text-green-400">−${discountAmt.toFixed(2)}</span>
+                  <span className="text-zinc-500">Discount</span>
+                  <span className="text-green-600">−${discountAmt.toFixed(2)}</span>
                 </div>
               )}
               {taxAmt > 0 && (
                 <div className="flex justify-between text-sm font-body">
-                  <span className="text-text-muted">Tax ({taxRate}%)</span>
-                  <span className="text-text-primary">${taxAmt.toFixed(2)}</span>
+                  <span className="text-zinc-500">Tax ({taxRate}%)</span>
+                  <span className="text-black">${taxAmt.toFixed(2)}</span>
                 </div>
               )}
-              <div className="flex justify-between font-body border-t border-white/[0.08] pt-2 mt-2">
-                <span className="text-text-primary font-semibold">Total</span>
-                <span className="text-accent font-bold text-lg">${total.toFixed(2)}</span>
+              <div className="flex justify-between font-body border-t border-zinc-200 pt-2 mt-2">
+                <span className="text-black font-semibold">Total</span>
+                <span className="text-black font-bold text-lg">${total.toFixed(2)}</span>
               </div>
             </div>
 
@@ -595,7 +595,7 @@ function InvoiceBuilder({
                 type="button"
                 onClick={handleSend}
                 disabled={sending}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-accent text-background font-body font-semibold text-sm hover:bg-accent/90 disabled:opacity-50 transition-all"
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-black text-background font-body font-semibold text-sm hover:bg-zinc-800 disabled:opacity-50 transition-all"
               >
                 <Send className="w-4 h-4" />
                 {sending ? 'Sending via PayPal…' : 'Send via PayPal'}
@@ -604,13 +604,13 @@ function InvoiceBuilder({
                 type="button"
                 onClick={handleSave}
                 disabled={saving}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-white/10 text-text-primary font-body font-medium text-sm hover:bg-white/[0.04] disabled:opacity-50 transition-all"
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-zinc-200 text-black font-body font-medium text-sm hover:bg-[#f3f3f3] disabled:opacity-50 transition-all"
               >
                 {saving ? 'Saving…' : 'Save Draft'}
               </button>
             </div>
 
-            <p className="mt-4 text-xs text-text-muted font-body text-center leading-relaxed">
+            <p className="mt-4 text-xs text-zinc-500 font-body text-center leading-relaxed">
               Sending will create a PayPal invoice and email the client a direct payment link.
             </p>
           </div>
@@ -646,31 +646,31 @@ function InvoiceRow({
   const isSent = invoice.status === 'sent' || invoice.status === 'paid'
 
   return (
-    <div className="backdrop-blur-xl bg-white/[0.03] border border-white/[0.08] rounded-xl overflow-hidden">
+    <div className="bg-[#f3f3f3] border border-zinc-200 rounded-xl overflow-hidden">
       {/* Row */}
       <div
-        className="grid grid-cols-[2fr_2fr_1fr_1fr_1fr_auto] gap-4 items-center px-5 py-4 cursor-pointer hover:bg-white/[0.02] transition-colors"
+        className="grid grid-cols-[2fr_2fr_1fr_1fr_1fr_auto] gap-4 items-center px-5 py-4 cursor-pointer hover:bg-[#f3f3f3] transition-colors"
         onClick={() => setExpanded(v => !v)}
       >
         <div>
-          <div className="font-body text-sm font-medium text-text-primary">{invoice.invoiceNumber}</div>
-          {invoice.title && <div className="font-body text-xs text-text-muted mt-0.5 truncate">{invoice.title}</div>}
+          <div className="font-body text-sm font-medium text-black">{invoice.invoiceNumber}</div>
+          {invoice.title && <div className="font-body text-xs text-zinc-500 mt-0.5 truncate">{invoice.title}</div>}
         </div>
-        <div className="font-body text-sm text-text-muted">
+        <div className="font-body text-sm text-zinc-500">
           {invoice.client.firstName} {invoice.client.lastName}
           {invoice.client.organization && <span className="ml-1 text-xs opacity-60">· {invoice.client.organization}</span>}
         </div>
-        <div className="font-body text-sm text-text-primary font-medium">${invoice.amount.toFixed(2)}</div>
+        <div className="font-body text-sm text-black font-medium">${invoice.amount.toFixed(2)}</div>
         <div>
           <StatusBadge status={invoice.status} />
         </div>
-        <div className="font-body text-xs text-text-muted">{invoice.dueDate}</div>
+        <div className="font-body text-xs text-zinc-500">{invoice.dueDate}</div>
         <div className="flex items-center gap-1">
           <button type="button" onClick={e => { e.stopPropagation(); onEdit() }}
-            className="p-1.5 rounded-lg text-text-muted hover:text-accent hover:bg-accent/10 transition-all">
+            className="p-1.5 rounded-lg text-zinc-500 hover:text-black hover:bg-zinc-100 transition-all">
             <FileText className="w-4 h-4" />
           </button>
-          {expanded ? <ChevronUp className="w-4 h-4 text-text-muted" /> : <ChevronDown className="w-4 h-4 text-text-muted" />}
+          {expanded ? <ChevronUp className="w-4 h-4 text-zinc-500" /> : <ChevronDown className="w-4 h-4 text-zinc-500" />}
         </div>
       </div>
 
@@ -684,21 +684,21 @@ function InvoiceRow({
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
-            <div className="border-t border-white/[0.06] px-5 py-4 space-y-4">
+            <div className="border-t border-zinc-100 px-5 py-4 space-y-4">
               {/* Line items */}
               {lineItems.length > 0 && (
                 <div>
                   <div className="grid grid-cols-[1fr_60px_100px_90px] gap-3 mb-2">
                     {['Description', 'Qty', 'Unit Price', 'Amount'].map((h, i) => (
-                      <div key={i} className={`text-xs text-text-muted uppercase tracking-wider font-body ${i >= 2 ? 'text-right' : ''}`}>{h}</div>
+                      <div key={i} className={`text-xs text-zinc-500 uppercase tracking-wider font-body ${i >= 2 ? 'text-right' : ''}`}>{h}</div>
                     ))}
                   </div>
                   {lineItems.map(item => (
-                    <div key={item.id} className="grid grid-cols-[1fr_60px_100px_90px] gap-3 py-1.5 border-b border-white/[0.04] last:border-0">
-                      <div className="font-body text-sm text-text-primary">{item.description}</div>
-                      <div className="font-body text-sm text-text-muted text-right">{item.quantity}</div>
-                      <div className="font-body text-sm text-text-muted text-right">${item.unitPrice.toFixed(2)}</div>
-                      <div className="font-body text-sm text-text-primary text-right">${(item.quantity * item.unitPrice).toFixed(2)}</div>
+                    <div key={item.id} className="grid grid-cols-[1fr_60px_100px_90px] gap-3 py-1.5 border-b border-zinc-100 last:border-0">
+                      <div className="font-body text-sm text-black">{item.description}</div>
+                      <div className="font-body text-sm text-zinc-500 text-right">{item.quantity}</div>
+                      <div className="font-body text-sm text-zinc-500 text-right">${item.unitPrice.toFixed(2)}</div>
+                      <div className="font-body text-sm text-black text-right">${(item.quantity * item.unitPrice).toFixed(2)}</div>
                     </div>
                   ))}
                 </div>
@@ -707,24 +707,24 @@ function InvoiceRow({
               {/* Totals row */}
               <div className="flex justify-end gap-8 text-sm font-body">
                 {invoice.discountValue > 0 && (
-                  <span className="text-text-muted">Discount: <span className="text-green-400">−${invoice.discountType === 'fixed' ? invoice.discountValue.toFixed(2) : (invoice.subtotal * invoice.discountValue / 100).toFixed(2)}</span></span>
+                  <span className="text-zinc-500">Discount: <span className="text-green-600">−${invoice.discountType === 'fixed' ? invoice.discountValue.toFixed(2) : (invoice.subtotal * invoice.discountValue / 100).toFixed(2)}</span></span>
                 )}
                 {invoice.taxRate > 0 && (
-                  <span className="text-text-muted">Tax ({invoice.taxRate}%)</span>
+                  <span className="text-zinc-500">Tax ({invoice.taxRate}%)</span>
                 )}
-                <span className="text-text-primary font-semibold">Total: <span className="text-accent">${invoice.amount.toFixed(2)}</span></span>
+                <span className="text-black font-semibold">Total: <span className="text-black">${invoice.amount.toFixed(2)}</span></span>
               </div>
 
               {/* PayPal link */}
               {invoice.paypalInvoiceUrl && (
-                <div className="flex items-center gap-2 p-3 bg-accent/5 border border-accent/20 rounded-lg">
-                  <CheckCircle className="w-4 h-4 text-accent flex-shrink-0" />
-                  <span className="text-xs text-text-muted font-body flex-1">PayPal invoice sent — client can pay directly</span>
+                <div className="flex items-center gap-2 p-3 bg-zinc-100 border border-accent/20 rounded-lg">
+                  <CheckCircle className="w-4 h-4 text-black flex-shrink-0" />
+                  <span className="text-xs text-zinc-500 font-body flex-1">PayPal invoice sent — client can pay directly</span>
                   <a
                     href={invoice.paypalInvoiceUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-1 text-xs text-accent hover:underline font-body"
+                    className="flex items-center gap-1 text-xs text-black hover:underline font-body"
                     onClick={e => e.stopPropagation()}
                   >
                     View <ExternalLink className="w-3 h-3" />
@@ -732,7 +732,7 @@ function InvoiceRow({
                   <button
                     type="button"
                     onClick={e => { e.stopPropagation(); navigator.clipboard.writeText(invoice.paypalInvoiceUrl!) }}
-                    className="p-1 rounded text-text-muted hover:text-text-primary"
+                    className="p-1 rounded text-zinc-500 hover:text-black"
                     title="Copy link"
                   >
                     <Copy className="w-3.5 h-3.5" />
@@ -741,7 +741,7 @@ function InvoiceRow({
               )}
 
               {msg && (
-                <div className={`text-xs font-body px-3 py-2 rounded-lg ${msg.includes('failed') || msg.includes('error') ? 'bg-red-500/10 text-red-400' : 'bg-green-500/10 text-green-400'}`}>
+                <div className={`text-xs font-body px-3 py-2 rounded-lg ${msg.includes('failed') || msg.includes('error') ? 'bg-red-500/10 text-red-500' : 'bg-green-500/10 text-green-600'}`}>
                   {msg}
                 </div>
               )}
@@ -751,7 +751,7 @@ function InvoiceRow({
                 {!isSent && (
                   <button type="button" disabled={loading}
                     onClick={e => { e.stopPropagation(); act(() => api.post(`/admin/invoices/${invoice.id}/send`), 'Send') }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent text-background text-xs font-body font-semibold hover:bg-accent/90 disabled:opacity-50 transition-all"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-black text-background text-xs font-body font-semibold hover:bg-zinc-800 disabled:opacity-50 transition-all"
                   >
                     <Send className="w-3.5 h-3.5" /> Send via PayPal
                   </button>
@@ -759,7 +759,7 @@ function InvoiceRow({
                 {isSent && (
                   <button type="button" disabled={loading}
                     onClick={e => { e.stopPropagation(); act(() => api.post(`/admin/invoices/${invoice.id}/remind`), 'Reminder') }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/10 text-text-primary text-xs font-body hover:bg-white/[0.05] disabled:opacity-50 transition-all"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-200 text-black text-xs font-body hover:bg-white/[0.05] disabled:opacity-50 transition-all"
                   >
                     <Bell className="w-3.5 h-3.5" /> Send Reminder
                   </button>
@@ -767,7 +767,7 @@ function InvoiceRow({
                 {isSent && (
                   <button type="button" disabled={loading}
                     onClick={e => { e.stopPropagation(); if (confirm('Cancel this invoice?')) act(() => api.post(`/admin/invoices/${invoice.id}/cancel`), 'Cancel') }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-500/20 text-red-400 text-xs font-body hover:bg-red-500/10 disabled:opacity-50 transition-all"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-500/20 text-red-500 text-xs font-body hover:bg-red-500/10 disabled:opacity-50 transition-all"
                   >
                     <XCircle className="w-3.5 h-3.5" /> Cancel Invoice
                   </button>
@@ -775,7 +775,7 @@ function InvoiceRow({
                 {!isSent && (
                   <button type="button" disabled={loading}
                     onClick={e => { e.stopPropagation(); if (confirm('Delete this invoice?')) act(() => api.delete(`/admin/invoices/${invoice.id}`), 'Delete') }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-500/20 text-red-400 text-xs font-body hover:bg-red-500/10 disabled:opacity-50 transition-all"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-500/20 text-red-500 text-xs font-body hover:bg-red-500/10 disabled:opacity-50 transition-all"
                   >
                     <Trash2 className="w-3.5 h-3.5" /> Delete
                   </button>
@@ -856,15 +856,15 @@ export default function InvoicesView() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <FileText className="w-5 h-5 text-accent" />
-          <h2 className="text-xl font-semibold text-text-primary">Invoices</h2>
+          <FileText className="w-5 h-5 text-black" />
+          <h2 className="text-xl font-semibold text-black">Invoices</h2>
         </div>
         <div className="flex items-center gap-3">
           {syncMsg && (
             <span className={`text-xs font-body px-3 py-1.5 rounded-lg ${
               syncMsg.includes('failed') || syncMsg.includes('error')
-                ? 'bg-red-500/10 text-red-400'
-                : 'bg-green-500/10 text-green-400'
+                ? 'bg-red-500/10 text-red-500'
+                : 'bg-green-500/10 text-green-600'
             }`}>
               {syncMsg}
             </span>
@@ -874,7 +874,7 @@ export default function InvoicesView() {
             onClick={handleSync}
             disabled={syncing}
             title="Pull latest payment status from PayPal"
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-white/10 text-text-primary font-body font-medium text-sm hover:bg-white/[0.04] disabled:opacity-50 transition-all"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-zinc-200 text-black font-body font-medium text-sm hover:bg-[#f3f3f3] disabled:opacity-50 transition-all"
           >
             <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
             {syncing ? 'Syncing…' : 'Sync PayPal'}
@@ -882,7 +882,7 @@ export default function InvoicesView() {
           <button
             type="button"
             onClick={() => setEditing('new')}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-accent text-background font-body font-semibold text-sm hover:bg-accent/90 transition-all"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-black text-background font-body font-semibold text-sm hover:bg-zinc-800 transition-all"
           >
             <Plus className="w-4 h-4" /> New Invoice
           </button>
@@ -896,13 +896,13 @@ export default function InvoicesView() {
           { label: 'Collected', value: totals.paid, color: '#10B981', Icon: CheckCircle },
           { label: 'Drafts', value: totals.draft, color: '#9CA3AF', Icon: FileText },
         ].map(({ label, value, color, Icon }) => (
-          <div key={label} className="backdrop-blur-xl bg-white/[0.03] border border-white/[0.08] rounded-xl p-5 flex items-center gap-4">
+          <div key={label} className="bg-[#f3f3f3] border border-zinc-200 rounded-xl p-5 flex items-center gap-4">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: `${color}18` }}>
               <Icon className="w-5 h-5" style={{ color }} />
             </div>
             <div>
               <div className="font-display text-2xl leading-none" style={{ color }}>${value.toFixed(2)}</div>
-              <div className="font-body text-xs text-text-muted mt-1">{label}</div>
+              <div className="font-body text-xs text-zinc-500 mt-1">{label}</div>
             </div>
           </div>
         ))}
@@ -916,7 +916,7 @@ export default function InvoicesView() {
             type="button"
             onClick={() => setFilter(s)}
             className={`px-3 py-1.5 rounded-lg text-xs font-body font-medium capitalize transition-all ${
-              filter === s ? 'bg-accent/10 text-accent border border-accent/15' : 'text-text-muted hover:text-text-primary hover:bg-white/5'
+              filter === s ? 'bg-zinc-100 text-black border border-accent/15' : 'text-zinc-500 hover:text-black hover:bg-[#f3f3f3]'
             }`}
           >
             {s}
@@ -927,19 +927,19 @@ export default function InvoicesView() {
       {/* Column headers */}
       <div className="grid grid-cols-[2fr_2fr_1fr_1fr_1fr_auto] gap-4 px-5 mb-2">
         {['Invoice', 'Client', 'Amount', 'Status', 'Due', ''].map((h, i) => (
-          <div key={i} className="text-xs text-text-muted uppercase tracking-wider font-body">{h}</div>
+          <div key={i} className="text-xs text-zinc-500 uppercase tracking-wider font-body">{h}</div>
         ))}
       </div>
 
       {/* List */}
       {loading ? (
-        <div className="text-center py-16 text-text-muted font-body">Loading invoices…</div>
+        <div className="text-center py-16 text-zinc-500 font-body">Loading invoices…</div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-16">
-          <FileText className="w-12 h-12 text-text-muted/30 mx-auto mb-3" />
-          <p className="font-body text-text-muted text-sm">No invoices yet.</p>
+          <FileText className="w-12 h-12 text-zinc-500/30 mx-auto mb-3" />
+          <p className="font-body text-zinc-500 text-sm">No invoices yet.</p>
           <button type="button" onClick={() => setEditing('new')}
-            className="mt-4 text-accent text-sm font-body hover:underline">Create your first invoice →</button>
+            className="mt-4 text-black text-sm font-body hover:underline">Create your first invoice →</button>
         </div>
       ) : (
         <div className="space-y-2">

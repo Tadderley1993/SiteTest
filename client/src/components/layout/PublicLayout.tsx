@@ -1,17 +1,14 @@
 import type { ReactNode } from 'react'
-import Sidebar from './Sidebar'
-import BottomNav from './BottomNav'
+import Navbar from './Navbar'
 
 export default function PublicLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="flex min-h-screen">
-      <Sidebar />
-      {/* Sidebar is fixed/overlaid — content stays full width */}
-      {/* pt-14: offset mobile top bar · pb-20 md:pb-0: clear mobile bottom nav */}
-      <div className="flex-1 min-w-0 pt-14 pb-20 md:pb-0 lg:pt-0">
+    <div className="min-h-screen bg-background">
+      <Navbar />
+      {/* pt-[60px] offsets the fixed navbar height */}
+      <div className="pt-[60px]">
         {children}
       </div>
-      <BottomNav />
     </div>
   )
 }

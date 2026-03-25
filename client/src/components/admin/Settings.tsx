@@ -11,15 +11,15 @@ import {
   getPayPalTransactions, testSmtp,
 } from '../../lib/api'
 
-const inputCls = "w-full px-3 py-2 bg-white/5 border border-border rounded-lg text-text-primary text-sm focus:outline-none focus:border-accent/40 placeholder-text-muted"
+const inputCls = "w-full px-3 py-2 bg-[#f3f3f3] border border-zinc-200 rounded-lg text-black text-sm focus:outline-none focus:border-black/20 placeholder-text-muted"
 
 const INVOICE_STATUS_COLORS: Record<string, string> = {
-  DRAFT:     'text-text-muted bg-white/5 border-white/10',
-  SENT:      'text-accent-secondary bg-accent-secondary/10 border-accent-secondary/20',
-  PAID:      'text-green-400 bg-green-400/10 border-green-400/20',
+  DRAFT:     'text-zinc-500 bg-[#f3f3f3] border-zinc-200',
+  SENT:      'text-black-secondary bg-black-secondary/10 border-accent-secondary/20',
+  PAID:      'text-green-600 bg-green-500/10 border-green-400/20',
   UNPAID:    'text-yellow-400 bg-yellow-400/10 border-yellow-400/20',
   PARTIALLY_PAID: 'text-orange-400 bg-orange-400/10 border-orange-400/20',
-  CANCELLED: 'text-red-400 bg-red-400/10 border-red-400/20',
+  CANCELLED: 'text-red-500 bg-red-500/10 border-red-400/20',
   REFUNDED:  'text-purple-400 bg-purple-400/10 border-purple-400/20',
 }
 
@@ -222,8 +222,8 @@ export default function Settings() {
       onClick={() => setTab(id)}
       className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
         tab === id
-          ? 'bg-accent/10 text-accent border border-accent/20'
-          : 'text-text-muted hover:text-text-primary'
+          ? 'bg-zinc-100 text-black border border-accent/20'
+          : 'text-zinc-500 hover:text-black'
       }`}
     >
       {label}
@@ -236,12 +236,12 @@ export default function Settings() {
     <div>
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
-        <SettingsIcon className="w-5 h-5 text-accent" />
-        <h2 className="text-xl font-semibold text-text-primary">Settings</h2>
+        <SettingsIcon className="w-5 h-5 text-black" />
+        <h2 className="text-xl font-semibold text-black">Settings</h2>
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center gap-2 mb-6 border-b border-border pb-4">
+      <div className="flex items-center gap-2 mb-6 border-b border-zinc-200 pb-4">
         {tabBtn('paypal', 'PayPal Account')}
         {tabBtn('invoices', 'PayPal Invoices')}
         {tabBtn('transactions', 'Transactions')}
@@ -253,17 +253,17 @@ export default function Settings() {
         <motion.div key="paypal" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="max-w-2xl space-y-6">
           {/* Connection status */}
           {isConnected && (
-            <div className="flex items-center gap-3 p-4 bg-green-400/5 border border-green-400/20 rounded-xl">
-              <CheckCircle2 className="w-5 h-5 text-green-400 flex-shrink-0" />
+            <div className="flex items-center gap-3 p-4 bg-green-500/5 border border-green-400/20 rounded-xl">
+              <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0" />
               <div>
-                <p className="text-sm font-medium text-green-400">PayPal Connected</p>
+                <p className="text-sm font-medium text-green-600">PayPal Connected</p>
                 {settings?.paypalEmail && (
-                  <p className="text-xs text-text-muted mt-0.5">{settings.paypalEmail}</p>
+                  <p className="text-xs text-zinc-500 mt-0.5">{settings.paypalEmail}</p>
                 )}
               </div>
               <span className={`ml-auto text-xs px-2 py-1 rounded-full border ${
                 settings?.paypalEnvironment === 'live'
-                  ? 'text-green-400 border-green-400/30 bg-green-400/10'
+                  ? 'text-green-600 border-green-400/30 bg-green-500/10'
                   : 'text-yellow-400 border-yellow-400/30 bg-yellow-400/10'
               }`}>
                 {settings?.paypalEnvironment === 'live' ? 'Live' : 'Sandbox'}
@@ -272,21 +272,21 @@ export default function Settings() {
           )}
 
           {/* Credentials form */}
-          <div className="bg-surface border border-border rounded-xl p-6 space-y-4">
+          <div className="bg-white border border-zinc-200 rounded-xl p-6 space-y-4">
             <div className="flex items-center gap-2 mb-2">
-              <CreditCard className="w-4 h-4 text-accent" />
-              <h3 className="text-sm font-semibold text-text-primary">PayPal API Credentials</h3>
+              <CreditCard className="w-4 h-4 text-black" />
+              <h3 className="text-sm font-semibold text-black">PayPal API Credentials</h3>
             </div>
-            <p className="text-xs text-text-muted">
+            <p className="text-xs text-zinc-500">
               Get your Client ID and Secret from the{' '}
               <a href="https://developer.paypal.com/dashboard/applications" target="_blank" rel="noreferrer"
-                className="text-accent-secondary hover:underline inline-flex items-center gap-1">
+                className="text-black-secondary hover:underline inline-flex items-center gap-1">
                 PayPal Developer Dashboard <ExternalLink className="w-3 h-3" />
               </a>
             </p>
 
             <div>
-              <label className="block text-xs text-text-muted mb-1.5">Environment</label>
+              <label className="block text-xs text-zinc-500 mb-1.5">Environment</label>
               <select
                 value={form.paypalEnvironment}
                 onChange={e => setForm(f => ({ ...f, paypalEnvironment: e.target.value }))}
@@ -298,7 +298,7 @@ export default function Settings() {
             </div>
 
             <div>
-              <label className="block text-xs text-text-muted mb-1.5">Client ID</label>
+              <label className="block text-xs text-zinc-500 mb-1.5">Client ID</label>
               <input
                 value={form.paypalClientId}
                 onChange={e => setForm(f => ({ ...f, paypalClientId: e.target.value }))}
@@ -308,7 +308,7 @@ export default function Settings() {
             </div>
 
             <div>
-              <label className="block text-xs text-text-muted mb-1.5">Client Secret</label>
+              <label className="block text-xs text-zinc-500 mb-1.5">Client Secret</label>
               <div className="relative">
                 <input
                   type={showSecret ? 'text' : 'password'}
@@ -320,7 +320,7 @@ export default function Settings() {
                 <button
                   type="button"
                   onClick={() => setShowSecret(v => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-black"
                 >
                   {showSecret ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -328,21 +328,21 @@ export default function Settings() {
             </div>
 
             {saveMsg && (
-              <p className={`text-xs ${saveMsg.includes('Failed') ? 'text-red-400' : 'text-green-400'}`}>{saveMsg}</p>
+              <p className={`text-xs ${saveMsg.includes('Failed') ? 'text-red-500' : 'text-green-600'}`}>{saveMsg}</p>
             )}
 
             <div className="flex gap-3 pt-1">
               <button
                 onClick={handleSave}
                 disabled={saving}
-                className="flex items-center gap-2 px-4 py-2 bg-accent text-background text-sm font-semibold rounded-lg hover:bg-accent/90 transition-colors disabled:opacity-60"
+                className="flex items-center gap-2 px-4 py-2 bg-black text-background text-sm font-semibold rounded-lg hover:bg-zinc-800 transition-colors disabled:opacity-60"
               >
                 {saving ? 'Saving...' : 'Save Credentials'}
               </button>
               <button
                 onClick={handleTest}
                 disabled={testing || !form.paypalClientId}
-                className="flex items-center gap-2 px-4 py-2 border border-border text-text-muted text-sm rounded-lg hover:text-text-primary hover:border-white/20 transition-colors disabled:opacity-40"
+                className="flex items-center gap-2 px-4 py-2 border border-zinc-200 text-zinc-500 text-sm rounded-lg hover:text-black hover:border-zinc-400 transition-colors disabled:opacity-40"
               >
                 <RefreshCw className={`w-4 h-4 ${testing ? 'animate-spin' : ''}`} />
                 {testing ? 'Testing...' : 'Test Connection'}
@@ -352,8 +352,8 @@ export default function Settings() {
             {testResult && (
               <div className={`flex items-start gap-2 p-3 rounded-lg border text-sm ${
                 testResult.success
-                  ? 'bg-green-400/5 border-green-400/20 text-green-400'
-                  : 'bg-red-400/5 border-red-400/20 text-red-400'
+                  ? 'bg-green-500/5 border-green-400/20 text-green-600'
+                  : 'bg-red-500/5 border-red-400/20 text-red-500'
               }`}>
                 {testResult.success
                   ? <CheckCircle2 className="w-4 h-4 flex-shrink-0 mt-0.5" />
@@ -364,8 +364,8 @@ export default function Settings() {
           </div>
 
           {/* Help */}
-          <div className="bg-surface border border-border rounded-xl p-5 space-y-3">
-            <h3 className="text-sm font-semibold text-text-primary">How to get your credentials</h3>
+          <div className="bg-white border border-zinc-200 rounded-xl p-5 space-y-3">
+            <h3 className="text-sm font-semibold text-black">How to get your credentials</h3>
             {[
               ['1', 'Go to developer.paypal.com and log in with your PayPal business account'],
               ['2', 'Click "Apps & Credentials" in the dashboard'],
@@ -374,8 +374,8 @@ export default function Settings() {
               ['5', 'Use "Sandbox" for testing, "Live" for real transactions'],
             ].map(([num, text]) => (
               <div key={num} className="flex items-start gap-3">
-                <span className="w-5 h-5 rounded-full bg-accent/10 text-accent text-xs font-bold flex items-center justify-center flex-shrink-0">{num}</span>
-                <p className="text-xs text-text-muted">{text}</p>
+                <span className="w-5 h-5 rounded-full bg-zinc-100 text-black text-xs font-bold flex items-center justify-center flex-shrink-0">{num}</span>
+                <p className="text-xs text-zinc-500">{text}</p>
               </div>
             ))}
           </div>
@@ -386,11 +386,11 @@ export default function Settings() {
       {tab === 'invoices' && (
         <motion.div key="invoices" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
           <div className="flex items-center justify-between mb-4">
-            <p className="text-sm text-text-muted">PayPal invoices synced from your account</p>
+            <p className="text-sm text-zinc-500">PayPal invoices synced from your account</p>
             <button
               onClick={loadInvoices}
               disabled={invoicesLoading}
-              className="flex items-center gap-2 px-3 py-1.5 border border-border text-text-muted text-sm rounded-lg hover:text-text-primary transition-colors"
+              className="flex items-center gap-2 px-3 py-1.5 border border-zinc-200 text-zinc-500 text-sm rounded-lg hover:text-black transition-colors"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${invoicesLoading ? 'animate-spin' : ''}`} />
               Refresh
@@ -399,22 +399,22 @@ export default function Settings() {
 
           {!settings?.paypalClientId ? (
             <div className="text-center py-16">
-              <CreditCard className="w-10 h-10 text-text-muted mx-auto mb-3 opacity-40" />
-              <p className="text-text-muted text-sm mb-3">PayPal not connected</p>
+              <CreditCard className="w-10 h-10 text-zinc-500 mx-auto mb-3 opacity-40" />
+              <p className="text-zinc-500 text-sm mb-3">PayPal not connected</p>
               <button onClick={() => setTab('paypal')}
-                className="flex items-center gap-2 px-4 py-2 bg-accent text-background text-sm font-semibold rounded-lg mx-auto hover:bg-accent/90 transition-colors">
+                className="flex items-center gap-2 px-4 py-2 bg-black text-background text-sm font-semibold rounded-lg mx-auto hover:bg-zinc-800 transition-colors">
                 Connect PayPal <ArrowRight className="w-4 h-4" />
               </button>
             </div>
           ) : invoicesLoading ? (
-            <div className="text-center py-12 text-text-muted text-sm">Loading invoices from PayPal...</div>
+            <div className="text-center py-12 text-zinc-500 text-sm">Loading invoices from PayPal...</div>
           ) : invoicesError ? (
-            <div className="flex items-center gap-2 p-4 bg-red-400/5 border border-red-400/20 rounded-xl text-sm text-red-400">
+            <div className="flex items-center gap-2 p-4 bg-red-500/5 border border-red-400/20 rounded-xl text-sm text-red-500">
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
               {invoicesError}
             </div>
           ) : invoices.length === 0 ? (
-            <div className="text-center py-16 text-text-muted text-sm">No PayPal invoices found.</div>
+            <div className="text-center py-16 text-zinc-500 text-sm">No PayPal invoices found.</div>
           ) : (
             <div className="space-y-3">
               {(invoices as Array<Record<string, unknown>>).map((inv) => {
@@ -428,22 +428,22 @@ export default function Settings() {
                 const amountValue = (amount?.value as { currency_code: string; value: string }) || undefined
 
                 return (
-                  <div key={id} className="bg-surface border border-border rounded-xl p-5 flex items-center gap-4">
+                  <div key={id} className="bg-white border border-zinc-200 rounded-xl p-5 flex items-center gap-4">
                     <div className="flex-shrink-0 w-32">
-                      <p className="text-xs font-mono text-text-muted">{detail?.invoice_number as string || id.slice(0, 12)}</p>
+                      <p className="text-xs font-mono text-zinc-500">{detail?.invoice_number as string || id.slice(0, 12)}</p>
                       <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border mt-1 ${colorCls}`}>
                         {status}
                       </span>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm text-text-primary truncate">
+                      <p className="text-sm text-black truncate">
                         {((inv.primary_recipients as Array<Record<string, unknown>>)?.[0]?.billing_info as Record<string, unknown>)?.name?.toString() || 'No recipient'}
                       </p>
-                      <p className="text-xs text-text-muted">{detail?.invoice_date as string}</p>
+                      <p className="text-xs text-zinc-500">{detail?.invoice_date as string}</p>
                     </div>
                     <div className="text-right flex-shrink-0">
-                      <p className="text-lg font-bold text-accent">{fmtCurrency(amountValue)}</p>
-                      {amountDue && <p className="text-xs text-text-muted">Paid: {fmtCurrency(amountDue as { currency_code: string; value: string })}</p>}
+                      <p className="text-lg font-bold text-black">{fmtCurrency(amountValue)}</p>
+                      {amountDue && <p className="text-xs text-zinc-500">Paid: {fmtCurrency(amountDue as { currency_code: string; value: string })}</p>}
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
                       {(id.startsWith('INV2') || status === 'DRAFT') && status !== 'CANCELLED' && status !== 'PAID' && (
@@ -453,7 +453,7 @@ export default function Settings() {
                               onClick={() => handleSendInvoice(id)}
                               disabled={actioningId === id}
                               title="Send to recipient"
-                              className="p-2 text-text-muted hover:text-accent-secondary hover:bg-accent-secondary/10 rounded-lg transition-colors"
+                              className="p-2 text-zinc-500 hover:text-black-secondary hover:bg-black-secondary/10 rounded-lg transition-colors"
                             >
                               <Send className="w-4 h-4" />
                             </button>
@@ -463,7 +463,7 @@ export default function Settings() {
                               onClick={() => handleCancelInvoice(id)}
                               disabled={actioningId === id}
                               title="Cancel invoice"
-                              className="p-2 text-text-muted hover:text-orange-400 hover:bg-orange-400/10 rounded-lg transition-colors"
+                              className="p-2 text-zinc-500 hover:text-orange-400 hover:bg-orange-400/10 rounded-lg transition-colors"
                             >
                               <Ban className="w-4 h-4" />
                             </button>
@@ -473,7 +473,7 @@ export default function Settings() {
                               onClick={() => handleDeleteInvoice(id)}
                               disabled={actioningId === id}
                               title="Delete draft"
-                              className="p-2 text-text-muted hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-colors"
+                              className="p-2 text-zinc-500 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
@@ -495,21 +495,21 @@ export default function Settings() {
           {/* Date filter */}
           <div className="flex items-center gap-3 mb-4 flex-wrap">
             <div className="flex items-center gap-2">
-              <label className="text-xs text-text-muted">From</label>
+              <label className="text-xs text-zinc-500">From</label>
               <input type="date" value={dateRange.start}
                 onChange={e => setDateRange(d => ({ ...d, start: e.target.value }))}
-                className="px-3 py-1.5 bg-surface border border-border rounded-lg text-text-primary text-sm focus:outline-none focus:border-accent/40" />
+                className="px-3 py-1.5 bg-white border border-zinc-200 rounded-lg text-black text-sm focus:outline-none focus:border-black/20" />
             </div>
             <div className="flex items-center gap-2">
-              <label className="text-xs text-text-muted">To</label>
+              <label className="text-xs text-zinc-500">To</label>
               <input type="date" value={dateRange.end}
                 onChange={e => setDateRange(d => ({ ...d, end: e.target.value }))}
-                className="px-3 py-1.5 bg-surface border border-border rounded-lg text-text-primary text-sm focus:outline-none focus:border-accent/40" />
+                className="px-3 py-1.5 bg-white border border-zinc-200 rounded-lg text-black text-sm focus:outline-none focus:border-black/20" />
             </div>
             <button
               onClick={loadTransactions}
               disabled={txLoading}
-              className="flex items-center gap-2 px-3 py-1.5 bg-accent text-background text-sm font-semibold rounded-lg hover:bg-accent/90 transition-colors"
+              className="flex items-center gap-2 px-3 py-1.5 bg-black text-background text-sm font-semibold rounded-lg hover:bg-zinc-800 transition-colors"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${txLoading ? 'animate-spin' : ''}`} />
               {txLoading ? 'Loading...' : 'Load'}
@@ -518,22 +518,22 @@ export default function Settings() {
 
           {!settings?.paypalClientId ? (
             <div className="text-center py-16">
-              <CreditCard className="w-10 h-10 text-text-muted mx-auto mb-3 opacity-40" />
-              <p className="text-text-muted text-sm mb-3">PayPal not connected</p>
+              <CreditCard className="w-10 h-10 text-zinc-500 mx-auto mb-3 opacity-40" />
+              <p className="text-zinc-500 text-sm mb-3">PayPal not connected</p>
               <button onClick={() => setTab('paypal')}
-                className="flex items-center gap-2 px-4 py-2 bg-accent text-background text-sm font-semibold rounded-lg mx-auto hover:bg-accent/90 transition-colors">
+                className="flex items-center gap-2 px-4 py-2 bg-black text-background text-sm font-semibold rounded-lg mx-auto hover:bg-zinc-800 transition-colors">
                 Connect PayPal <ArrowRight className="w-4 h-4" />
               </button>
             </div>
           ) : txLoading ? (
-            <div className="text-center py-12 text-text-muted text-sm">Loading transactions...</div>
+            <div className="text-center py-12 text-zinc-500 text-sm">Loading transactions...</div>
           ) : txError ? (
-            <div className="flex items-center gap-2 p-4 bg-red-400/5 border border-red-400/20 rounded-xl text-sm text-red-400">
+            <div className="flex items-center gap-2 p-4 bg-red-500/5 border border-red-400/20 rounded-xl text-sm text-red-500">
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
               {txError}
             </div>
           ) : transactions.length === 0 ? (
-            <div className="text-center py-16 text-text-muted text-sm">No transactions in this date range.</div>
+            <div className="text-center py-16 text-zinc-500 text-sm">No transactions in this date range.</div>
           ) : (
             <>
               {/* Summary */}
@@ -550,17 +550,17 @@ export default function Settings() {
                 }, 0)
                 return (
                   <div className="grid grid-cols-3 gap-4 mb-5">
-                    <div className="bg-surface border border-border rounded-xl p-4">
-                      <p className="text-xs text-text-muted mb-1">Total Transactions</p>
-                      <p className="text-xl font-bold text-text-primary">{transactions.length}</p>
+                    <div className="bg-white border border-zinc-200 rounded-xl p-4">
+                      <p className="text-xs text-zinc-500 mb-1">Total Transactions</p>
+                      <p className="text-xl font-bold text-black">{transactions.length}</p>
                     </div>
-                    <div className="bg-surface border border-border rounded-xl p-4">
-                      <p className="text-xs text-text-muted mb-1">Completed</p>
-                      <p className="text-xl font-bold text-green-400">{completed.length}</p>
+                    <div className="bg-white border border-zinc-200 rounded-xl p-4">
+                      <p className="text-xs text-zinc-500 mb-1">Completed</p>
+                      <p className="text-xl font-bold text-green-600">{completed.length}</p>
                     </div>
-                    <div className="bg-surface border border-border rounded-xl p-4">
-                      <p className="text-xs text-text-muted mb-1">Total Received</p>
-                      <p className="text-xl font-bold text-accent">${total.toFixed(2)}</p>
+                    <div className="bg-white border border-zinc-200 rounded-xl p-4">
+                      <p className="text-xs text-zinc-500 mb-1">Total Received</p>
+                      <p className="text-xl font-bold text-black">${total.toFixed(2)}</p>
                     </div>
                   </div>
                 )
@@ -574,28 +574,28 @@ export default function Settings() {
                   const amount = info?.transaction_amount as Record<string, string> | undefined
                   const isCredit = parseFloat(amount?.value ?? '0') > 0
                   const statusColors: Record<string, string> = {
-                    S: 'text-green-400', D: 'text-red-400', P: 'text-yellow-400', V: 'text-text-muted'
+                    S: 'text-green-600', D: 'text-red-500', P: 'text-yellow-400', V: 'text-zinc-500'
                   }
                   const statusLabels: Record<string, string> = {
                     S: 'Completed', D: 'Denied', P: 'Pending', V: 'Reversed'
                   }
                   return (
-                    <div key={i} className="bg-surface border border-border rounded-xl px-5 py-3.5 flex items-center gap-4">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${isCredit ? 'bg-green-400/10' : 'bg-red-400/10'}`}>
-                        {isCredit ? <DollarSign className="w-4 h-4 text-green-400" /> : <Clock className="w-4 h-4 text-red-400" />}
+                    <div key={i} className="bg-white border border-zinc-200 rounded-xl px-5 py-3.5 flex items-center gap-4">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${isCredit ? 'bg-green-500/10' : 'bg-red-500/10'}`}>
+                        {isCredit ? <DollarSign className="w-4 h-4 text-green-600" /> : <Clock className="w-4 h-4 text-red-500" />}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm text-text-primary">
+                        <p className="text-sm text-black">
                           {(payerInfo?.email_address as string) || 'PayPal transaction'}
                         </p>
-                        <p className="text-xs text-text-muted">
+                        <p className="text-xs text-zinc-500">
                           {info?.transaction_id as string} · {new Date(info?.transaction_initiation_date as string).toLocaleDateString()}
                         </p>
                       </div>
-                      <span className={`text-xs ${statusColors[status] ?? 'text-text-muted'}`}>
+                      <span className={`text-xs ${statusColors[status] ?? 'text-zinc-500'}`}>
                         {statusLabels[status] ?? status}
                       </span>
-                      <p className={`font-bold text-lg flex-shrink-0 ${isCredit ? 'text-green-400' : 'text-red-400'}`}>
+                      <p className={`font-bold text-lg flex-shrink-0 ${isCredit ? 'text-green-600' : 'text-red-500'}`}>
                         {isCredit ? '+' : ''}{amount?.currency_code} {parseFloat(amount?.value ?? '0').toFixed(2)}
                       </p>
                     </div>
@@ -612,19 +612,19 @@ export default function Settings() {
         <motion.div key="email" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="max-w-2xl space-y-6">
           {/* Status banner */}
           {settings?.smtpUser && (
-            <div className="flex items-center gap-3 p-4 bg-green-400/5 border border-green-400/20 rounded-xl">
-              <CheckCircle2 className="w-5 h-5 text-green-400 flex-shrink-0" />
+            <div className="flex items-center gap-3 p-4 bg-green-500/5 border border-green-400/20 rounded-xl">
+              <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0" />
               <div>
-                <p className="text-sm font-medium text-green-400">Email Configured</p>
-                <p className="text-xs text-text-muted mt-0.5">Sending from {settings.smtpUser} via {settings.smtpHost}</p>
+                <p className="text-sm font-medium text-green-600">Email Configured</p>
+                <p className="text-xs text-zinc-500 mt-0.5">Sending from {settings.smtpUser} via {settings.smtpHost}</p>
               </div>
             </div>
           )}
 
-          <div className="bg-surface border border-border rounded-xl p-6 space-y-4">
+          <div className="bg-white border border-zinc-200 rounded-xl p-6 space-y-4">
             <div className="flex items-center gap-2 mb-2">
-              <Send className="w-4 h-4 text-accent" />
-              <h3 className="text-sm font-semibold text-text-primary">SMTP Configuration</h3>
+              <Send className="w-4 h-4 text-black" />
+              <h3 className="text-sm font-semibold text-black">SMTP Configuration</h3>
             </div>
 
             <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg text-xs text-blue-300 space-y-1">
@@ -635,22 +635,22 @@ export default function Settings() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs text-text-muted mb-1">SMTP Host</label>
+                <label className="block text-xs text-zinc-500 mb-1">SMTP Host</label>
                 <input value={smtpForm.smtpHost} onChange={e => setSmtpForm(f => ({ ...f, smtpHost: e.target.value }))}
                   placeholder="smtp.office365.com" className={inputCls} />
               </div>
               <div>
-                <label className="block text-xs text-text-muted mb-1">Port</label>
+                <label className="block text-xs text-zinc-500 mb-1">Port</label>
                 <input value={smtpForm.smtpPort} onChange={e => setSmtpForm(f => ({ ...f, smtpPort: e.target.value }))}
                   placeholder="587" className={inputCls} />
               </div>
               <div>
-                <label className="block text-xs text-text-muted mb-1">Username / Email</label>
+                <label className="block text-xs text-zinc-500 mb-1">Username / Email</label>
                 <input value={smtpForm.smtpUser} onChange={e => setSmtpForm(f => ({ ...f, smtpUser: e.target.value }))}
                   placeholder="you@yourdomain.com" className={inputCls} />
               </div>
               <div>
-                <label className="block text-xs text-text-muted mb-1">Password / App Password</label>
+                <label className="block text-xs text-zinc-500 mb-1">Password / App Password</label>
                 <div className="relative">
                   <input
                     type={showSmtpPass ? 'text' : 'password'}
@@ -660,33 +660,33 @@ export default function Settings() {
                     className={inputCls + ' pr-10'}
                   />
                   <button type="button" onClick={() => setShowSmtpPass(v => !v)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary">
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-black">
                     {showSmtpPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
               </div>
               <div className="col-span-2">
-                <label className="block text-xs text-text-muted mb-1">From Address (optional)</label>
+                <label className="block text-xs text-zinc-500 mb-1">From Address (optional)</label>
                 <input value={smtpForm.smtpFrom} onChange={e => setSmtpForm(f => ({ ...f, smtpFrom: e.target.value }))}
                   placeholder='DTA <you@yourdomain.com>' className={inputCls} />
               </div>
               <div className="col-span-2 flex items-center gap-3">
                 <label className="flex items-center gap-2 cursor-pointer select-none">
                   <div onClick={() => setSmtpForm(f => ({ ...f, smtpSecure: !f.smtpSecure }))}
-                    className={`w-9 h-5 rounded-full transition-colors relative cursor-pointer ${smtpForm.smtpSecure ? 'bg-accent' : 'bg-white/10'}`}>
+                    className={`w-9 h-5 rounded-full transition-colors relative cursor-pointer ${smtpForm.smtpSecure ? 'bg-black' : 'bg-[#f3f3f3]'}`}>
                     <div className={`w-3.5 h-3.5 bg-white rounded-full absolute top-0.5 transition-transform ${smtpForm.smtpSecure ? 'translate-x-4' : 'translate-x-0.5'}`} />
                   </div>
-                  <span className="text-xs text-text-muted">Use SSL/TLS on connect (port 465)</span>
+                  <span className="text-xs text-zinc-500">Use SSL/TLS on connect (port 465)</span>
                 </label>
-                <span className="text-xs text-text-muted">— leave off for STARTTLS (port 587)</span>
+                <span className="text-xs text-zinc-500">— leave off for STARTTLS (port 587)</span>
               </div>
             </div>
 
             {smtpTestResult && (
               <div className={`p-3 rounded-lg text-sm flex items-start gap-2 ${
                 smtpTestResult.success
-                  ? 'bg-green-500/10 border border-green-500/20 text-green-400'
-                  : 'bg-red-500/10 border border-red-500/20 text-red-400'
+                  ? 'bg-green-500/10 border border-green-500/20 text-green-600'
+                  : 'bg-red-500/10 border border-red-500/20 text-red-500'
               }`}>
                 {smtpTestResult.success ? <CheckCircle2 className="w-4 h-4 flex-shrink-0 mt-0.5" /> : <XCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />}
                 <span>{smtpTestResult.success ? smtpTestResult.message : smtpTestResult.error}</span>
@@ -694,16 +694,16 @@ export default function Settings() {
             )}
 
             {smtpMsg && (
-              <p className={`text-sm ${smtpMsg.includes('Failed') ? 'text-red-400' : 'text-green-400'}`}>{smtpMsg}</p>
+              <p className={`text-sm ${smtpMsg.includes('Failed') ? 'text-red-500' : 'text-green-600'}`}>{smtpMsg}</p>
             )}
 
             <div className="flex gap-2 pt-1">
               <button onClick={handleSmtpTest} disabled={smtpTesting || !smtpForm.smtpHost}
-                className="px-4 py-2 border border-border text-text-muted text-sm rounded-lg hover:text-text-primary transition-colors disabled:opacity-40">
+                className="px-4 py-2 border border-zinc-200 text-zinc-500 text-sm rounded-lg hover:text-black transition-colors disabled:opacity-40">
                 {smtpTesting ? 'Testing...' : 'Test Connection'}
               </button>
               <button onClick={handleSmtpSave} disabled={smtpSaving}
-                className="px-4 py-2 bg-accent text-background text-sm font-semibold rounded-lg hover:bg-accent/90 transition-colors disabled:opacity-50">
+                className="px-4 py-2 bg-black text-background text-sm font-semibold rounded-lg hover:bg-zinc-800 transition-colors disabled:opacity-50">
                 {smtpSaving ? 'Saving...' : 'Save Email Settings'}
               </button>
             </div>

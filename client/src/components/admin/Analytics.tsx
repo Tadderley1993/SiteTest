@@ -98,26 +98,26 @@ function KpiCard({
   label: string; value: string | number; icon: React.ReactNode; sub?: string; color?: string
 }) {
   return (
-    <div className="bg-white/[0.03] border border-white/[0.08] rounded-xl p-4">
+    <div className="bg-[#f3f3f3] border border-zinc-200 rounded-xl p-4">
       <div className="flex items-center justify-between mb-3">
-        <span className="text-xs text-text-muted uppercase tracking-widest">{label}</span>
+        <span className="text-xs text-zinc-500 uppercase tracking-widest">{label}</span>
         <span style={{ color }}>{icon}</span>
       </div>
-      <div className="text-2xl font-bold text-text-primary">{value}</div>
-      {sub && <div className="text-xs text-text-muted mt-1">{sub}</div>}
+      <div className="text-2xl font-bold text-black">{value}</div>
+      {sub && <div className="text-xs text-zinc-500 mt-1">{sub}</div>}
     </div>
   )
 }
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
-    <h3 className="text-xs font-semibold text-text-muted uppercase tracking-widest mb-4">{children}</h3>
+    <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-widest mb-4">{children}</h3>
   )
 }
 
 function ChartCard({ title, children, className = '' }: { title: string; children: React.ReactNode; className?: string }) {
   return (
-    <div className={`bg-white/[0.03] border border-white/[0.08] rounded-xl p-5 ${className}`}>
+    <div className={`bg-[#f3f3f3] border border-zinc-200 rounded-xl p-5 ${className}`}>
       <SectionTitle>{title}</SectionTitle>
       {children}
     </div>
@@ -128,13 +128,13 @@ function ChartCard({ title, children, className = '' }: { title: string; childre
 function ChartTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null
   return (
-    <div className="bg-[#0d1117] border border-white/10 rounded-lg p-3 text-xs">
-      <div className="text-text-muted mb-1.5">{formatAxisDate(label)}</div>
+    <div className="bg-[#f3f3f3] border border-zinc-200 rounded-lg p-3 text-xs">
+      <div className="text-zinc-500 mb-1.5">{formatAxisDate(label)}</div>
       {payload.map((p: { name: string; value: number; color: string }) => (
         <div key={p.name} className="flex items-center gap-2 mb-0.5">
           <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: p.color }} />
-          <span className="text-text-muted">{p.name}:</span>
-          <span className="text-text-primary font-semibold">{p.value.toLocaleString()}</span>
+          <span className="text-zinc-500">{p.name}:</span>
+          <span className="text-black font-semibold">{p.value.toLocaleString()}</span>
         </div>
       ))}
     </div>
@@ -142,7 +142,7 @@ function ChartTooltip({ active, payload, label }: any) {
 }
 
 function EmptyState({ msg = 'No data available' }: { msg?: string }) {
-  return <div className="text-center py-10 text-text-muted text-sm">{msg}</div>
+  return <div className="text-center py-10 text-zinc-500 text-sm">{msg}</div>
 }
 
 // ── Main Component ────────────────────────────────────────────────────────────
@@ -324,24 +324,24 @@ export default function Analytics() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <TrendingUp className="w-5 h-5 text-accent" />
-          <h2 className="text-xl font-semibold text-text-primary">Analytics</h2>
+          <TrendingUp className="w-5 h-5 text-black" />
+          <h2 className="text-xl font-semibold text-black">Analytics</h2>
           {connected && (
-            <span className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full bg-green-500/10 text-green-400 border border-green-500/20">
-              <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+            <span className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full bg-green-500/10 text-green-600 border border-green-500/20">
+              <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
               Connected to GA4
             </span>
           )}
         </div>
         {connected && tab !== 'realtime' && tab !== 'setup' && (
           <div className="flex items-center gap-2">
-            <div className="flex bg-white/[0.03] border border-white/[0.08] rounded-lg overflow-hidden">
+            <div className="flex bg-[#f3f3f3] border border-zinc-200 rounded-lg overflow-hidden">
               {PERIODS.map(p => (
                 <button
                   key={p.id}
                   onClick={() => setPeriod(p.id)}
                   className={`px-3 py-1.5 text-xs font-medium transition-colors ${
-                    period === p.id ? 'bg-accent/10 text-accent' : 'text-text-muted hover:text-text-primary'
+                    period === p.id ? 'bg-zinc-100 text-black' : 'text-zinc-500 hover:text-black'
                   }`}
                 >
                   {p.label}
@@ -351,7 +351,7 @@ export default function Analytics() {
             <button
               onClick={loadTabData}
               disabled={loading}
-              className="p-2 text-text-muted hover:text-text-primary transition-colors disabled:opacity-40"
+              className="p-2 text-zinc-500 hover:text-black transition-colors disabled:opacity-40"
               title="Refresh"
             >
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
@@ -361,15 +361,15 @@ export default function Analytics() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-0 mb-6 border-b border-white/[0.08] overflow-x-auto">
+      <div className="flex gap-0 mb-6 border-b border-zinc-200 overflow-x-auto">
         {allTabs.map(t => (
           <button
             key={t.id}
             onClick={() => setTab(t.id)}
             className={`px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px whitespace-nowrap ${
               tab === t.id
-                ? 'text-accent border-accent'
-                : 'text-text-muted hover:text-text-primary border-transparent'
+                ? 'text-black border-accent'
+                : 'text-zinc-500 hover:text-black border-transparent'
             }`}
           >
             {t.label}
@@ -379,7 +379,7 @@ export default function Analytics() {
 
       {/* Error */}
       {error && (
-        <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">
+        <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-500 text-sm">
           {error}
         </div>
       )}
@@ -403,31 +403,31 @@ export default function Analytics() {
             </div>
           )}
 
-          <div className="space-y-4 bg-white/[0.03] border border-white/[0.08] rounded-xl p-5">
+          <div className="space-y-4 bg-[#f3f3f3] border border-zinc-200 rounded-xl p-5">
             <div>
-              <label className="block text-xs text-text-muted uppercase tracking-widest mb-2">GA4 Property ID *</label>
+              <label className="block text-xs text-zinc-500 uppercase tracking-widest mb-2">GA4 Property ID *</label>
               <input
                 value={propertyId}
                 onChange={e => setPropertyId(e.target.value)}
                 placeholder="e.g. 123456789"
-                className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent/50"
+                className="w-full bg-[#f3f3f3] border border-zinc-200 rounded-lg px-3 py-2 text-sm text-black placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-black/10"
               />
-              <p className="text-xs text-text-muted mt-1">GA4 Admin → Property Settings → Property ID (numbers only)</p>
+              <p className="text-xs text-zinc-500 mt-1">GA4 Admin → Property Settings → Property ID (numbers only)</p>
             </div>
 
             <div>
-              <label className="block text-xs text-text-muted uppercase tracking-widest mb-2">Measurement ID (optional)</label>
+              <label className="block text-xs text-zinc-500 uppercase tracking-widest mb-2">Measurement ID (optional)</label>
               <input
                 value={measurementId}
                 onChange={e => setMeasurementId(e.target.value)}
                 placeholder="e.g. G-XXXXXXXXXX"
-                className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent/50"
+                className="w-full bg-[#f3f3f3] border border-zinc-200 rounded-lg px-3 py-2 text-sm text-black placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-black/10"
               />
-              <p className="text-xs text-text-muted mt-1">For injecting the tracking script into your site (GA4 Admin → Data Streams)</p>
+              <p className="text-xs text-zinc-500 mt-1">For injecting the tracking script into your site (GA4 Admin → Data Streams)</p>
             </div>
 
             <div>
-              <label className="block text-xs text-text-muted uppercase tracking-widest mb-2">
+              <label className="block text-xs text-zinc-500 uppercase tracking-widest mb-2">
                 Service Account JSON Key {connected && <span className="normal-case">(leave blank to keep current)</span>}
               </label>
               <textarea
@@ -435,15 +435,15 @@ export default function Analytics() {
                 onChange={e => setCredentialsJson(e.target.value)}
                 placeholder={'{\n  "type": "service_account",\n  "project_id": "your-project",\n  "private_key_id": "...",\n  ...\n}'}
                 rows={9}
-                className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-text-primary placeholder:text-text-muted font-mono focus:outline-none focus:border-accent/50 resize-none"
+                className="w-full bg-[#f3f3f3] border border-zinc-200 rounded-lg px-3 py-2 text-xs text-black placeholder:text-zinc-500 font-mono focus:outline-none focus:ring-2 focus:ring-black/10 resize-none"
               />
             </div>
 
             {testResult && (
               <div className={`p-3 rounded-lg text-sm flex items-start gap-2 ${
                 testResult.success
-                  ? 'bg-green-500/10 border border-green-500/20 text-green-400'
-                  : 'bg-red-500/10 border border-red-500/20 text-red-400'
+                  ? 'bg-green-500/10 border border-green-500/20 text-green-600'
+                  : 'bg-red-500/10 border border-red-500/20 text-red-500'
               }`}>
                 {testResult.success
                   ? <CheckCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
@@ -457,7 +457,7 @@ export default function Analytics() {
                 <button
                   onClick={handleTest}
                   disabled={testing}
-                  className="px-4 py-2 text-sm border border-white/10 text-text-muted hover:text-text-primary rounded-lg transition-colors disabled:opacity-40"
+                  className="px-4 py-2 text-sm border border-zinc-200 text-zinc-500 hover:text-black rounded-lg transition-colors disabled:opacity-40"
                 >
                   {testing ? 'Testing...' : 'Test Connection'}
                 </button>
@@ -465,14 +465,14 @@ export default function Analytics() {
               <button
                 onClick={handleSave}
                 disabled={saving}
-                className="px-4 py-2 text-sm bg-accent text-background font-semibold rounded-lg hover:bg-accent/90 transition-colors disabled:opacity-50"
+                className="px-4 py-2 text-sm bg-black text-background font-semibold rounded-lg hover:bg-zinc-800 transition-colors disabled:opacity-50"
               >
                 {saving ? 'Saving...' : connected ? 'Update Settings' : 'Connect Google Analytics'}
               </button>
               {connected && (
                 <button
                   onClick={handleDisconnect}
-                  className="px-4 py-2 text-sm border border-red-500/30 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors flex items-center gap-1.5"
+                  className="px-4 py-2 text-sm border border-red-500/30 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors flex items-center gap-1.5"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                   Disconnect
@@ -487,7 +487,7 @@ export default function Analytics() {
       {tab === 'overview' && (
         <div className="space-y-5">
           {loading && !overview ? (
-            <div className="text-center py-16 text-text-muted">Loading analytics...</div>
+            <div className="text-center py-16 text-zinc-500">Loading analytics...</div>
           ) : overview ? (
             <>
               {/* KPI row 1 */}
@@ -555,13 +555,13 @@ export default function Analytics() {
                       return (
                         <div key={t.channel}>
                           <div className="flex justify-between text-xs mb-1">
-                            <span className="text-text-primary flex items-center gap-1.5">
+                            <span className="text-black flex items-center gap-1.5">
                               <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: color }} />
                               {t.channel}
                             </span>
-                            <span className="text-text-muted">{t.sessions.toLocaleString()} · {p.toFixed(1)}%</span>
+                            <span className="text-zinc-500">{t.sessions.toLocaleString()} · {p.toFixed(1)}%</span>
                           </div>
-                          <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+                          <div className="h-1.5 bg-[#f3f3f3] rounded-full overflow-hidden">
                             <div className="h-full rounded-full transition-all" style={{ width: `${p}%`, background: color }} />
                           </div>
                         </div>
@@ -580,30 +580,30 @@ export default function Analytics() {
       {/* ── REALTIME ── */}
       {tab === 'realtime' && (
         <div className="space-y-5">
-          <div className="flex items-center gap-2 text-xs text-text-muted">
-            <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+          <div className="flex items-center gap-2 text-xs text-zinc-500">
+            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
             Auto-refreshes every 30 seconds
             <button
               onClick={() => api.get('/admin/analytics/realtime').then(r => setRealtime(r.data)).catch(() => {})}
-              className="flex items-center gap-1 hover:text-text-primary transition-colors ml-2"
+              className="flex items-center gap-1 hover:text-black transition-colors ml-2"
             >
               <RefreshCw className="w-3 h-3" /> Refresh now
             </button>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <div className="bg-white/[0.03] border border-white/[0.08] rounded-xl p-8 flex flex-col items-center justify-center text-center">
-              <div className="text-8xl font-bold text-accent tabular-nums leading-none mb-3">
+            <div className="bg-[#f3f3f3] border border-zinc-200 rounded-xl p-8 flex flex-col items-center justify-center text-center">
+              <div className="text-8xl font-bold text-black tabular-nums leading-none mb-3">
                 {realtime.activeUsers}
               </div>
-              <div className="text-text-muted text-sm">Active Users Right Now</div>
-              <div className="mt-4 flex items-center gap-1.5 text-xs text-green-400">
-                <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+              <div className="text-zinc-500 text-sm">Active Users Right Now</div>
+              <div className="mt-4 flex items-center gap-1.5 text-xs text-green-600">
+                <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
                 Live
               </div>
             </div>
 
-            <div className="lg:col-span-2 bg-white/[0.03] border border-white/[0.08] rounded-xl p-5">
+            <div className="lg:col-span-2 bg-[#f3f3f3] border border-zinc-200 rounded-xl p-5">
               <SectionTitle>Active Pages</SectionTitle>
               {realtime.activePages.length === 0 ? (
                 <EmptyState msg="No active sessions right now" />
@@ -612,13 +612,13 @@ export default function Analytics() {
                   {realtime.activePages.map((p) => {
                     const max = realtime.activePages[0]?.users ?? 1
                     return (
-                      <div key={p.page} className="py-2 border-b border-white/[0.05] last:border-0">
+                      <div key={p.page} className="py-2 border-b border-zinc-100 last:border-0">
                         <div className="flex items-center justify-between mb-1">
-                          <span className="text-sm text-text-primary truncate font-mono text-xs max-w-xs">{p.page}</span>
-                          <span className="text-sm font-bold text-accent ml-4">{p.users}</span>
+                          <span className="text-sm text-black truncate font-mono text-xs max-w-xs">{p.page}</span>
+                          <span className="text-sm font-bold text-black ml-4">{p.users}</span>
                         </div>
-                        <div className="h-1 bg-white/5 rounded-full overflow-hidden">
-                          <div className="h-full bg-accent/50 rounded-full" style={{ width: `${(p.users / max) * 100}%` }} />
+                        <div className="h-1 bg-[#f3f3f3] rounded-full overflow-hidden">
+                          <div className="h-full bg-black/50 rounded-full" style={{ width: `${(p.users / max) * 100}%` }} />
                         </div>
                       </div>
                     )
@@ -634,7 +634,7 @@ export default function Analytics() {
       {tab === 'audience' && (
         <div className="space-y-5">
           {loading && !devices.length ? (
-            <div className="text-center py-16 text-text-muted">Loading...</div>
+            <div className="text-center py-16 text-zinc-500">Loading...</div>
           ) : (
             <>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -656,9 +656,9 @@ export default function Analytics() {
                       <div key={a.type} className="flex justify-between text-xs">
                         <span className="flex items-center gap-2">
                           <span className="w-2 h-2 rounded-full" style={{ background: i === 0 ? '#E8FF47' : '#47C6FF' }} />
-                          <span className="capitalize text-text-primary">{a.type}</span>
+                          <span className="capitalize text-black">{a.type}</span>
                         </span>
-                        <span className="text-text-muted">{a.sessions.toLocaleString()} · {pct(a.sessions, totalAudience)}%</span>
+                        <span className="text-zinc-500">{a.sessions.toLocaleString()} · {pct(a.sessions, totalAudience)}%</span>
                       </div>
                     ))}
                   </div>
@@ -689,9 +689,9 @@ export default function Analytics() {
                         <div key={d.device} className="flex justify-between text-xs">
                           <span className="flex items-center gap-2" style={{ color }}>
                             {icon}
-                            <span className="capitalize text-text-primary">{d.device}</span>
+                            <span className="capitalize text-black">{d.device}</span>
                           </span>
-                          <span className="text-text-muted">{d.sessions.toLocaleString()} · {pct(d.sessions, totalDevices)}%</span>
+                          <span className="text-zinc-500">{d.sessions.toLocaleString()} · {pct(d.sessions, totalDevices)}%</span>
                         </div>
                       )
                     })}
@@ -722,32 +722,32 @@ export default function Analytics() {
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
-                        <tr className="border-b border-white/[0.08]">
-                          <th className="text-left py-2 text-xs text-text-muted font-medium w-8">#</th>
-                          <th className="text-left py-2 text-xs text-text-muted font-medium">Country</th>
-                          <th className="text-right py-2 text-xs text-text-muted font-medium">Sessions</th>
-                          <th className="text-right py-2 text-xs text-text-muted font-medium">Users</th>
-                          <th className="py-2 text-xs text-text-muted font-medium text-right w-36">Share</th>
+                        <tr className="border-b border-zinc-200">
+                          <th className="text-left py-2 text-xs text-zinc-500 font-medium w-8">#</th>
+                          <th className="text-left py-2 text-xs text-zinc-500 font-medium">Country</th>
+                          <th className="text-right py-2 text-xs text-zinc-500 font-medium">Sessions</th>
+                          <th className="text-right py-2 text-xs text-zinc-500 font-medium">Users</th>
+                          <th className="py-2 text-xs text-zinc-500 font-medium text-right w-36">Share</th>
                         </tr>
                       </thead>
                       <tbody>
                         {geo.map((g, i) => {
                           const p = parseFloat(pct(g.sessions, totalGeo))
                           return (
-                            <tr key={g.country} className="border-b border-white/[0.04] hover:bg-white/[0.02]">
-                              <td className="py-2.5 text-text-muted text-xs">{i + 1}</td>
-                              <td className="py-2.5 text-text-primary flex items-center gap-2">
-                                <Globe className="w-3 h-3 text-text-muted flex-shrink-0" />
+                            <tr key={g.country} className="border-b border-zinc-100 hover:bg-[#f3f3f3]">
+                              <td className="py-2.5 text-zinc-500 text-xs">{i + 1}</td>
+                              <td className="py-2.5 text-black flex items-center gap-2">
+                                <Globe className="w-3 h-3 text-zinc-500 flex-shrink-0" />
                                 {g.country}
                               </td>
-                              <td className="py-2.5 text-right text-text-primary">{g.sessions.toLocaleString()}</td>
-                              <td className="py-2.5 text-right text-text-muted">{g.users.toLocaleString()}</td>
+                              <td className="py-2.5 text-right text-black">{g.sessions.toLocaleString()}</td>
+                              <td className="py-2.5 text-right text-zinc-500">{g.users.toLocaleString()}</td>
                               <td className="py-2.5 text-right">
                                 <div className="flex items-center justify-end gap-2">
-                                  <div className="w-16 h-1 bg-white/5 rounded-full overflow-hidden">
-                                    <div className="h-full bg-accent rounded-full" style={{ width: `${p}%` }} />
+                                  <div className="w-16 h-1 bg-[#f3f3f3] rounded-full overflow-hidden">
+                                    <div className="h-full bg-black rounded-full" style={{ width: `${p}%` }} />
                                   </div>
-                                  <span className="text-text-muted text-xs w-10 text-right">{p.toFixed(1)}%</span>
+                                  <span className="text-zinc-500 text-xs w-10 text-right">{p.toFixed(1)}%</span>
                                 </div>
                               </td>
                             </tr>
@@ -768,36 +768,36 @@ export default function Analytics() {
         <div className="space-y-4">
           <ChartCard title="Top Pages">
             {loading && !pages.length ? (
-              <div className="text-center py-8 text-text-muted">Loading...</div>
+              <div className="text-center py-8 text-zinc-500">Loading...</div>
             ) : pages.length === 0 ? <EmptyState /> : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-white/[0.08]">
-                      <th className="text-left py-2 text-xs text-text-muted font-medium w-8">#</th>
-                      <th className="text-left py-2 text-xs text-text-muted font-medium">Page</th>
-                      <th className="text-right py-2 text-xs text-text-muted font-medium">Views</th>
-                      <th className="text-right py-2 text-xs text-text-muted font-medium">Users</th>
-                      <th className="text-right py-2 text-xs text-text-muted font-medium">Avg Time</th>
-                      <th className="text-right py-2 text-xs text-text-muted font-medium">Bounce</th>
-                      <th className="text-right py-2 text-xs text-text-muted font-medium">Engagement</th>
+                    <tr className="border-b border-zinc-200">
+                      <th className="text-left py-2 text-xs text-zinc-500 font-medium w-8">#</th>
+                      <th className="text-left py-2 text-xs text-zinc-500 font-medium">Page</th>
+                      <th className="text-right py-2 text-xs text-zinc-500 font-medium">Views</th>
+                      <th className="text-right py-2 text-xs text-zinc-500 font-medium">Users</th>
+                      <th className="text-right py-2 text-xs text-zinc-500 font-medium">Avg Time</th>
+                      <th className="text-right py-2 text-xs text-zinc-500 font-medium">Bounce</th>
+                      <th className="text-right py-2 text-xs text-zinc-500 font-medium">Engagement</th>
                     </tr>
                   </thead>
                   <tbody>
                     {pages.map((p, i) => (
-                      <tr key={p.path + i} className="border-b border-white/[0.04] hover:bg-white/[0.02]">
-                        <td className="py-2.5 text-text-muted text-xs">{i + 1}</td>
+                      <tr key={p.path + i} className="border-b border-zinc-100 hover:bg-[#f3f3f3]">
+                        <td className="py-2.5 text-zinc-500 text-xs">{i + 1}</td>
                         <td className="py-2.5 max-w-xs">
-                          <div className="truncate text-text-primary font-mono text-xs">{p.path}</div>
+                          <div className="truncate text-black font-mono text-xs">{p.path}</div>
                           {p.title && p.title !== p.path && (
-                            <div className="truncate text-text-muted text-xs">{p.title}</div>
+                            <div className="truncate text-zinc-500 text-xs">{p.title}</div>
                           )}
                         </td>
-                        <td className="py-2.5 text-right text-text-primary">{p.pageviews.toLocaleString()}</td>
-                        <td className="py-2.5 text-right text-text-muted">{p.users.toLocaleString()}</td>
-                        <td className="py-2.5 text-right text-text-muted">{formatDuration(p.avgDuration)}</td>
-                        <td className="py-2.5 text-right text-text-muted">{(p.bounceRate * 100).toFixed(1)}%</td>
-                        <td className="py-2.5 text-right text-text-muted">{(p.engagementRate * 100).toFixed(1)}%</td>
+                        <td className="py-2.5 text-right text-black">{p.pageviews.toLocaleString()}</td>
+                        <td className="py-2.5 text-right text-zinc-500">{p.users.toLocaleString()}</td>
+                        <td className="py-2.5 text-right text-zinc-500">{formatDuration(p.avgDuration)}</td>
+                        <td className="py-2.5 text-right text-zinc-500">{(p.bounceRate * 100).toFixed(1)}%</td>
+                        <td className="py-2.5 text-right text-zinc-500">{(p.engagementRate * 100).toFixed(1)}%</td>
                       </tr>
                     ))}
                   </tbody>
@@ -813,7 +813,7 @@ export default function Analytics() {
         <div className="space-y-4">
           <ChartCard title="Top Events">
             {loading && !events.length ? (
-              <div className="text-center py-8 text-text-muted">Loading...</div>
+              <div className="text-center py-8 text-zinc-500">Loading...</div>
             ) : events.length === 0 ? <EmptyState /> : (
               <>
                 <ResponsiveContainer width="100%" height={220}>
@@ -829,22 +829,22 @@ export default function Analytics() {
                 <div className="overflow-x-auto mt-4">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="border-b border-white/[0.08]">
-                        <th className="text-left py-2 text-xs text-text-muted font-medium w-8">#</th>
-                        <th className="text-left py-2 text-xs text-text-muted font-medium">Event</th>
-                        <th className="text-right py-2 text-xs text-text-muted font-medium">Count</th>
-                        <th className="text-right py-2 text-xs text-text-muted font-medium">Users</th>
-                        <th className="text-right py-2 text-xs text-text-muted font-medium">Per User</th>
+                      <tr className="border-b border-zinc-200">
+                        <th className="text-left py-2 text-xs text-zinc-500 font-medium w-8">#</th>
+                        <th className="text-left py-2 text-xs text-zinc-500 font-medium">Event</th>
+                        <th className="text-right py-2 text-xs text-zinc-500 font-medium">Count</th>
+                        <th className="text-right py-2 text-xs text-zinc-500 font-medium">Users</th>
+                        <th className="text-right py-2 text-xs text-zinc-500 font-medium">Per User</th>
                       </tr>
                     </thead>
                     <tbody>
                       {events.map((e, i) => (
-                        <tr key={e.event} className="border-b border-white/[0.04] hover:bg-white/[0.02]">
-                          <td className="py-2.5 text-text-muted text-xs">{i + 1}</td>
-                          <td className="py-2.5 text-text-primary font-mono text-xs">{e.event}</td>
-                          <td className="py-2.5 text-right text-text-primary font-semibold">{e.count.toLocaleString()}</td>
-                          <td className="py-2.5 text-right text-text-muted">{e.users.toLocaleString()}</td>
-                          <td className="py-2.5 text-right text-text-muted">{e.perUser.toFixed(2)}</td>
+                        <tr key={e.event} className="border-b border-zinc-100 hover:bg-[#f3f3f3]">
+                          <td className="py-2.5 text-zinc-500 text-xs">{i + 1}</td>
+                          <td className="py-2.5 text-black font-mono text-xs">{e.event}</td>
+                          <td className="py-2.5 text-right text-black font-semibold">{e.count.toLocaleString()}</td>
+                          <td className="py-2.5 text-right text-zinc-500">{e.users.toLocaleString()}</td>
+                          <td className="py-2.5 text-right text-zinc-500">{e.perUser.toFixed(2)}</td>
                         </tr>
                       ))}
                     </tbody>

@@ -11,7 +11,7 @@ import ProposalPDF from './ProposalPDF'
 const CURRENCIES = ['USD', 'EUR', 'GBP', 'CAD', 'AUD']
 const CURRENCY_SYMBOLS: Record<string, string> = { USD: '$', EUR: '€', GBP: '£', CAD: 'CA$', AUD: 'A$' }
 
-const inputCls = 'w-full px-3 py-2 bg-white/5 border border-border rounded-lg text-text-primary text-sm focus:outline-none focus:border-accent/40 placeholder-text-muted'
+const inputCls = 'w-full px-3 py-2 bg-[#f3f3f3] border border-zinc-200 rounded-lg text-black text-sm focus:outline-none focus:border-black/20 placeholder-text-muted'
 const textareaCls = `${inputCls} resize-none`
 
 // ── Helpers (module level) ────────────────────────────────────────────────────
@@ -34,7 +34,7 @@ function buildProposalData(form: Partial<Proposal>, lineItems: LineItem[]): Part
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <label className="block text-xs text-text-muted mb-1.5">{label}</label>
+      <label className="block text-xs text-zinc-500 mb-1.5">{label}</label>
       {children}
     </div>
   )
@@ -46,19 +46,19 @@ function Section({
   title: string; isOpen: boolean; onToggle: () => void; children: React.ReactNode; badge?: string
 }) {
   return (
-    <div className="border border-border rounded-xl overflow-hidden">
+    <div className="border border-zinc-200 rounded-xl overflow-hidden">
       <button
         type="button"
         onClick={onToggle}
-        className="w-full flex items-center justify-between px-5 py-3.5 bg-surface hover:bg-white/5 transition-colors"
+        className="w-full flex items-center justify-between px-5 py-3.5 bg-white hover:bg-[#f3f3f3] transition-colors"
       >
         <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold text-text-primary">{title}</span>
-          {badge && <span className="text-xs text-accent bg-accent/10 px-2 py-0.5 rounded-full">{badge}</span>}
+          <span className="text-sm font-semibold text-black">{title}</span>
+          {badge && <span className="text-xs text-black bg-zinc-100 px-2 py-0.5 rounded-full">{badge}</span>}
         </div>
-        {isOpen ? <ChevronUp className="w-4 h-4 text-text-muted" /> : <ChevronDown className="w-4 h-4 text-text-muted" />}
+        {isOpen ? <ChevronUp className="w-4 h-4 text-zinc-500" /> : <ChevronDown className="w-4 h-4 text-zinc-500" />}
       </button>
-      {isOpen && <div className="p-5 space-y-4 border-t border-border">{children}</div>}
+      {isOpen && <div className="p-5 space-y-4 border-t border-zinc-200">{children}</div>}
     </div>
   )
 }
@@ -92,7 +92,7 @@ function ClientPicker({ clients, onSelect }: ClientPickerProps) {
       <button
         type="button"
         onClick={() => setOpen(v => !v)}
-        className="flex items-center gap-2 px-3 py-2 border border-accent/40 text-accent text-sm rounded-lg hover:bg-accent/10 transition-colors"
+        className="flex items-center gap-2 px-3 py-2 border border-black/20 text-black text-sm rounded-lg hover:bg-zinc-100 transition-colors"
       >
         <Users className="w-3.5 h-3.5" />
         Choose existing client
@@ -100,32 +100,32 @@ function ClientPicker({ clients, onSelect }: ClientPickerProps) {
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full mt-1 w-72 bg-[#0d1117] border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden">
-          <div className="p-2 border-b border-white/[0.08]">
-            <div className="flex items-center gap-2 px-2 py-1.5 bg-white/5 rounded-lg">
-              <Search className="w-3.5 h-3.5 text-text-muted flex-shrink-0" />
+        <div className="absolute left-0 top-full mt-1 w-72 bg-[#f3f3f3] border border-zinc-200 rounded-xl shadow-2xl z-50 overflow-hidden">
+          <div className="p-2 border-b border-zinc-200">
+            <div className="flex items-center gap-2 px-2 py-1.5 bg-[#f3f3f3] rounded-lg">
+              <Search className="w-3.5 h-3.5 text-zinc-500 flex-shrink-0" />
               <input
                 autoFocus
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder="Search clients..."
-                className="bg-transparent text-sm text-text-primary placeholder:text-text-muted focus:outline-none w-full"
+                className="bg-transparent text-sm text-black placeholder:text-zinc-500 focus:outline-none w-full"
               />
             </div>
           </div>
           <div className="max-h-64 overflow-y-auto">
             {filtered.length === 0 ? (
-              <div className="py-6 text-center text-text-muted text-sm">No clients found</div>
+              <div className="py-6 text-center text-zinc-500 text-sm">No clients found</div>
             ) : (
               filtered.map(c => (
                 <button
                   key={c.id}
                   type="button"
                   onClick={() => { onSelect(c); setOpen(false); setSearch('') }}
-                  className="w-full text-left px-4 py-2.5 hover:bg-white/5 transition-colors border-b border-white/[0.04] last:border-0"
+                  className="w-full text-left px-4 py-2.5 hover:bg-[#f3f3f3] transition-colors border-b border-zinc-100 last:border-0"
                 >
-                  <div className="text-sm text-text-primary font-medium">{c.firstName} {c.lastName}</div>
-                  <div className="text-xs text-text-muted">{c.email}{c.organization ? ` · ${c.organization}` : ''}</div>
+                  <div className="text-sm text-black font-medium">{c.firstName} {c.lastName}</div>
+                  <div className="text-xs text-zinc-500">{c.email}{c.organization ? ` · ${c.organization}` : ''}</div>
                 </button>
               ))
             )}
@@ -155,57 +155,57 @@ function SendModal({ proposal, onClose, onSent }: SendModalProps) {
   const [sent, setSent] = useState(false)
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="w-full max-w-lg bg-[#0d1117] border border-white/10 rounded-2xl p-6"
+        className="w-full max-w-lg bg-[#f3f3f3] border border-zinc-200 rounded-2xl p-6"
       >
         <div className="flex items-center justify-between mb-5">
-          <h3 className="text-lg font-semibold text-text-primary">Send Proposal</h3>
-          <button type="button" onClick={onClose} className="p-1 text-text-muted hover:text-text-primary">
+          <h3 className="text-lg font-semibold text-black">Send Proposal</h3>
+          <button type="button" onClick={onClose} className="p-1 text-zinc-500 hover:text-black">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {sent ? (
           <div className="text-center py-8">
-            <div className="w-12 h-12 bg-green-400/10 rounded-full flex items-center justify-center mx-auto mb-3">
-              <Send className="w-6 h-6 text-green-400" />
+            <div className="w-12 h-12 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-3">
+              <Send className="w-6 h-6 text-green-600" />
             </div>
-            <p className="text-text-primary font-medium">Proposal sent!</p>
-            <p className="text-text-muted text-sm mt-1">Delivered to {to}</p>
-            <button type="button" onClick={onSent} className="mt-5 px-4 py-2 bg-accent text-background text-sm font-semibold rounded-lg">
+            <p className="text-black font-medium">Proposal sent!</p>
+            <p className="text-zinc-500 text-sm mt-1">Delivered to {to}</p>
+            <button type="button" onClick={onSent} className="mt-5 px-4 py-2 bg-black text-background text-sm font-semibold rounded-lg">
               Done
             </button>
           </div>
         ) : (
           <div className="space-y-4">
             {error && (
-              <div className="text-sm text-red-400 bg-red-400/10 border border-red-400/20 rounded-lg px-3 py-2">
+              <div className="text-sm text-red-500 bg-red-500/10 border border-red-400/20 rounded-lg px-3 py-2">
                 <p className="font-medium mb-0.5">Failed to send</p>
                 <p className="text-xs opacity-80">{error}</p>
               </div>
             )}
             <div>
-              <label className="block text-xs text-text-muted mb-1">To</label>
+              <label className="block text-xs text-zinc-500 mb-1">To</label>
               <input value={to} onChange={e => setTo(e.target.value)}
-                className="w-full px-3 py-2 bg-white/5 border border-border rounded-lg text-text-primary text-sm focus:outline-none focus:border-accent/40" />
+                className="w-full px-3 py-2 bg-[#f3f3f3] border border-zinc-200 rounded-lg text-black text-sm focus:outline-none focus:border-black/20" />
             </div>
             <div>
-              <label className="block text-xs text-text-muted mb-1">Subject</label>
+              <label className="block text-xs text-zinc-500 mb-1">Subject</label>
               <input value={subject} onChange={e => setSubject(e.target.value)}
-                className="w-full px-3 py-2 bg-white/5 border border-border rounded-lg text-text-primary text-sm focus:outline-none focus:border-accent/40" />
+                className="w-full px-3 py-2 bg-[#f3f3f3] border border-zinc-200 rounded-lg text-black text-sm focus:outline-none focus:border-black/20" />
             </div>
             <div>
-              <label className="block text-xs text-text-muted mb-1">Message</label>
+              <label className="block text-xs text-zinc-500 mb-1">Message</label>
               <textarea value={message} onChange={e => setMessage(e.target.value)} rows={4}
-                className="w-full px-3 py-2 bg-white/5 border border-border rounded-lg text-text-primary text-sm focus:outline-none focus:border-accent/40 resize-none" />
+                className="w-full px-3 py-2 bg-[#f3f3f3] border border-zinc-200 rounded-lg text-black text-sm focus:outline-none focus:border-black/20 resize-none" />
             </div>
-            <p className="text-xs text-text-muted">The PDF will be generated and attached automatically.</p>
+            <p className="text-xs text-zinc-500">The PDF will be generated and attached automatically.</p>
             <div className="flex gap-3 pt-1">
               <button type="button" onClick={onClose}
-                className="flex-1 px-4 py-2 border border-border text-text-muted text-sm rounded-lg hover:text-text-primary hover:border-white/20 transition-colors">
+                className="flex-1 px-4 py-2 border border-zinc-200 text-zinc-500 text-sm rounded-lg hover:text-black hover:border-zinc-400 transition-colors">
                 Cancel
               </button>
               <BlobProvider document={<ProposalPDF proposal={proposal} />}>
@@ -233,7 +233,7 @@ function SendModal({ proposal, onClose, onSent }: SendModalProps) {
                         setSending(false)
                       }
                     }}
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-accent text-background text-sm font-semibold rounded-lg hover:bg-accent/90 transition-colors disabled:opacity-50"
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-black text-background text-sm font-semibold rounded-lg hover:bg-zinc-800 transition-colors disabled:opacity-50"
                   >
                     <Send className="w-4 h-4" />
                     {loading ? 'Preparing PDF...' : sending ? 'Sending...' : 'Send'}
@@ -357,7 +357,7 @@ export default function ProposalBuilder({ initial, onBack, onSaved }: Props) {
       {/* ── Topbar ── */}
       <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
         <button type="button" onClick={onBack}
-          className="flex items-center gap-2 text-text-muted hover:text-text-primary transition-colors text-sm">
+          className="flex items-center gap-2 text-zinc-500 hover:text-black transition-colors text-sm">
           <ArrowLeft className="w-4 h-4" />
           Back
         </button>
@@ -367,7 +367,7 @@ export default function ProposalBuilder({ initial, onBack, onSaved }: Props) {
           <select
             value={form.status}
             onChange={e => set('status', e.target.value)}
-            className="px-3 py-2 bg-surface border border-border rounded-lg text-text-primary text-sm focus:outline-none focus:border-accent/40"
+            className="px-3 py-2 bg-white border border-zinc-200 rounded-lg text-black text-sm focus:outline-none focus:border-black/20"
           >
             <option value="draft">Draft</option>
             <option value="sent">Sent</option>
@@ -376,7 +376,7 @@ export default function ProposalBuilder({ initial, onBack, onSaved }: Props) {
           </select>
 
           <button type="button" onClick={() => setShowPreview(v => !v)}
-            className="flex items-center gap-1.5 px-3 py-2 border border-border text-text-muted text-sm rounded-lg hover:text-text-primary hover:border-white/20 transition-colors">
+            className="flex items-center gap-1.5 px-3 py-2 border border-zinc-200 text-zinc-500 text-sm rounded-lg hover:text-black hover:border-zinc-400 transition-colors">
             {showPreview ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             {showPreview ? 'Hide' : 'Preview'}
           </button>
@@ -385,7 +385,7 @@ export default function ProposalBuilder({ initial, onBack, onSaved }: Props) {
             <PDFDownloadLink
               document={<ProposalPDF proposal={previewProposal} />}
               fileName={`${savedProposal.proposalNumber}-proposal.pdf`}
-              className="flex items-center gap-1.5 px-3 py-2 border border-border text-text-muted text-sm rounded-lg hover:text-text-primary hover:border-white/20 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-2 border border-zinc-200 text-zinc-500 text-sm rounded-lg hover:text-black hover:border-zinc-400 transition-colors"
             >
               <Download className="w-4 h-4" />
               PDF
@@ -394,21 +394,21 @@ export default function ProposalBuilder({ initial, onBack, onSaved }: Props) {
 
           {savedProposal && (
             <button type="button" onClick={() => setShowSendModal(true)}
-              className="flex items-center gap-1.5 px-3 py-2 border border-accent-secondary/40 text-accent-secondary text-sm rounded-lg hover:bg-accent-secondary/10 transition-colors">
+              className="flex items-center gap-1.5 px-3 py-2 border border-accent-secondary/40 text-black-secondary text-sm rounded-lg hover:bg-black-secondary/10 transition-colors">
               <Send className="w-4 h-4" />
               Send
             </button>
           )}
 
           {form.clientSignature && (
-            <span className="flex items-center gap-1.5 px-3 py-2 border border-green-500/30 text-green-400 text-sm rounded-lg">
+            <span className="flex items-center gap-1.5 px-3 py-2 border border-green-500/30 text-green-600 text-sm rounded-lg">
               <PenLine className="w-4 h-4" />
               Signed
             </span>
           )}
 
           <button type="button" onClick={handleSave} disabled={saving}
-            className="flex items-center gap-1.5 px-4 py-2 bg-accent text-background text-sm font-semibold rounded-lg hover:bg-accent/90 transition-colors disabled:opacity-60">
+            className="flex items-center gap-1.5 px-4 py-2 bg-black text-background text-sm font-semibold rounded-lg hover:bg-zinc-800 transition-colors disabled:opacity-60">
             <Save className="w-4 h-4" />
             {saving ? 'Saving...' : 'Save'}
           </button>
@@ -416,7 +416,7 @@ export default function ProposalBuilder({ initial, onBack, onSaved }: Props) {
       </div>
 
       {saveError && (
-        <div className="mb-4 text-sm text-red-400 bg-red-400/10 border border-red-400/20 rounded-lg px-4 py-3">{saveError}</div>
+        <div className="mb-4 text-sm text-red-500 bg-red-500/10 border border-red-400/20 rounded-lg px-4 py-3">{saveError}</div>
       )}
 
       <div className={`grid gap-6 ${showPreview ? 'grid-cols-2' : 'grid-cols-1 max-w-3xl mx-auto'}`}>
@@ -452,8 +452,8 @@ export default function ProposalBuilder({ initial, onBack, onSaved }: Props) {
             badge={form.clientName ? form.clientName : undefined}
           >
             {/* Choose existing client */}
-            <div className="flex items-center justify-between pb-2 border-b border-border">
-              <span className="text-xs text-text-muted">Auto-fill from existing client:</span>
+            <div className="flex items-center justify-between pb-2 border-b border-zinc-200">
+              <span className="text-xs text-zinc-500">Auto-fill from existing client:</span>
               <ClientPicker clients={clients} onSelect={handleClientSelect} />
             </div>
 
@@ -516,23 +516,23 @@ export default function ProposalBuilder({ initial, onBack, onSaved }: Props) {
             <div className="overflow-x-auto -mx-1">
               <table className="w-full text-sm min-w-[480px]">
                 <thead>
-                  <tr className="border-b border-border">
-                    <th className="text-left text-xs text-text-muted font-medium pb-2">Description</th>
-                    <th className="text-center text-xs text-text-muted font-medium pb-2 w-16 pl-2">Qty</th>
-                    <th className="text-right text-xs text-text-muted font-medium pb-2 w-28 pl-2">Rate</th>
-                    <th className="text-right text-xs text-text-muted font-medium pb-2 w-28 pl-2">Amount</th>
+                  <tr className="border-b border-zinc-200">
+                    <th className="text-left text-xs text-zinc-500 font-medium pb-2">Description</th>
+                    <th className="text-center text-xs text-zinc-500 font-medium pb-2 w-16 pl-2">Qty</th>
+                    <th className="text-right text-xs text-zinc-500 font-medium pb-2 w-28 pl-2">Rate</th>
+                    <th className="text-right text-xs text-zinc-500 font-medium pb-2 w-28 pl-2">Amount</th>
                     <th className="w-8" />
                   </tr>
                 </thead>
                 <tbody>
                   {lineItems.map(item => (
-                    <tr key={item.id} className="border-b border-border/50">
+                    <tr key={item.id} className="border-b border-zinc-200/50">
                       <td className="py-2 pr-2">
                         <input
                           value={item.description}
                           onChange={e => updateLineItem(item.id, 'description', e.target.value)}
                           placeholder="Design & Development"
-                          className="w-full px-2 py-1.5 bg-white/5 border border-border rounded text-text-primary text-sm focus:outline-none focus:border-accent/40"
+                          className="w-full px-2 py-1.5 bg-[#f3f3f3] border border-zinc-200 rounded text-black text-sm focus:outline-none focus:border-black/20"
                         />
                       </td>
                       <td className="py-2 px-1">
@@ -541,27 +541,27 @@ export default function ProposalBuilder({ initial, onBack, onSaved }: Props) {
                           value={item.qty}
                           onChange={e => updateLineItem(item.id, 'qty', parseFloat(e.target.value) || 0)}
                           min={0}
-                          className="w-14 px-2 py-1.5 bg-white/5 border border-border rounded text-text-primary text-sm text-center focus:outline-none focus:border-accent/40"
+                          className="w-14 px-2 py-1.5 bg-[#f3f3f3] border border-zinc-200 rounded text-black text-sm text-center focus:outline-none focus:border-black/20"
                         />
                       </td>
                       <td className="py-2 px-1">
                         <div className="flex items-center justify-end gap-1">
-                          <span className="text-text-muted text-xs">{sym}</span>
+                          <span className="text-zinc-500 text-xs">{sym}</span>
                           <input
                             type="number"
                             value={item.unitPrice}
                             onChange={e => updateLineItem(item.id, 'unitPrice', parseFloat(e.target.value) || 0)}
                             min={0}
-                            className="w-24 px-2 py-1.5 bg-white/5 border border-border rounded text-text-primary text-sm text-right focus:outline-none focus:border-accent/40"
+                            className="w-24 px-2 py-1.5 bg-[#f3f3f3] border border-zinc-200 rounded text-black text-sm text-right focus:outline-none focus:border-black/20"
                           />
                         </div>
                       </td>
-                      <td className="py-2 pl-1 text-right text-text-primary font-medium whitespace-nowrap">
+                      <td className="py-2 pl-1 text-right text-black font-medium whitespace-nowrap">
                         {sym}{item.total.toFixed(2)}
                       </td>
                       <td className="py-2 pl-2">
                         <button type="button" onClick={() => removeLineItem(item.id)} disabled={lineItems.length === 1}
-                          className="p-1 text-text-muted hover:text-red-400 transition-colors disabled:opacity-30">
+                          className="p-1 text-zinc-500 hover:text-red-500 transition-colors disabled:opacity-30">
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </td>
@@ -572,38 +572,38 @@ export default function ProposalBuilder({ initial, onBack, onSaved }: Props) {
             </div>
 
             <button type="button" onClick={addLineItem}
-              className="flex items-center gap-2 text-sm text-text-muted hover:text-text-primary transition-colors">
+              className="flex items-center gap-2 text-sm text-zinc-500 hover:text-black transition-colors">
               <Plus className="w-4 h-4" />
               Add line item
             </button>
 
-            <div className="border-t border-border pt-4 space-y-3">
+            <div className="border-t border-zinc-200 pt-4 space-y-3">
               <div className="flex items-center justify-between text-sm">
-                <span className="text-text-muted">Subtotal</span>
-                <span className="text-text-primary font-medium">{sym}{subtotal.toFixed(2)}</span>
+                <span className="text-zinc-500">Subtotal</span>
+                <span className="text-black font-medium">{sym}{subtotal.toFixed(2)}</span>
               </div>
               <div className="flex items-center gap-3">
-                <span className="text-text-muted text-sm w-20 flex-shrink-0">Discount</span>
+                <span className="text-zinc-500 text-sm w-20 flex-shrink-0">Discount</span>
                 <select value={form.discountType ?? 'fixed'} onChange={e => set('discountType', e.target.value)}
-                  className="px-2 py-1 bg-white/5 border border-border rounded text-text-primary text-xs focus:outline-none">
+                  className="px-2 py-1 bg-[#f3f3f3] border border-zinc-200 rounded text-black text-xs focus:outline-none">
                   <option value="fixed">Fixed ({sym})</option>
                   <option value="percent">Percent (%)</option>
                 </select>
                 <input type="number" value={form.discountValue ?? 0}
                   onChange={e => set('discountValue', parseFloat(e.target.value) || 0)} min={0}
-                  className="w-24 px-2 py-1 bg-white/5 border border-border rounded text-text-primary text-sm text-right focus:outline-none focus:border-accent/40" />
-                {discountAmt > 0 && <span className="text-text-muted text-sm ml-auto">-{sym}{discountAmt.toFixed(2)}</span>}
+                  className="w-24 px-2 py-1 bg-[#f3f3f3] border border-zinc-200 rounded text-black text-sm text-right focus:outline-none focus:border-black/20" />
+                {discountAmt > 0 && <span className="text-zinc-500 text-sm ml-auto">-{sym}{discountAmt.toFixed(2)}</span>}
               </div>
               <div className="flex items-center gap-3">
-                <span className="text-text-muted text-sm w-20 flex-shrink-0">Tax (%)</span>
+                <span className="text-zinc-500 text-sm w-20 flex-shrink-0">Tax (%)</span>
                 <input type="number" value={form.taxRate ?? 0}
                   onChange={e => set('taxRate', parseFloat(e.target.value) || 0)} min={0} max={100}
-                  className="w-24 px-2 py-1 bg-white/5 border border-border rounded text-text-primary text-sm text-right focus:outline-none focus:border-accent/40" />
-                {taxAmt > 0 && <span className="text-text-muted text-sm ml-auto">{sym}{taxAmt.toFixed(2)}</span>}
+                  className="w-24 px-2 py-1 bg-[#f3f3f3] border border-zinc-200 rounded text-black text-sm text-right focus:outline-none focus:border-black/20" />
+                {taxAmt > 0 && <span className="text-zinc-500 text-sm ml-auto">{sym}{taxAmt.toFixed(2)}</span>}
               </div>
-              <div className="flex items-center justify-between pt-2 border-t border-border">
-                <span className="text-text-primary font-bold">Total</span>
-                <span className="text-accent font-bold text-xl">{sym}{total.toFixed(2)}</span>
+              <div className="flex items-center justify-between pt-2 border-t border-zinc-200">
+                <span className="text-black font-bold">Total</span>
+                <span className="text-black font-bold text-xl">{sym}{total.toFixed(2)}</span>
               </div>
             </div>
           </Section>
@@ -624,37 +624,37 @@ export default function ProposalBuilder({ initial, onBack, onSaved }: Props) {
             </Field>
 
             {/* Signatures */}
-            <div className="pt-2 border-t border-border">
-              <p className="text-xs text-text-muted mb-4">Signatures — type to sign. Both will appear on the PDF.</p>
+            <div className="pt-2 border-t border-zinc-200">
+              <p className="text-xs text-zinc-500 mb-4">Signatures — type to sign. Both will appear on the PDF.</p>
               <div className="grid grid-cols-2 gap-6">
                 {/* Client signature */}
                 <div>
-                  <label className="block text-xs text-text-muted mb-2">Client Signature</label>
+                  <label className="block text-xs text-zinc-500 mb-2">Client Signature</label>
                   <div className="relative">
                     <input
                       value={form.clientSignature ?? ''}
                       onChange={e => set('clientSignature', e.target.value)}
                       placeholder={form.clientName ? `${form.clientName}` : 'Client name'}
-                      className="w-full px-3 pb-1 pt-2 bg-transparent border-0 border-b-2 border-border focus:border-accent/60 focus:outline-none text-text-primary placeholder-text-muted/40 italic"
+                      className="w-full px-3 pb-1 pt-2 bg-transparent border-0 border-b-2 border-zinc-200 focus:border-black/30 focus:outline-none text-black placeholder-zinc-400 italic"
                       style={{ fontFamily: 'Georgia, serif', fontSize: '1.1rem' }}
                     />
-                    <PenLine className="absolute right-0 top-2 w-3.5 h-3.5 text-text-muted/40 pointer-events-none" />
+                    <PenLine className="absolute right-0 top-2 w-3.5 h-3.5 text-zinc-500/40 pointer-events-none" />
                   </div>
-                  <p className="text-xs text-text-muted/50 mt-1.5">{form.clientName || 'Client'} · {form.date || 'Date'}</p>
+                  <p className="text-xs text-zinc-500/50 mt-1.5">{form.clientName || 'Client'} · {form.date || 'Date'}</p>
                 </div>
 
                 {/* Agency signature — pre-filled */}
                 <div>
-                  <label className="block text-xs text-text-muted mb-2">Agency Signature</label>
+                  <label className="block text-xs text-zinc-500 mb-2">Agency Signature</label>
                   <div className="relative">
                     <input
                       readOnly
                       value="Terrence Adderley"
-                      className="w-full px-3 pb-1 pt-2 bg-transparent border-0 border-b-2 border-border focus:outline-none text-text-primary italic cursor-default select-none"
+                      className="w-full px-3 pb-1 pt-2 bg-transparent border-0 border-b-2 border-zinc-200 focus:outline-none text-black italic cursor-default select-none"
                       style={{ fontFamily: 'Georgia, serif', fontSize: '1.1rem' }}
                     />
                   </div>
-                  <p className="text-xs text-text-muted/50 mt-1.5">Terrence Adderley · Designs By TA</p>
+                  <p className="text-xs text-zinc-500/50 mt-1.5">Terrence Adderley · Designs By TA</p>
                 </div>
               </div>
             </div>
@@ -666,12 +666,12 @@ export default function ProposalBuilder({ initial, onBack, onSaved }: Props) {
           <div className="sticky top-0 h-screen">
             <BlobProvider document={<ProposalPDF proposal={previewProposal} />}>
               {({ url, loading }) => (
-                <div className="h-full rounded-xl overflow-hidden border border-border">
+                <div className="h-full rounded-xl overflow-hidden border border-zinc-200">
                   {loading
-                    ? <div className="h-full flex items-center justify-center text-text-muted text-sm">Generating preview...</div>
+                    ? <div className="h-full flex items-center justify-center text-zinc-500 text-sm">Generating preview...</div>
                     : url
                       ? <iframe src={url} className="w-full h-full" title="PDF Preview" />
-                      : <div className="h-full flex items-center justify-center text-text-muted text-sm">Preview unavailable</div>}
+                      : <div className="h-full flex items-center justify-center text-zinc-500 text-sm">Preview unavailable</div>}
                 </div>
               )}
             </BlobProvider>

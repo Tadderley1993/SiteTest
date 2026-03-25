@@ -50,13 +50,13 @@ export default function AddClientModal({ submissions, onClose, onCreate }: Props
 
   const field = (label: string, key: keyof ClientFormData, placeholder?: string, type = 'text') => (
     <div>
-      <label className="block text-xs text-text-muted mb-1">{label}</label>
+      <label className="block text-xs text-zinc-500 mb-1">{label}</label>
       <input
         type={type}
         value={(form[key] as string) ?? ''}
         onChange={e => setForm(prev => ({ ...prev, [key]: e.target.value }))}
         placeholder={placeholder}
-        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-text-primary placeholder-text-muted/40 focus:outline-none focus:border-accent/50 text-sm transition-colors"
+        className="w-full bg-[#f3f3f3] border border-zinc-200 rounded-lg px-3 py-2 text-black placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-black/10 text-sm transition-colors"
       />
     </div>
   )
@@ -67,19 +67,19 @@ export default function AddClientModal({ submissions, onClose, onCreate }: Props
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4"
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
         onClick={e => e.target === e.currentTarget && onClose()}
       >
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="bg-[#0d1017] border border-white/10 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col"
+          className="bg-white border border-zinc-200 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col"
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
-            <h2 className="text-lg font-semibold text-text-primary">Add Current Client</h2>
-            <button onClick={onClose} className="text-text-muted hover:text-text-primary transition-colors">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200">
+            <h2 className="text-lg font-semibold text-black">Add Current Client</h2>
+            <button onClick={onClose} className="text-zinc-500 hover:text-black transition-colors">
               <X className="w-5 h-5" />
             </button>
           </div>
@@ -90,8 +90,8 @@ export default function AddClientModal({ submissions, onClose, onCreate }: Props
               onClick={() => setMode('manual')}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                 mode === 'manual'
-                  ? 'bg-accent text-black'
-                  : 'bg-white/5 text-text-muted hover:text-text-primary'
+                  ? 'bg-black text-white'
+                  : 'bg-[#f3f3f3] text-zinc-500 hover:text-black'
               }`}
             >
               <UserPlus className="w-4 h-4" />
@@ -101,8 +101,8 @@ export default function AddClientModal({ submissions, onClose, onCreate }: Props
               onClick={() => setMode('from-submission')}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                 mode === 'from-submission'
-                  ? 'bg-accent text-black'
-                  : 'bg-white/5 text-text-muted hover:text-text-primary'
+                  ? 'bg-black text-white'
+                  : 'bg-[#f3f3f3] text-zinc-500 hover:text-black'
               }`}
             >
               <Users className="w-4 h-4" />
@@ -114,9 +114,9 @@ export default function AddClientModal({ submissions, onClose, onCreate }: Props
             {/* Submission picker */}
             {mode === 'from-submission' && (
               <div>
-                <label className="block text-xs text-text-muted mb-2">Select a Submission</label>
+                <label className="block text-xs text-zinc-500 mb-2">Select a Submission</label>
                 {submissions.length === 0 ? (
-                  <p className="text-sm text-text-muted">No submissions available.</p>
+                  <p className="text-sm text-zinc-500">No submissions available.</p>
                 ) : (
                   <select
                     value={selectedSubmission?.id ?? ''}
@@ -124,7 +124,7 @@ export default function AddClientModal({ submissions, onClose, onCreate }: Props
                       const sub = submissions.find(s => s.id === Number(e.target.value)) ?? null
                       handleSubmissionSelect(sub)
                     }}
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-text-primary focus:outline-none focus:border-accent/50 text-sm transition-colors appearance-none cursor-pointer"
+                    className="w-full bg-[#f3f3f3] border border-zinc-200 rounded-lg px-3 py-2.5 text-black focus:outline-none focus:ring-2 focus:ring-black/10 text-sm transition-colors appearance-none cursor-pointer"
                   >
                     <option value="">— Choose a submission —</option>
                     {submissions.map(sub => (
@@ -153,7 +153,7 @@ export default function AddClientModal({ submissions, onClose, onCreate }: Props
             {field('Website', 'website', 'https://example.com', 'url')}
 
             <div className="pt-1">
-              <p className="text-xs text-text-muted mb-3 uppercase tracking-widest">Social Media</p>
+              <p className="text-xs text-zinc-500 mb-3 uppercase tracking-widest">Social Media</p>
               <div className="grid grid-cols-2 gap-4">
                 {field('Instagram', 'instagram', '@handle')}
                 {field('Twitter / X', 'twitter', '@handle')}
@@ -163,13 +163,13 @@ export default function AddClientModal({ submissions, onClose, onCreate }: Props
             </div>
 
             <div>
-              <label className="block text-xs text-text-muted mb-1">Notes</label>
+              <label className="block text-xs text-zinc-500 mb-1">Notes</label>
               <textarea
                 value={form.notes ?? ''}
                 onChange={e => setForm(prev => ({ ...prev, notes: e.target.value }))}
                 placeholder="Any initial notes..."
                 rows={3}
-                className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-text-primary placeholder-text-muted/40 focus:outline-none focus:border-accent/50 text-sm transition-colors resize-none"
+                className="w-full bg-[#f3f3f3] border border-zinc-200 rounded-lg px-3 py-2 text-black placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-black/10 text-sm transition-colors resize-none"
               />
             </div>
 
@@ -177,14 +177,14 @@ export default function AddClientModal({ submissions, onClose, onCreate }: Props
               <button
                 type="button"
                 onClick={onClose}
-                className="px-5 py-2 rounded-lg border border-white/10 text-text-muted hover:text-text-primary text-sm transition-colors"
+                className="px-5 py-2 rounded-lg border border-zinc-200 text-zinc-500 hover:text-black text-sm transition-colors"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={!form.firstName || !form.lastName || !form.email}
-                className="px-5 py-2 rounded-lg bg-accent text-black font-medium text-sm disabled:opacity-40 disabled:cursor-not-allowed hover:bg-accent/90 transition-colors"
+                className="px-5 py-2 rounded-lg bg-black text-white font-medium text-sm disabled:opacity-40 disabled:cursor-not-allowed hover:bg-zinc-800 transition-colors"
               >
                 Add Client
               </button>

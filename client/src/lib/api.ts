@@ -44,8 +44,11 @@ export interface LoginCredentials {
 }
 
 export interface LoginResponse {
-  token: string
+  accessToken: string
+  refreshToken: string
   username: string
+  role: string
+  sessionId: number
 }
 
 // Client types
@@ -606,6 +609,115 @@ export interface FinancialsData {
 
 export async function getFinancials(): Promise<FinancialsData> {
   const res = await api.get('/admin/financials/summary')
+  return res.data
+}
+
+// ── Deals ────────────────────────────────────────────────────────
+export interface Deal {
+  id: number
+  title: string
+  company?: string
+  contactName?: string
+  contactEmail?: string
+  contactPhone?: string
+  value: number
+  stage: 'lead' | 'qualified' | 'proposal_sent' | 'won' | 'lost'
+  notes?: string
+  clientId?: number
+  client?: { id: number; firstName: string; lastName: string }
+  createdAt: string
+  updatedAt: string
+}
+
+export async function getDeals(): Promise<Deal[]> {
+  const res = await api.get('/admin/deals')
+  return res.data
+}
+
+export async function createDeal(data: Partial<Deal>): Promise<Deal> {
+  const res = await api.post('/admin/deals', data)
+  return res.data
+}
+
+export async function updateDeal(id: number, data: Partial<Deal>): Promise<Deal> {
+  const res = await api.put(`/admin/deals/${id}`, data)
+  return res.data
+}
+
+export async function moveDeal(id: number, stage: Deal['stage']): Promise<Deal> {
+  const res = await api.patch(`/admin/deals/${id}/stage`, { stage })
+  return res.data
+}
+
+export async function deleteDeal(id: number): Promise<void> {
+  await api.delete(`/admin/deals/${id}`)
+}
+
+// ── Files ────────────────────────────────────────────────────────
+export interface FileEntry extends ClientDocument {
+  client: { id: number; firstName: string; lastName: string; organization?: string }
+}
+
+export interface FilesResponse {
+  files: FileEntry[]
+  stats: { total: number; portalVisible: number; totalSize: number }
+}
+
+export async function getAllFiles(): Promise<FilesResponse> {
+  const res = await api.get('/admin/files')
+  return res.data
+}
+
+export async function deleteFile(id: number): Promise<void> {
+  await api.delete(`/admin/files/${id}`)
+}
+
+// ── Automations ──────────────────────────────────────────────────
+export interface AutomationRule {
+  id: number
+  name: string
+  type: string
+  enabled: boolean
+  delayDays: number
+  subject?: string
+  body?: string
+  lastRunAt?: string
+  runCount: number
+  createdAt: string
+  updatedAt: string
+  logs: AutomationLog[]
+}
+
+export interface AutomationLog {
+  id: number
+  ruleId: number
+  status: string
+  message?: string
+  sentTo?: string
+  createdAt: string
+}
+
+export async function getAutomations(): Promise<AutomationRule[]> {
+  const res = await api.get('/admin/automations')
+  return res.data
+}
+
+export async function createAutomation(data: Partial<AutomationRule>): Promise<AutomationRule> {
+  const res = await api.post('/admin/automations', data)
+  return res.data
+}
+
+export async function updateAutomation(id: number, data: Partial<AutomationRule>): Promise<AutomationRule> {
+  const res = await api.put(`/admin/automations/${id}`, data)
+  return res.data
+}
+
+export async function deleteAutomation(id: number): Promise<void> {
+  await api.delete(`/admin/automations/${id}`)
+}
+
+export async function runAutomation(id: number): Promise<{ results: { status: string; message: string; sentTo?: string }[] }> {
+  const res = await api.post(`/admin/automations/${id}/run`)
   return res.data
 }
 

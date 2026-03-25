@@ -135,12 +135,15 @@ export default function Sidebar() {
         </motion.button>
 
         {/* Logo — centered */}
-        <Link to="/" onClick={handleLogoClick} className="absolute left-1/2 -translate-x-1/2">
+        <Link to="/" onClick={handleLogoClick} className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2.5">
           <img
-            src="/logo-white.png"
+            src="/dbt_slate.png"
             alt="Designs By TA"
-            style={{ height: 36, width: 'auto', filter: 'sepia(1) saturate(4) hue-rotate(5deg) brightness(0.72)' }}
+            style={{ height: 28, width: 'auto', filter: 'brightness(0) invert(1)' }}
           />
+          <span className="text-[13px] font-semibold text-white tracking-tight leading-tight whitespace-nowrap">
+            <span className="font-light opacity-70">Designs By </span>Terrence Adderley
+          </span>
         </Link>
 
         {/* Start a Project — right */}
@@ -178,14 +181,17 @@ export default function Sidebar() {
               {/* Logo button — above Home */}
               <Link
                 to="/"
-                className="flex items-center justify-center py-5 border-b border-[rgba(0,0,0,0.07)]"
+                className="flex items-center justify-center gap-2.5 py-5 border-b border-[rgba(0,0,0,0.07)]"
                 onClick={handleLogoClick}
               >
                 <img
-                  src="/logo-white.png"
+                  src="/dbt_slate.png"
                   alt="Designs By TA"
-                  style={{ height: 40, width: 'auto', filter: 'sepia(1) saturate(4) hue-rotate(5deg) brightness(0.72)' }}
+                  style={{ height: 30, width: 'auto' }}
                 />
+                <span className="text-[13px] font-semibold text-black tracking-tight leading-tight">
+                  <span className="font-light text-zinc-400">Designs By </span>Terrence Adderley
+                </span>
               </Link>
 
               {/* Nav links */}
@@ -234,12 +240,15 @@ export default function Sidebar() {
           transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
           className="pt-5"
         >
-          <Link to="/" onClick={handleLogoClick}>
+          <Link to="/" onClick={handleLogoClick} className="flex items-center gap-2.5">
             <img
-              src="/logo-white.png"
+              src="/dbt_slate.png"
               alt="Designs By TA"
-              style={{ height: 36, width: 'auto', filter: 'sepia(1) saturate(4) hue-rotate(5deg) brightness(0.72)' }}
+              style={{ height: 28, width: 'auto', filter: 'brightness(0) invert(1)' }}
             />
+            <span className="text-[12px] font-semibold text-white tracking-tight leading-tight whitespace-nowrap">
+              <span className="font-light opacity-60">Designs By </span>Terrence Adderley
+            </span>
           </Link>
         </motion.div>
 

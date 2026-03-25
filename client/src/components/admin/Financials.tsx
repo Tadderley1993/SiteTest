@@ -58,20 +58,20 @@ interface KpiCardProps {
 
 function KpiCard({ label, value, sub, icon, trend, highlight, danger }: KpiCardProps) {
   return (
-    <div className={`bg-surface border rounded-xl p-5 flex flex-col gap-3 ${
-      highlight ? 'border-accent/30 bg-accent/5' :
-      danger ? 'border-red-400/30 bg-red-400/5' :
-      'border-border'
+    <div className={`bg-white border rounded-xl p-5 flex flex-col gap-3 ${
+      highlight ? 'border-accent/30 bg-zinc-100' :
+      danger ? 'border-red-400/30 bg-red-500/5' :
+      'border-zinc-200'
     }`}>
       <div className="flex items-center justify-between">
-        <span className="text-xs text-text-muted uppercase tracking-widest">{label}</span>
-        <span className={highlight ? 'text-accent' : danger ? 'text-red-400' : 'text-text-muted'}>{icon}</span>
+        <span className="text-xs text-zinc-500 uppercase tracking-widest">{label}</span>
+        <span className={highlight ? 'text-black' : danger ? 'text-red-500' : 'text-zinc-500'}>{icon}</span>
       </div>
       <div>
-        <p className={`text-2xl font-bold ${highlight ? 'text-accent' : danger ? 'text-red-400' : 'text-text-primary'}`}>{value}</p>
+        <p className={`text-2xl font-bold ${highlight ? 'text-black' : danger ? 'text-red-500' : 'text-black'}`}>{value}</p>
         {sub && (
           <p className={`text-xs mt-1 flex items-center gap-1 ${
-            trend === 'up' ? 'text-green-400' : trend === 'down' ? 'text-red-400' : 'text-text-muted'
+            trend === 'up' ? 'text-green-600' : trend === 'down' ? 'text-red-500' : 'text-zinc-500'
           }`}>
             {trend === 'up' && <TrendingUp className="w-3 h-3" />}
             {trend === 'down' && <TrendingDown className="w-3 h-3" />}
@@ -92,11 +92,11 @@ interface SectionProps {
 
 function Section({ title, icon, children, action }: SectionProps) {
   return (
-    <div className="bg-surface border border-border rounded-xl p-6">
+    <div className="bg-white border border-zinc-200 rounded-xl p-6">
       <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-2">
-          <span className="text-accent">{icon}</span>
-          <h3 className="text-sm font-semibold text-text-primary uppercase tracking-wide">{title}</h3>
+          <span className="text-black">{icon}</span>
+          <h3 className="text-sm font-semibold text-black uppercase tracking-wide">{title}</h3>
         </div>
         {action}
       </div>
@@ -108,8 +108,8 @@ function Section({ title, icon, children, action }: SectionProps) {
 const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: Array<{name: string; value: number; color: string}>; label?: string }) => {
   if (!active || !payload?.length) return null
   return (
-    <div className="bg-[#0d1117] border border-white/10 rounded-xl p-3 text-xs shadow-xl">
-      <p className="text-text-muted mb-2 font-medium">{label}</p>
+    <div className="bg-[#f3f3f3] border border-zinc-200 rounded-xl p-3 text-xs shadow-xl">
+      <p className="text-zinc-500 mb-2 font-medium">{label}</p>
       {payload.map(p => (
         <p key={p.name} style={{ color: p.color }} className="flex justify-between gap-4">
           <span>{p.name}</span>
@@ -141,27 +141,27 @@ function ExpenseForm({ initial, onSave, onCancel, saving }: ExpenseFormProps) {
   const [receiptFile, setReceiptFile] = useState<File | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const ic = "w-full px-3 py-2 bg-white/5 border border-border rounded-lg text-text-primary text-sm focus:outline-none focus:border-accent/40 placeholder-text-muted"
+  const ic = "w-full px-3 py-2 bg-[#f3f3f3] border border-zinc-200 rounded-lg text-black text-sm focus:outline-none focus:border-black/20 placeholder-text-muted"
 
   return (
-    <div className="bg-white/[0.03] border border-border rounded-xl p-5 space-y-3">
+    <div className="bg-[#f3f3f3] border border-zinc-200 rounded-xl p-5 space-y-3">
       <div className="grid grid-cols-2 gap-3">
         <div className="col-span-2">
-          <label className="block text-xs text-text-muted mb-1">Title</label>
+          <label className="block text-xs text-zinc-500 mb-1">Title</label>
           <input value={form.title} onChange={e => setForm(f => ({...f, title: e.target.value}))}
             placeholder="e.g. Figma subscription" className={ic} />
         </div>
         <div>
-          <label className="block text-xs text-text-muted mb-1">Amount ($)</label>
+          <label className="block text-xs text-zinc-500 mb-1">Amount ($)</label>
           <input type="number" value={form.amount} onChange={e => setForm(f => ({...f, amount: e.target.value}))}
             placeholder="0.00" min={0} step="0.01" className={ic} />
         </div>
         <div>
-          <label className="block text-xs text-text-muted mb-1">Date</label>
+          <label className="block text-xs text-zinc-500 mb-1">Date</label>
           <input type="date" value={form.date} onChange={e => setForm(f => ({...f, date: e.target.value}))} className={ic} />
         </div>
         <div>
-          <label className="block text-xs text-text-muted mb-1">Category</label>
+          <label className="block text-xs text-zinc-500 mb-1">Category</label>
           <select value={form.category} onChange={e => setForm(f => ({...f, category: e.target.value}))} className={ic}>
             {Object.entries(EXPENSE_CATEGORY_LABELS).map(([k, v]) => (
               <option key={k} value={k}>{v}</option>
@@ -169,12 +169,12 @@ function ExpenseForm({ initial, onSave, onCancel, saving }: ExpenseFormProps) {
           </select>
         </div>
         <div>
-          <label className="block text-xs text-text-muted mb-1">Notes</label>
+          <label className="block text-xs text-zinc-500 mb-1">Notes</label>
           <input value={form.notes} onChange={e => setForm(f => ({...f, notes: e.target.value}))}
             placeholder="Optional..." className={ic} />
         </div>
         <div className="col-span-2">
-          <label className="block text-xs text-text-muted mb-1">Receipt (PDF or image)</label>
+          <label className="block text-xs text-zinc-500 mb-1">Receipt (PDF or image)</label>
           <input
             ref={fileInputRef}
             type="file"
@@ -184,13 +184,13 @@ function ExpenseForm({ initial, onSave, onCancel, saving }: ExpenseFormProps) {
           />
           <div className="flex items-center gap-2">
             <button type="button" onClick={() => fileInputRef.current?.click()}
-              className="flex items-center gap-2 px-3 py-2 border border-border text-text-muted text-sm rounded-lg hover:text-text-primary hover:border-white/20 transition-colors">
+              className="flex items-center gap-2 px-3 py-2 border border-zinc-200 text-zinc-500 text-sm rounded-lg hover:text-black hover:border-zinc-400 transition-colors">
               <Paperclip className="w-3.5 h-3.5" />
               {receiptFile ? receiptFile.name : initial?.receiptName ? initial.receiptName : 'Attach receipt'}
             </button>
             {(receiptFile || initial?.receiptName) && (
               <button type="button" onClick={() => { setReceiptFile(null); if (fileInputRef.current) fileInputRef.current.value = '' }}
-                className="p-1 text-text-muted hover:text-red-400 transition-colors">
+                className="p-1 text-zinc-500 hover:text-red-500 transition-colors">
                 <XCircle className="w-4 h-4" />
               </button>
             )}
@@ -201,15 +201,15 @@ function ExpenseForm({ initial, onSave, onCancel, saving }: ExpenseFormProps) {
         <label className="flex items-center gap-2 cursor-pointer select-none">
           <div
             onClick={() => setForm(f => ({...f, recurring: !f.recurring}))}
-            className={`w-9 h-5 rounded-full transition-colors relative ${form.recurring ? 'bg-accent' : 'bg-white/10'}`}
+            className={`w-9 h-5 rounded-full transition-colors relative ${form.recurring ? 'bg-black' : 'bg-[#f3f3f3]'}`}
           >
             <div className={`w-3.5 h-3.5 bg-white rounded-full absolute top-0.5 transition-transform ${form.recurring ? 'translate-x-4' : 'translate-x-0.5'}`} />
           </div>
-          <span className="text-xs text-text-muted">Recurring</span>
+          <span className="text-xs text-zinc-500">Recurring</span>
         </label>
         {form.recurring && (
           <select value={form.frequency} onChange={e => setForm(f => ({...f, frequency: e.target.value}))}
-            className="px-2 py-1 bg-white/5 border border-border rounded text-text-primary text-xs focus:outline-none">
+            className="px-2 py-1 bg-[#f3f3f3] border border-zinc-200 rounded text-black text-xs focus:outline-none">
             <option value="daily">Daily</option>
             <option value="weekly">Weekly</option>
             <option value="monthly">Monthly</option>
@@ -221,12 +221,12 @@ function ExpenseForm({ initial, onSave, onCancel, saving }: ExpenseFormProps) {
       <div className="flex gap-2 pt-1">
         <button type="button" onClick={() => onSave({ ...form, amount: parseFloat(form.amount) || 0 }, receiptFile ?? undefined)}
           disabled={saving || !form.title || !form.amount}
-          className="flex items-center gap-2 px-4 py-2 bg-accent text-background text-sm font-semibold rounded-lg hover:bg-accent/90 disabled:opacity-50 transition-colors">
+          className="flex items-center gap-2 px-4 py-2 bg-black text-background text-sm font-semibold rounded-lg hover:bg-zinc-800 disabled:opacity-50 transition-colors">
           <Check className="w-3.5 h-3.5" />
           {saving ? 'Saving...' : 'Save'}
         </button>
         <button type="button" onClick={onCancel}
-          className="px-4 py-2 border border-border text-text-muted text-sm rounded-lg hover:text-text-primary transition-colors">
+          className="px-4 py-2 border border-zinc-200 text-zinc-500 text-sm rounded-lg hover:text-black transition-colors">
           <X className="w-3.5 h-3.5" />
         </button>
       </div>
@@ -302,9 +302,9 @@ export default function Financials() {
     } finally { setDeletingExpenseId(null) }
   }
 
-  if (loading) return <div className="text-center py-20 text-text-muted">Loading financial data...</div>
+  if (loading) return <div className="text-center py-20 text-zinc-500">Loading financial data...</div>
   if (error) return (
-    <div className="flex items-center gap-3 p-5 bg-red-400/5 border border-red-400/20 rounded-xl text-red-400">
+    <div className="flex items-center gap-3 p-5 bg-red-500/5 border border-red-400/20 rounded-xl text-red-500">
       <AlertCircle className="w-5 h-5 flex-shrink-0" />
       <span>{error}</span>
       <button onClick={load} className="ml-auto flex items-center gap-1 text-sm hover:underline"><RefreshCw className="w-3.5 h-3.5" />Retry</button>
@@ -319,11 +319,11 @@ export default function Financials() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <BarChart2 className="w-5 h-5 text-accent" />
-          <h2 className="text-xl font-semibold text-text-primary">Financial Overview</h2>
+          <BarChart2 className="w-5 h-5 text-black" />
+          <h2 className="text-xl font-semibold text-black">Financial Overview</h2>
         </div>
         <button onClick={load}
-          className="flex items-center gap-2 px-3 py-1.5 border border-border text-text-muted text-sm rounded-lg hover:text-text-primary transition-colors">
+          className="flex items-center gap-2 px-3 py-1.5 border border-zinc-200 text-zinc-500 text-sm rounded-lg hover:text-black transition-colors">
           <RefreshCw className="w-3.5 h-3.5" />
           Refresh
         </button>
@@ -334,15 +334,15 @@ export default function Financials() {
         <div className="flex items-center gap-3 px-4 py-3 bg-[#003087]/20 border border-[#003087]/40 rounded-xl text-sm">
           <LinkIcon className="w-4 h-4 text-[#009cde] flex-shrink-0" />
           <span className="text-[#009cde] font-medium">PayPal connected</span>
-          <span className="text-text-muted">—</span>
-          <span className="text-text-muted">{fmt(summary.paypalCollected)} from PayPal transactions</span>
+          <span className="text-zinc-500">—</span>
+          <span className="text-zinc-500">{fmt(summary.paypalCollected)} from PayPal transactions</span>
           {summary.paypalOutstanding > 0 && (
             <>
-              <span className="text-text-muted">·</span>
+              <span className="text-zinc-500">·</span>
               <span className="text-yellow-400">{fmt(summary.paypalOutstanding)} PayPal invoices outstanding</span>
             </>
           )}
-          <span className="ml-auto text-xs text-text-muted">{summary.paypalTransactionCount} transactions (last 12 months)</span>
+          <span className="ml-auto text-xs text-zinc-500">{summary.paypalTransactionCount} transactions (last 12 months)</span>
         </div>
       )}
 
@@ -414,13 +414,13 @@ export default function Financials() {
             <div className="flex items-center gap-1 mr-2">
               {PERIODS.map(p => (
                 <button key={p.id} onClick={() => setPeriod(p.id)}
-                  className={`px-2.5 py-1 text-xs rounded-lg transition-colors ${period === p.id ? 'bg-accent/10 text-accent border border-accent/20' : 'text-text-muted hover:text-text-primary'}`}>
+                  className={`px-2.5 py-1 text-xs rounded-lg transition-colors ${period === p.id ? 'bg-zinc-100 text-black border border-accent/20' : 'text-zinc-500 hover:text-black'}`}>
                   {p.label}
                 </button>
               ))}
             </div>
             <button onClick={() => setChartView(v => v === 'monthly' ? 'quarterly' : 'monthly')}
-              className="px-2.5 py-1 text-xs border border-border text-text-muted rounded-lg hover:text-text-primary transition-colors">
+              className="px-2.5 py-1 text-xs border border-zinc-200 text-zinc-500 rounded-lg hover:text-black transition-colors">
               {chartView === 'monthly' ? 'Quarterly' : 'Monthly'}
             </button>
           </div>
@@ -465,7 +465,7 @@ export default function Financials() {
         {/* Expense breakdown pie */}
         <Section title="Expenses by Category" icon={<PieChartIcon className="w-4 h-4" />}>
           {data.expenseCategories.length === 0 ? (
-            <p className="text-center text-text-muted text-sm py-8">No expenses recorded yet.</p>
+            <p className="text-center text-zinc-500 text-sm py-8">No expenses recorded yet.</p>
           ) : (
             <div className="flex items-center gap-6">
               <ResponsiveContainer width={160} height={160}>
@@ -482,8 +482,8 @@ export default function Financials() {
                 {data.expenseCategories.map((cat, i) => (
                   <div key={cat.category} className="flex items-center gap-2">
                     <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: PIE_COLORS[i % PIE_COLORS.length] }} />
-                    <span className="text-xs text-text-muted flex-1 truncate">{EXPENSE_CATEGORY_LABELS[cat.category] ?? cat.category}</span>
-                    <span className="text-xs font-medium text-text-primary">{fmt(cat.amount)}</span>
+                    <span className="text-xs text-zinc-500 flex-1 truncate">{EXPENSE_CATEGORY_LABELS[cat.category] ?? cat.category}</span>
+                    <span className="text-xs font-medium text-black">{fmt(cat.amount)}</span>
                   </div>
                 ))}
               </div>
@@ -495,10 +495,10 @@ export default function Financials() {
         <Section title="Payment Status" icon={<Target className="w-4 h-4" />}>
           <div className="space-y-3">
             {[
-              { label: 'Collected', value: data.statusBreakdown.collected, color: 'bg-accent', textColor: 'text-accent' },
-              { label: 'Pending', value: data.statusBreakdown.pending, color: 'bg-accent-secondary', textColor: 'text-accent-secondary' },
-              { label: 'Overdue', value: data.statusBreakdown.overdue, color: 'bg-red-400', textColor: 'text-red-400' },
-              { label: 'Cancelled', value: data.statusBreakdown.cancelled, color: 'bg-white/20', textColor: 'text-text-muted' },
+              { label: 'Collected', value: data.statusBreakdown.collected, color: 'bg-black', textColor: 'text-black' },
+              { label: 'Pending', value: data.statusBreakdown.pending, color: 'bg-black-secondary', textColor: 'text-black-secondary' },
+              { label: 'Overdue', value: data.statusBreakdown.overdue, color: 'bg-red-500', textColor: 'text-red-500' },
+              { label: 'Cancelled', value: data.statusBreakdown.cancelled, color: 'bg-zinc-200', textColor: 'text-zinc-500' },
             ].map(item => {
               const total = data.statusBreakdown.collected + data.statusBreakdown.pending + data.statusBreakdown.overdue + data.statusBreakdown.cancelled
               const pctVal = total > 0 ? (item.value / total) * 100 : 0
@@ -506,23 +506,23 @@ export default function Financials() {
                 <div key={item.label}>
                   <div className="flex justify-between text-xs mb-1">
                     <span className={item.textColor}>{item.label}</span>
-                    <span className="text-text-muted">{item.value} payments ({pct(pctVal)})</span>
+                    <span className="text-zinc-500">{item.value} payments ({pct(pctVal)})</span>
                   </div>
-                  <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+                  <div className="h-1.5 bg-[#f3f3f3] rounded-full overflow-hidden">
                     <div className={`h-full rounded-full ${item.color} transition-all`} style={{ width: `${pctVal}%` }} />
                   </div>
                 </div>
               )
             })}
           </div>
-          <div className="mt-4 pt-4 border-t border-border grid grid-cols-2 gap-3">
+          <div className="mt-4 pt-4 border-t border-zinc-200 grid grid-cols-2 gap-3">
             <div className="text-center">
-              <p className="text-2xl font-bold text-accent">{fmt(summary.totalCollected)}</p>
-              <p className="text-xs text-text-muted mt-0.5">Total Collected</p>
+              <p className="text-2xl font-bold text-black">{fmt(summary.totalCollected)}</p>
+              <p className="text-xs text-zinc-500 mt-0.5">Total Collected</p>
             </div>
             <div className="text-center">
-              <p className="text-2xl font-bold text-accent-secondary">{fmt(summary.totalOutstanding)}</p>
-              <p className="text-xs text-text-muted mt-0.5">Total Outstanding</p>
+              <p className="text-2xl font-bold text-black-secondary">{fmt(summary.totalOutstanding)}</p>
+              <p className="text-xs text-zinc-500 mt-0.5">Total Outstanding</p>
             </div>
           </div>
         </Section>
@@ -534,32 +534,32 @@ export default function Financials() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-border">
-                  <th className="text-left text-xs text-text-muted font-medium pb-3">Client</th>
-                  <th className="text-right text-xs text-text-muted font-medium pb-3">Contract</th>
-                  <th className="text-right text-xs text-text-muted font-medium pb-3">Collected</th>
-                  <th className="text-right text-xs text-text-muted font-medium pb-3">Outstanding</th>
-                  <th className="text-right text-xs text-text-muted font-medium pb-3">Collected %</th>
+                <tr className="border-b border-zinc-200">
+                  <th className="text-left text-xs text-zinc-500 font-medium pb-3">Client</th>
+                  <th className="text-right text-xs text-zinc-500 font-medium pb-3">Contract</th>
+                  <th className="text-right text-xs text-zinc-500 font-medium pb-3">Collected</th>
+                  <th className="text-right text-xs text-zinc-500 font-medium pb-3">Outstanding</th>
+                  <th className="text-right text-xs text-zinc-500 font-medium pb-3">Collected %</th>
                 </tr>
               </thead>
               <tbody>
                 {data.clientRevenue.map((c, i) => {
                   const collectedPct = c.contract > 0 ? (c.collected / c.contract) * 100 : 0
                   return (
-                    <tr key={i} className="border-b border-border/50 hover:bg-white/[0.02] transition-colors">
-                      <td className="py-3 text-text-primary font-medium">{c.name}</td>
-                      <td className="py-3 text-right text-text-muted">{c.contract > 0 ? fmt(c.contract) : '—'}</td>
-                      <td className="py-3 text-right text-accent font-medium">{fmt(c.collected)}</td>
-                      <td className="py-3 text-right text-accent-secondary">{c.outstanding > 0 ? fmt(c.outstanding) : <span className="text-text-muted">—</span>}</td>
+                    <tr key={i} className="border-b border-zinc-200/50 hover:bg-[#f3f3f3] transition-colors">
+                      <td className="py-3 text-black font-medium">{c.name}</td>
+                      <td className="py-3 text-right text-zinc-500">{c.contract > 0 ? fmt(c.contract) : '—'}</td>
+                      <td className="py-3 text-right text-black font-medium">{fmt(c.collected)}</td>
+                      <td className="py-3 text-right text-black-secondary">{c.outstanding > 0 ? fmt(c.outstanding) : <span className="text-zinc-500">—</span>}</td>
                       <td className="py-3 text-right">
                         {c.contract > 0 ? (
                           <div className="flex items-center justify-end gap-2">
-                            <div className="w-16 h-1.5 bg-white/5 rounded-full overflow-hidden">
-                              <div className="h-full bg-accent rounded-full" style={{ width: `${Math.min(collectedPct, 100)}%` }} />
+                            <div className="w-16 h-1.5 bg-[#f3f3f3] rounded-full overflow-hidden">
+                              <div className="h-full bg-black rounded-full" style={{ width: `${Math.min(collectedPct, 100)}%` }} />
                             </div>
-                            <span className="text-xs text-text-muted">{pct(collectedPct)}</span>
+                            <span className="text-xs text-zinc-500">{pct(collectedPct)}</span>
                           </div>
-                        ) : <span className="text-text-muted text-xs">—</span>}
+                        ) : <span className="text-zinc-500 text-xs">—</span>}
                       </td>
                     </tr>
                   )
@@ -575,22 +575,22 @@ export default function Financials() {
         <Section title="Recent Payments" icon={<DollarSign className="w-4 h-4" />}>
           <div className="space-y-2">
             {data.recentPayments.map(p => (
-              <div key={String(p.id)} className="flex items-center gap-4 py-2 border-b border-border/50 last:border-0">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${p.source === 'paypal' ? 'bg-[#003087]/30' : 'bg-accent/10'}`}>
-                  <DollarSign className={`w-4 h-4 ${p.source === 'paypal' ? 'text-[#009cde]' : 'text-accent'}`} />
+              <div key={String(p.id)} className="flex items-center gap-4 py-2 border-b border-zinc-200/50 last:border-0">
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${p.source === 'paypal' ? 'bg-[#003087]/30' : 'bg-zinc-100'}`}>
+                  <DollarSign className={`w-4 h-4 ${p.source === 'paypal' ? 'text-[#009cde]' : 'text-black'}`} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <p className="text-sm text-text-primary truncate">{p.label}</p>
+                    <p className="text-sm text-black truncate">{p.label}</p>
                     {p.source === 'paypal' && (
                       <span className="text-xs text-[#009cde] bg-[#003087]/20 border border-[#003087]/40 px-1.5 py-0.5 rounded-full flex-shrink-0">PayPal</span>
                     )}
                   </div>
-                  <p className="text-xs text-text-muted">{p.clientName}</p>
+                  <p className="text-xs text-zinc-500">{p.clientName}</p>
                 </div>
                 <div className="text-right">
-                  <p className={`text-sm font-bold ${p.source === 'paypal' ? 'text-[#009cde]' : 'text-accent'}`}>{fmt(p.amount)}</p>
-                  <p className="text-xs text-text-muted">{p.paidDate ? new Date(p.paidDate).toLocaleDateString() : '—'}</p>
+                  <p className={`text-sm font-bold ${p.source === 'paypal' ? 'text-[#009cde]' : 'text-black'}`}>{fmt(p.amount)}</p>
+                  <p className="text-xs text-zinc-500">{p.paidDate ? new Date(p.paidDate).toLocaleDateString() : '—'}</p>
                 </div>
               </div>
             ))}
@@ -605,7 +605,7 @@ export default function Financials() {
         action={
           !showExpenseForm && !editingExpense ? (
             <button onClick={() => setShowExpenseForm(true)}
-              className="flex items-center gap-2 px-3 py-1.5 bg-accent text-background text-xs font-semibold rounded-lg hover:bg-accent/90 transition-colors">
+              className="flex items-center gap-2 px-3 py-1.5 bg-black text-background text-xs font-semibold rounded-lg hover:bg-zinc-800 transition-colors">
               <Plus className="w-3.5 h-3.5" />
               Add Expense
             </button>
@@ -619,7 +619,7 @@ export default function Financials() {
         )}
 
         {expenses.length === 0 && !showExpenseForm ? (
-          <p className="text-center text-text-muted text-sm py-8">No expenses recorded. Add your first expense above.</p>
+          <p className="text-center text-zinc-500 text-sm py-8">No expenses recorded. Add your first expense above.</p>
         ) : (
           <div className="space-y-2">
             {expenses.map(exp => (
@@ -627,12 +627,12 @@ export default function Financials() {
                 {editingExpense?.id === exp.id ? (
                   <ExpenseForm initial={exp} onSave={handleEditExpense} onCancel={() => setEditingExpense(null)} saving={savingExpense} />
                 ) : (
-                  <div className="flex items-center gap-4 px-4 py-3 bg-white/[0.02] border border-border/50 rounded-xl hover:border-border transition-colors">
+                  <div className="flex items-center gap-4 px-4 py-3 bg-[#f3f3f3] border border-zinc-200/50 rounded-xl hover:border-zinc-200 transition-colors">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <p className="text-sm text-text-primary font-medium">{exp.title}</p>
+                        <p className="text-sm text-black font-medium">{exp.title}</p>
                         {exp.recurring && (
-                          <span className="text-xs text-accent-secondary bg-accent-secondary/10 border border-accent-secondary/20 px-2 py-0.5 rounded-full">
+                          <span className="text-xs text-black-secondary bg-black-secondary/10 border border-accent-secondary/20 px-2 py-0.5 rounded-full">
                             {exp.frequency}
                           </span>
                         )}
@@ -641,7 +641,7 @@ export default function Financials() {
                             href={getExpenseReceiptUrl(exp.id)}
                             target="_blank"
                             rel="noreferrer"
-                            className="flex items-center gap-1 text-xs text-text-muted hover:text-accent transition-colors"
+                            className="flex items-center gap-1 text-xs text-zinc-500 hover:text-black transition-colors"
                             title={exp.receiptName}
                           >
                             <Paperclip className="w-3 h-3" />
@@ -650,12 +650,12 @@ export default function Financials() {
                           </a>
                         )}
                       </div>
-                      <p className="text-xs text-text-muted">
+                      <p className="text-xs text-zinc-500">
                         {EXPENSE_CATEGORY_LABELS[exp.category] ?? exp.category} · {new Date(exp.date).toLocaleDateString()}
                         {exp.notes && ` · ${exp.notes}`}
                       </p>
                     </div>
-                    <p className="font-bold text-red-400 flex-shrink-0">{fmt(exp.amount)}</p>
+                    <p className="font-bold text-red-500 flex-shrink-0">{fmt(exp.amount)}</p>
                     <div className="flex items-center gap-1 flex-shrink-0">
                       {exp.receiptName && (
                         <button
@@ -664,18 +664,18 @@ export default function Financials() {
                             const updated = await deleteExpenseReceipt(exp.id)
                             setExpenses(prev => prev.map(e => e.id === updated.id ? updated : e))
                           }}
-                          className="p-1.5 text-text-muted hover:text-yellow-400 hover:bg-yellow-400/10 rounded-lg transition-colors"
+                          className="p-1.5 text-zinc-500 hover:text-yellow-400 hover:bg-yellow-400/10 rounded-lg transition-colors"
                           title="Remove receipt"
                         >
                           <Paperclip className="w-3.5 h-3.5" />
                         </button>
                       )}
                       <button onClick={() => setEditingExpense(exp)}
-                        className="p-1.5 text-text-muted hover:text-text-primary hover:bg-white/5 rounded-lg transition-colors">
+                        className="p-1.5 text-zinc-500 hover:text-black hover:bg-[#f3f3f3] rounded-lg transition-colors">
                         <Edit2 className="w-3.5 h-3.5" />
                       </button>
                       <button onClick={() => handleDeleteExpense(exp.id)} disabled={deletingExpenseId === exp.id}
-                        className="p-1.5 text-text-muted hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-colors">
+                        className="p-1.5 text-zinc-500 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors">
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>

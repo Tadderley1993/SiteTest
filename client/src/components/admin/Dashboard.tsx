@@ -163,7 +163,7 @@ export default function Dashboard({ onLogout }: Props) {
       </aside>
 
       {/* Top header */}
-      <header className="fixed top-0 right-0 w-[calc(100%-16rem)] h-16 z-40 bg-[#f9f9f9]/80 backdrop-blur-xl border-b border-zinc-200/60 flex justify-between items-center px-8">
+      <header className="fixed top-0 right-0 w-[calc(100%-16rem)] h-16 z-40 bg-[#f9f9f9]/80 border-b border-zinc-200/60 flex justify-between items-center px-8">
         <div className="relative">
           <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 text-[18px]">search</span>
           <input

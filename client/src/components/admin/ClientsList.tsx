@@ -214,7 +214,7 @@ export default function ClientsList({ submissions, onSelectClient }: Props) {
               onClick={() => setShowModal(true)}
               className="group text-left bg-white hover:bg-black ring-1 ring-black/[0.05] border-2 border-dashed border-zinc-200 hover:border-black rounded-xl p-5 transition-all flex flex-col items-center justify-center min-h-[200px] gap-3"
             >
-              <div className="w-10 h-10 rounded-lg bg-zinc-100 group-hover:bg-white/10 flex items-center justify-center transition-colors">
+              <div className="w-10 h-10 rounded-lg bg-zinc-100 group-hover:bg-[#f3f3f3] flex items-center justify-center transition-colors">
                 <span className="material-symbols-outlined text-zinc-400 group-hover:text-white text-[22px] transition-colors">add</span>
               </div>
               <p className="text-sm font-semibold text-zinc-400 group-hover:text-white transition-colors">Add New Client</p>

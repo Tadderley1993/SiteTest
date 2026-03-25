@@ -1,133 +1,139 @@
 import { useState, useEffect } from 'react'
-import { Link, useLocation } from 'react-router-dom'
-import { Menu, X } from 'lucide-react'
+import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom'
 
 const NAV_LINKS = [
-  { href: '/',              label: 'Home' },
-  { href: '/why-choose-me', label: 'Why Choose Me' },
-  { href: '/about',         label: 'About' },
-  { href: '/services',      label: 'Services' },
-  { href: '/portfolio',     label: 'Portfolio' },
-  { href: '/case-studies',  label: 'Case Studies' },
+  { to: '/',          label: 'Home'     },
+  { to: '/services',  label: 'Services' },
+  { to: '/about',     label: 'About'    },
+  { to: '/insights',  label: 'Insights' },
 ]
 
 export default function Navbar() {
+  const [menuOpen, setMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
-  const [mobileOpen, setMobileOpen] = useState(false)
+  const navigate = useNavigate()
   const location = useLocation()
 
   useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 20)
-    window.addEventListener('scroll', handleScroll, { passive: true })
-    return () => window.removeEventListener('scroll', handleScroll)
+    const onScroll = () => setScrolled(window.scrollY > 20)
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
-  useEffect(() => { setMobileOpen(false) }, [location.pathname])
-
-  const isActive = (href: string) =>
-    href === '/' ? location.pathname === '/' : location.pathname.startsWith(href)
+  useEffect(() => { setMenuOpen(false) }, [location.pathname])
 
   return (
-    <header
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        scrolled || mobileOpen
-          ? 'bg-[#F0EBE3]/95 backdrop-blur-md border-b border-[rgba(0,0,0,0.08)]'
-          : 'bg-[#F0EBE3] border-b border-[rgba(0,0,0,0.06)]'
-      }`}
-    >
-      <div className="max-w-7xl mx-auto px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-
-          {/* Logo — top left, links to home */}
-          <Link to="/" className="flex items-center shrink-0">
+    <>
+      <header
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-200 ${
+          scrolled
+            ? 'bg-white/95 backdrop-blur-md border-b border-[#e5e5e5]'
+            : 'bg-white border-b border-[#e5e5e5]'
+        }`}
+      >
+        <nav className="max-w-7xl mx-auto px-6 lg:px-8 h-[60px] flex items-center justify-between">
+          {/* Brand */}
+          <Link
+            to="/"
+            onClick={() => {
+              if (location.pathname === '/') window.scrollTo({ top: 0, behavior: 'smooth' })
+            }}
+            className="flex items-center gap-2.5 select-none"
+          >
             <img
-              src="/logo-white.png"
+              src="/dbt_slate.png"
               alt="Designs By TA"
-              className="h-10 w-auto"
-              style={{ filter: 'invert(1)' }}
+              style={{ height: 28, width: 'auto' }}
             />
+            <span className="text-[12px] tracking-[0.12em] uppercase text-black font-bold leading-tight">
+              <span className="font-light text-[#888] tracking-[0.08em]">Designs By </span>Terrence Adderley
+            </span>
           </Link>
 
-          {/* Desktop nav */}
-          <nav className="hidden lg:flex items-center gap-1">
-            {NAV_LINKS.map(({ href, label }) => (
-              <Link
-                key={href}
-                to={href}
-                className={`px-3.5 py-2 text-[13px] font-medium transition-colors duration-150 border-b-2 ${
-                  isActive(href)
-                    ? 'text-text-primary border-text-primary'
-                    : 'text-text-muted hover:text-text-primary border-transparent'
-                }`}
+          {/* Desktop nav links */}
+          <div className="hidden md:flex items-center gap-7">
+            {NAV_LINKS.map(({ to, label }) => (
+              <NavLink
+                key={to}
+                to={to}
+                end={to === '/'}
+                className={({ isActive }) =>
+                  `text-[13px] font-medium tracking-wide transition-colors duration-150 ${
+                    isActive ? 'text-black' : 'text-[#474747] hover:text-black'
+                  }`
+                }
               >
                 {label}
-              </Link>
+              </NavLink>
             ))}
-          </nav>
+          </div>
 
           {/* Desktop CTA */}
-          <div className="hidden lg:block">
-            <a
-              href="#start-project"
-              className="inline-flex items-center px-5 py-2.5 rounded-full bg-accent text-[#1C1917] text-[13px] font-semibold tracking-[0.03em] hover:bg-accent-dim transition-colors duration-150"
+          <div className="hidden md:flex items-center">
+            <Link
+              to="/contact"
+              className="bg-black text-white text-[11px] font-semibold tracking-[0.1em] uppercase px-5 py-2.5 hover:bg-[#222] transition-colors"
             >
-              Start a Project
-            </a>
+              Book a Free Consultation
+            </Link>
           </div>
 
           {/* Mobile hamburger */}
           <button
             type="button"
-            onClick={() => setMobileOpen(v => !v)}
-            className="lg:hidden p-2 rounded-md text-text-muted hover:text-text-primary transition-colors"
-            aria-label="Toggle navigation"
+            className="md:hidden flex flex-col justify-center gap-[5px] w-8 h-8 p-1"
+            onClick={() => setMenuOpen(v => !v)}
+            aria-label={menuOpen ? 'Close menu' : 'Open menu'}
           >
-            {mobileOpen ? <X size={20} /> : <Menu size={20} />}
+            <span
+              className={`block w-full h-[1.5px] bg-black transition-all duration-200 origin-center ${
+                menuOpen ? 'translate-y-[6.5px] rotate-45' : ''
+              }`}
+            />
+            <span
+              className={`block w-full h-[1.5px] bg-black transition-all duration-200 ${
+                menuOpen ? 'opacity-0' : ''
+              }`}
+            />
+            <span
+              className={`block w-full h-[1.5px] bg-black transition-all duration-200 origin-center ${
+                menuOpen ? '-translate-y-[6.5px] -rotate-45' : ''
+              }`}
+            />
           </button>
-        </div>
-      </div>
+        </nav>
+      </header>
 
       {/* Mobile menu */}
-      {mobileOpen && (
-        <div className="lg:hidden border-t border-[rgba(0,0,0,0.08)] bg-[#F0EBE3]">
-          <nav className="max-w-7xl mx-auto px-6 py-4 flex flex-col gap-1">
-
-            {/* Logo button — above Home */}
+      <div
+        className={`fixed inset-0 z-40 bg-white flex flex-col pt-[60px] transition-all duration-200 md:hidden ${
+          menuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+        }`}
+      >
+        <nav className="flex flex-col px-6 pt-6 gap-0">
+          {NAV_LINKS.map(({ to, label }) => (
             <Link
-              to="/"
-              className="flex items-center justify-center py-4 mb-2 border-b border-[rgba(0,0,0,0.07)]"
+              key={to}
+              to={to}
+              className="py-5 text-[22px] font-semibold tracking-tight text-black border-b border-[#e5e5e5] hover:text-[#474747] transition-colors"
             >
-              <img
-                src="/logo-white.png"
-                alt="Designs By TA — Home"
-                className="h-10 w-auto"
-                style={{ filter: 'invert(1)' }}
-              />
+              {label}
             </Link>
-
-            {NAV_LINKS.map(({ href, label }) => (
-              <Link
-                key={href}
-                to={href}
-                className={`px-3 py-3 text-[15px] font-medium border-b transition-colors ${
-                  isActive(href)
-                    ? 'text-text-primary border-text-primary'
-                    : 'text-text-muted hover:text-text-primary border-transparent'
-                }`}
-              >
-                {label}
-              </Link>
-            ))}
-
-            <a
-              href="#start-project"
-              className="mt-3 px-4 py-3 rounded-full bg-accent text-[#1C1917] text-[14px] font-semibold text-center tracking-[0.03em] hover:bg-accent-dim transition-colors"
-            >
-              Start a Project
-            </a>
-          </nav>
-        </div>
-      )}
-    </header>
+          ))}
+          <Link
+            to="/contact"
+            className="block text-center mt-8 bg-black text-white text-[12px] font-semibold tracking-[0.1em] uppercase py-4 hover:bg-[#222] transition-colors"
+            onClick={() => setMenuOpen(false)}
+          >
+            Book a Free Consultation
+          </Link>
+        </nav>
+        {/* dismiss overlay */}
+        <div
+          className="flex-1"
+          onClick={() => { navigate('/contact'); setMenuOpen(false) }}
+        />
+      </div>
+    </>
   )
 }
