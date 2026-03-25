@@ -1,45 +1,94 @@
 import { Router } from 'express'
-import { PrismaClient } from '@prisma/client'
-import bcrypt from 'bcryptjs'
-import jwt from 'jsonwebtoken'
+import { z } from 'zod'
+import { authService } from '../services/auth.service.js'
+import { authMiddleware, AuthRequest } from '../middleware/auth.js'
+import { validate } from '../middleware/validate.js'
+import { asyncHandler } from '../middleware/errorHandler.js'
+import { authRateLimit } from '../middleware/rateLimit.js'
+import { LoginSchema, RefreshSchema } from '../lib/schemas.js'
 
 const router = Router()
-const prisma = new PrismaClient()
 
-// POST /api/auth/login - Admin login
-router.post('/login', async (req, res) => {
-  try {
-    const { username, password } = req.body
+// ── POST /api/auth/login ─────────────────────────────────────────
+router.post(
+  '/login',
+  authRateLimit,
+  validate(LoginSchema),
+  asyncHandler(async (req, res) => {
+    const { username, password } = req.body as z.infer<typeof LoginSchema>
+    const ip = req.ip ?? req.socket.remoteAddress ?? 'unknown'
+    const ua = req.headers['user-agent'] ?? 'unknown'
 
-    if (!username || !password) {
-      return res.status(400).json({ error: 'Username and password are required' })
-    }
+    const result = await authService.login(username, password, ip, ua)
 
-    const admin = await prisma.admin.findUnique({
-      where: { username },
+    res.json({
+      accessToken:  result.accessToken,
+      refreshToken: result.refreshToken,
+      username:     result.username,
+      role:         result.role,
+      sessionId:    result.sessionId,
     })
+  }),
+)
 
-    if (!admin) {
-      return res.status(401).json({ error: 'Invalid credentials' })
+// ── POST /api/auth/refresh ───────────────────────────────────────
+router.post(
+  '/refresh',
+  validate(RefreshSchema),
+  asyncHandler(async (req, res) => {
+    const { refreshToken } = req.body as z.infer<typeof RefreshSchema>
+    const ip = req.ip ?? req.socket.remoteAddress ?? 'unknown'
+    const ua = req.headers['user-agent'] ?? 'unknown'
+
+    const tokens = await authService.refreshTokens(refreshToken, ip, ua)
+    res.json(tokens)
+  }),
+)
+
+// ── POST /api/auth/logout ────────────────────────────────────────
+router.post(
+  '/logout',
+  authMiddleware,
+  asyncHandler(async (req: AuthRequest, res) => {
+    if (req.sessionId && req.adminId) {
+      await authService.revokeSession(req.sessionId, req.adminId)
     }
+    res.json({ message: 'Logged out successfully' })
+  }),
+)
 
-    const isValidPassword = await bcrypt.compare(password, admin.passwordHash)
+// ── POST /api/auth/logout-all ────────────────────────────────────
+router.post(
+  '/logout-all',
+  authMiddleware,
+  asyncHandler(async (req: AuthRequest, res) => {
+    await authService.revokeAllSessions(req.adminId!)
+    res.json({ message: 'All sessions revoked' })
+  }),
+)
 
-    if (!isValidPassword) {
-      return res.status(401).json({ error: 'Invalid credentials' })
+// ── GET /api/auth/sessions ───────────────────────────────────────
+router.get(
+  '/sessions',
+  authMiddleware,
+  asyncHandler(async (req: AuthRequest, res) => {
+    const sessions = await authService.listSessions(req.adminId!)
+    res.json(sessions)
+  }),
+)
+
+// ── DELETE /api/auth/sessions/:id ───────────────────────────────
+router.delete(
+  '/sessions/:id',
+  authMiddleware,
+  asyncHandler(async (req: AuthRequest, res) => {
+    const sessionId = parseInt(req.params.id)
+    if (isNaN(sessionId)) {
+      return res.status(400).json({ error: 'Invalid session ID' })
     }
-
-    const token = jwt.sign(
-      { adminId: admin.id },
-      process.env.JWT_SECRET || 'fallback-secret',
-      { expiresIn: '24h' }
-    )
-
-    res.json({ token, username: admin.username })
-  } catch (error) {
-    console.error('Error during login:', error)
-    res.status(500).json({ error: 'Login failed' })
-  }
-})
+    await authService.revokeSession(sessionId, req.adminId!)
+    res.json({ message: 'Session revoked' })
+  }),
+)
 
 export { router as authRouter }

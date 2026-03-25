@@ -4,8 +4,9 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model Submission {
@@ -27,10 +28,37 @@ model Submission {
 }
 
 model Admin {
-  id           Int      @id @default(autoincrement())
-  username     String   @unique
+  id           Int            @id @default(autoincrement())
+  username     String         @unique
+  email        String?        @unique
   passwordHash String
-  createdAt    DateTime @default(now())
+  role         String         @default("ADMIN") // ADMIN | CLIENT | VIEWER
+  isActive     Boolean        @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime       @default(now())
+  sessions     Session[]
+}
+
+model Session {
+  id           Int       @id @default(autoincrement())
+  adminId      Int
+  admin        Admin     @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  refreshToken String    @unique // stored as bcrypt hash
+  ipAddress    String?
+  userAgent    String?
+  expiresAt    DateTime
+  revokedAt    DateTime?
+  createdAt    DateTime  @default(now())
+}
+
+model LoginAttempt {
+  id        Int      @id @default(autoincrement())
+  ipAddress String
+  username  String?
+  success   Boolean
+  createdAt DateTime @default(now())
+
+  @@index([ipAddress, createdAt])
 }
 
 model Client {

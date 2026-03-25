@@ -1,5 +1,6 @@
 import express from 'express'
 import cors from 'cors'
+import helmet from 'helmet'
 import dotenv from 'dotenv'
 import { submissionsRouter } from './routes/submissions.js'
 import { authRouter } from './routes/auth.js'
@@ -15,6 +16,9 @@ import { analyticsRouter } from './routes/analytics.js'
 import { invoicesRouter } from './routes/invoices.js'
 import { signingRouter } from './routes/signing.js'
 import { imageGenRouter } from './routes/imageGen.js'
+import { generalRateLimit, submissionRateLimit } from './middleware/rateLimit.js'
+import { errorHandler } from './middleware/errorHandler.js'
+import { logger } from './lib/logger.js'
 
 dotenv.config({ path: '../.env' })
 dotenv.config() // fallback for Railway (reads .env in cwd)
@@ -28,6 +32,9 @@ const ALLOWED_ORIGINS = [
   /\.vercel\.app$/,
 ]
 
+// Security headers
+app.use(helmet())
+
 app.use(cors({
   origin: (origin, callback) => {
     if (!origin) return callback(null, true)
@@ -39,10 +46,13 @@ app.use(cors({
   credentials: true,
 }))
 
+// General rate limit for all /api routes
+app.use('/api', generalRateLimit)
+
 app.use(express.json({ limit: '2mb' }))
 
 // Routes
-app.use('/api/submissions', submissionsRouter)
+app.use('/api/submissions', submissionRateLimit, submissionsRouter)
 app.use('/api/auth', authRouter)
 app.use('/api/admin', adminRouter)
 app.use('/api/admin/clients', clientsRouter)
@@ -63,6 +73,9 @@ app.get('/api/health', (_, res) => {
   res.json({ status: 'ok' })
 })
 
+// Centralized error handler (must be last)
+app.use(errorHandler)
+
 app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`)
+  logger.info(`Server running on http://localhost:${PORT}`)
 })
