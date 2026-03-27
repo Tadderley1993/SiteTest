@@ -62,6 +62,15 @@ export default function ClientProfile({ clientId, onBack, onDelete }: Props) {
   const [msgVarValues, setMsgVarValues] = useState<Record<string, string>>({})
   const [msgSending, setMsgSending] = useState(false)
   const [msgResult, setMsgResult] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [showEmailPreview, setShowEmailPreview] = useState(false)
+  const [agencyAutoFill, setAgencyAutoFill] = useState(true)
+
+  const AGENCY_DEFAULTS: Record<string, string> = {
+    agencyName:    'Designs By Terrence Adderley',
+    agencyEmail:   'terrenceadderley@designsbyta.com',
+    agencyWebsite: 'https://www.designsbyta.com',
+    ctaUrl:        'https://www.designsbyta.com/contact',
+  }
 
   // DM chat state
   const [chatMessages, setChatMessages] = useState<AdminMessage[]>([])
@@ -216,17 +225,30 @@ export default function ClientProfile({ clientId, onBack, onDelete }: Props) {
     if (!tpl) return
     const combined = tpl.htmlContent + (tpl.cssContent ?? '')
     const vars = [...new Set([...combined.matchAll(/\{\{(\w+)\}\}/g)].map(m => m[1]))]
+    const fullName = `${client.firstName} ${client.lastName}`
     const clientMap: Record<string, string> = {
-      clientName:   `${client.firstName} ${client.lastName}`,
-      firstName:    client.firstName,
-      lastName:     client.lastName,
-      email:        client.email,
-      phone:        client.phone ?? '',
-      organization: client.organization ?? '',
-      company:      client.organization ?? '',
+      clientName:        fullName,
+      clientFirstName:   client.firstName,
+      clientLastName:    client.lastName,
+      firstName:         client.firstName,
+      lastName:          client.lastName,
+      name:              fullName,
+      fullName:          fullName,
+      recipientName:     fullName,
+      toName:            fullName,
+      clientEmail:       client.email,
+      email:             client.email,
+      phone:             client.phone ?? '',
+      clientPhone:       client.phone ?? '',
+      organization:      client.organization ?? '',
+      company:           client.organization ?? '',
+      clientCompany:     client.organization ?? '',
+      businessName:      client.organization ?? '',
     }
     const prefilled: Record<string, string> = {}
-    vars.forEach(v => { prefilled[v] = clientMap[v] ?? '' })
+    vars.forEach(v => {
+      prefilled[v] = clientMap[v] ?? (agencyAutoFill ? (AGENCY_DEFAULTS[v] ?? '') : '')
+    })
     setMsgVarValues(prefilled)
   }
 
@@ -718,13 +740,46 @@ export default function ClientProfile({ clientId, onBack, onDelete }: Props) {
       {/* ── MESSAGE SECTION ── */}
       {activeSection === 'message' && (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
+          {/* ── Compose panel ── */}
           <div className="bg-[#f3f3f3] border border-zinc-200 rounded-xl p-6">
-            <h3 className="font-semibold text-black flex items-center gap-2 mb-5">
-              <Mail className="w-4 h-4 text-black" /> Send Email to {client.firstName} {client.lastName}
-            </h3>
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="font-semibold text-black flex items-center gap-2">
+                <Mail className="w-4 h-4 text-black" /> Send Email to {client.firstName} {client.lastName}
+              </h3>
+              {/* Agency auto-fill toggle */}
+              <button
+                type="button"
+                onClick={() => {
+                  const next = !agencyAutoFill
+                  setAgencyAutoFill(next)
+                  // Apply / remove agency defaults from current variable fields live
+                  if (Object.keys(msgVarValues).length > 0) {
+                    setMsgVarValues(prev => {
+                      const updated = { ...prev }
+                      Object.entries(AGENCY_DEFAULTS).forEach(([k, v]) => {
+                        if (k in updated) updated[k] = next ? v : ''
+                      })
+                      return updated
+                    })
+                  }
+                }}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
+                  agencyAutoFill
+                    ? 'bg-black text-white border-black'
+                    : 'bg-white text-zinc-500 border-zinc-200 hover:border-zinc-400'
+                }`}
+              >
+                <span className={`w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                  agencyAutoFill ? 'border-white bg-white' : 'border-zinc-400'
+                }`}>
+                  {agencyAutoFill && <span className="w-1.5 h-1.5 rounded-full bg-black block" />}
+                </span>
+                Auto-fill Agency Info
+              </button>
+            </div>
 
-            {/* Template selector */}
             <div className="space-y-4">
+              {/* Template selector */}
               <div>
                 <label className="block text-xs text-zinc-500 mb-1.5">Email Template</label>
                 {!templatesLoaded ? (
@@ -734,7 +789,7 @@ export default function ClientProfile({ clientId, onBack, onDelete }: Props) {
                 ) : (
                   <select
                     value={selectedTemplateId}
-                    onChange={e => handleTemplateSelect(e.target.value === '' ? '' : Number(e.target.value))}
+                    onChange={e => { handleTemplateSelect(e.target.value === '' ? '' : Number(e.target.value)); setShowEmailPreview(false) }}
                     className="w-full bg-white border border-zinc-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
                   >
                     <option value="">— Select a template —</option>
@@ -747,72 +802,129 @@ export default function ClientProfile({ clientId, onBack, onDelete }: Props) {
                 )}
               </div>
 
-              {/* Recipient (read-only) */}
-              {selectedTemplateId !== '' && (
-                <div>
-                  <label className="block text-xs text-zinc-500 mb-1.5">Sending To</label>
-                  <p className="text-sm text-black py-2 border-b border-zinc-100">{client.email}</p>
-                </div>
-              )}
-
-              {/* Subject preview */}
               {selectedTemplateId !== '' && (() => {
                 const tpl = emailTemplates.find(t => t.id === selectedTemplateId)
                 if (!tpl) return null
-                const preview = tpl.subject.replace(/\{\{(\w+)\}\}/g, (_, k) => msgVarValues[k] ?? `{{${k}}}`)
+                const subjectPreview = tpl.subject.replace(/\{\{(\w+)\}\}/g, (_, k) => msgVarValues[k] ?? `{{${k}}}`)
+
+                // Long-text fields rendered as textarea
+                const LONG_TEXT_KEYS = ['message', 'ctaText', 'body', 'notes', 'executiveSummary',
+                  'clientNeeds', 'proposedSolution', 'projectScope', 'deliverables',
+                  'timeline', 'paymentTerms', 'termsConditions', 'description']
+
                 return (
-                  <div>
-                    <label className="block text-xs text-zinc-500 mb-1.5">Subject Preview</label>
-                    <p className="text-sm text-black py-2 border-b border-zinc-100 italic">{preview}</p>
-                  </div>
+                  <>
+                    {/* Recipient + subject */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs text-zinc-500 mb-1.5">Sending To</label>
+                        <p className="text-sm text-black bg-white border border-zinc-200 rounded-lg px-3 py-2">{client.email}</p>
+                      </div>
+                      <div>
+                        <label className="block text-xs text-zinc-500 mb-1.5">Subject</label>
+                        <p className="text-sm text-black bg-white border border-zinc-200 rounded-lg px-3 py-2 italic truncate">{subjectPreview}</p>
+                      </div>
+                    </div>
+
+                    {/* Variable fields */}
+                    {Object.keys(msgVarValues).length > 0 && (
+                      <div>
+                        <label className="block text-xs text-zinc-500 mb-3">Personalize Message</label>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {Object.entries(msgVarValues).map(([key, val]) => {
+                            const isLong = LONG_TEXT_KEYS.includes(key)
+                            const label = key.replace(/([A-Z])/g, ' $1').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()).trim()
+                            return (
+                              <div key={key} className={isLong ? 'sm:col-span-2' : ''}>
+                                <label className="block text-[11px] font-semibold text-zinc-500 uppercase tracking-wider mb-1">{label}</label>
+                                {isLong ? (
+                                  <textarea
+                                    value={val}
+                                    onChange={e => setMsgVarValues(prev => ({ ...prev, [key]: e.target.value }))}
+                                    placeholder={`{{${key}}}`}
+                                    rows={5}
+                                    className="w-full bg-white border border-zinc-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/10 resize-y"
+                                  />
+                                ) : (
+                                  <input
+                                    type="text"
+                                    value={val}
+                                    onChange={e => setMsgVarValues(prev => ({ ...prev, [key]: e.target.value }))}
+                                    placeholder={`{{${key}}}`}
+                                    className="w-full bg-white border border-zinc-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
+                                  />
+                                )}
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Action buttons */}
+                    <div className="flex items-center gap-3 pt-2 flex-wrap">
+                      <button
+                        type="button"
+                        onClick={() => setShowEmailPreview(p => !p)}
+                        className="flex items-center gap-2 px-4 py-2 bg-white border border-zinc-200 text-black rounded-lg text-sm font-semibold hover:bg-zinc-50 transition-colors"
+                      >
+                        <Eye className="w-4 h-4" />
+                        {showEmailPreview ? 'Hide Preview' : 'Preview Email'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleSendMessage}
+                        disabled={msgSending}
+                        className="flex items-center gap-2 px-5 py-2 bg-black text-white rounded-lg text-sm font-semibold hover:bg-zinc-800 disabled:opacity-50 transition-colors"
+                      >
+                        {msgSending && <span className="material-symbols-outlined text-[16px] animate-spin">progress_activity</span>}
+                        <Mail className="w-4 h-4" />
+                        {msgSending ? 'Sending…' : 'Send Email'}
+                      </button>
+                      {msgResult && (
+                        <p className={`text-sm font-medium ${msgResult.type === 'success' ? 'text-green-600' : 'text-red-500'}`}>
+                          {msgResult.text}
+                        </p>
+                      )}
+                    </div>
+                  </>
                 )
               })()}
-
-              {/* Variable fields */}
-              {selectedTemplateId !== '' && Object.keys(msgVarValues).length > 0 && (
-                <div>
-                  <label className="block text-xs text-zinc-500 mb-3">Personalize Message</label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {Object.entries(msgVarValues).map(([key, val]) => (
-                      <div key={key}>
-                        <label className="block text-[11px] font-semibold text-zinc-500 uppercase tracking-wider mb-1">
-                          {key.replace(/([A-Z])/g, ' $1').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()).trim()}
-                        </label>
-                        <input
-                          type="text"
-                          value={val}
-                          onChange={e => setMsgVarValues(prev => ({ ...prev, [key]: e.target.value }))}
-                          placeholder={`{{${key}}}`}
-                          className="w-full bg-white border border-zinc-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Send button */}
-              {selectedTemplateId !== '' && (
-                <div className="flex items-center gap-4 pt-2">
-                  <button
-                    type="button"
-                    onClick={handleSendMessage}
-                    disabled={msgSending}
-                    className="flex items-center gap-2 px-5 py-2 bg-black text-white rounded-lg text-sm font-semibold hover:bg-zinc-800 disabled:opacity-50 transition-colors"
-                  >
-                    {msgSending && <span className="material-symbols-outlined text-[16px] animate-spin">progress_activity</span>}
-                    <Mail className="w-4 h-4" />
-                    {msgSending ? 'Sending…' : 'Send Email'}
-                  </button>
-                  {msgResult && (
-                    <p className={`text-sm font-medium ${msgResult.type === 'success' ? 'text-green-600' : 'text-red-500'}`}>
-                      {msgResult.text}
-                    </p>
-                  )}
-                </div>
-              )}
             </div>
           </div>
+
+          {/* ── Email preview panel ── */}
+          {showEmailPreview && selectedTemplateId !== '' && (() => {
+            const tpl = emailTemplates.find(t => t.id === selectedTemplateId)
+            if (!tpl) return null
+            const rendered = (`<style>${tpl.cssContent ?? ''}</style>${tpl.htmlContent}`)
+              .replace(/\{\{(\w+)\}\}/g, (_, k) => msgVarValues[k] ?? `<span style="background:#fef08a;color:#713f12;padding:0 2px;border-radius:2px">{{${k}}}</span>`)
+            return (
+              <div className="bg-white border border-zinc-200 rounded-xl overflow-hidden">
+                <div className="flex items-center justify-between px-5 py-3 border-b border-zinc-100 bg-[#f3f3f3]">
+                  <div className="flex items-center gap-2">
+                    <Eye className="w-4 h-4 text-zinc-500" />
+                    <span className="text-sm font-semibold text-black">Email Preview</span>
+                    <span className="text-xs text-zinc-400">— unfilled tokens highlighted in yellow</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowEmailPreview(false)}
+                    className="text-zinc-400 hover:text-black transition-colors text-lg leading-none"
+                  >×</button>
+                </div>
+                <div className="overflow-auto" style={{ maxHeight: '600px' }}>
+                  <iframe
+                    srcDoc={rendered}
+                    title="Email Preview"
+                    className="w-full border-none"
+                    style={{ height: '600px' }}
+                    sandbox="allow-same-origin"
+                  />
+                </div>
+              </div>
+            )
+          })()}
         </motion.div>
       )}
 
