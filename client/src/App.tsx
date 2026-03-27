@@ -1,10 +1,11 @@
-import { useEffect } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
 import { HelmetProvider } from 'react-helmet-async'
 import { AuthProvider } from './context/AuthContext'
 import { ClientAuthProvider } from './context/ClientAuthContext'
-import ClientPortal from './pages/ClientPortal'
 import PublicLayout from './components/layout/PublicLayout'
+
+// Eagerly loaded — small, fast, always needed
 import Home from './pages/Home'
 import About from './pages/About'
 import Services from './pages/Services'
@@ -13,14 +14,20 @@ import Insights from './pages/Insights'
 import WhyChooseMe from './pages/WhyChooseMe'
 import CaseStudies from './pages/CaseStudies'
 import Portfolio from './pages/Portfolio'
-import Admin from './pages/Admin'
-import FintechDemo from './pages/demos/FintechDemo'
-import RestaurantDemo from './pages/demos/RestaurantDemo'
-import ProductDemo from './pages/demos/ProductDemo'
-import SignProposal from './pages/SignProposal'
-import Concepts from './pages/Concepts'
-import NexaBank from './pages/concepts/NexaBank'
-import CuratedHorizon from './pages/concepts/CuratedHorizon'
+import NotFound from './pages/NotFound'
+
+// Lazily loaded — heavy pages not needed on initial load
+const Admin = lazy(() => import('./pages/Admin'))
+const ClientPortal = lazy(() => import('./pages/ClientPortal'))
+const FintechDemo = lazy(() => import('./pages/demos/FintechDemo'))
+const RestaurantDemo = lazy(() => import('./pages/demos/RestaurantDemo'))
+const ProductDemo = lazy(() => import('./pages/demos/ProductDemo'))
+const SignProposal = lazy(() => import('./pages/SignProposal'))
+const Concepts = lazy(() => import('./pages/Concepts'))
+const NexaBank = lazy(() => import('./pages/concepts/NexaBank'))
+const CuratedHorizon = lazy(() => import('./pages/concepts/CuratedHorizon'))
+
+const SuspenseFallback = <div className="min-h-screen bg-[#08090D]" />
 
 function ScrollToTop() {
   const { pathname } = useLocation()
@@ -57,26 +64,29 @@ function App() {
         <BrowserRouter>
           <ScrollToTop />
           <GtagInjector />
-          <Routes>
-            <Route path="/" element={<PublicLayout><Home /></PublicLayout>} />
-            <Route path="/services" element={<PublicLayout><Services /></PublicLayout>} />
-            <Route path="/about" element={<PublicLayout><About /></PublicLayout>} />
-            <Route path="/contact" element={<PublicLayout><Contact /></PublicLayout>} />
-            <Route path="/insights" element={<PublicLayout><Insights /></PublicLayout>} />
-            {/* Legacy redirects */}
-            <Route path="/why-choose-me" element={<WhyChooseMe />} />
-            <Route path="/case-studies" element={<CaseStudies />} />
-            <Route path="/portfolio" element={<Portfolio />} />
-            <Route path="/admin" element={<Admin />} />
-            <Route path="/demo/fintech" element={<FintechDemo />} />
-            <Route path="/demo/restaurant" element={<RestaurantDemo />} />
-            <Route path="/demo/product" element={<ProductDemo />} />
-            <Route path="/sign/:token" element={<SignProposal />} />
-            <Route path="/portal" element={<ClientPortal />} />
-            <Route path="/concepts" element={<PublicLayout><Concepts /></PublicLayout>} />
-            <Route path="/concepts/nexabank" element={<NexaBank />} />
-            <Route path="/concepts/curated-horizon" element={<CuratedHorizon />} />
-          </Routes>
+          <Suspense fallback={SuspenseFallback}>
+            <Routes>
+              <Route path="/" element={<PublicLayout><Home /></PublicLayout>} />
+              <Route path="/services" element={<PublicLayout><Services /></PublicLayout>} />
+              <Route path="/about" element={<PublicLayout><About /></PublicLayout>} />
+              <Route path="/contact" element={<PublicLayout><Contact /></PublicLayout>} />
+              <Route path="/insights" element={<PublicLayout><Insights /></PublicLayout>} />
+              {/* Legacy redirects */}
+              <Route path="/why-choose-me" element={<WhyChooseMe />} />
+              <Route path="/case-studies" element={<CaseStudies />} />
+              <Route path="/portfolio" element={<Portfolio />} />
+              <Route path="/admin" element={<Admin />} />
+              <Route path="/demo/fintech" element={<FintechDemo />} />
+              <Route path="/demo/restaurant" element={<RestaurantDemo />} />
+              <Route path="/demo/product" element={<ProductDemo />} />
+              <Route path="/sign/:token" element={<SignProposal />} />
+              <Route path="/portal" element={<ClientPortal />} />
+              <Route path="/concepts" element={<PublicLayout><Concepts /></PublicLayout>} />
+              <Route path="/concepts/nexabank" element={<NexaBank />} />
+              <Route path="/concepts/curated-horizon" element={<CuratedHorizon />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Suspense>
         </BrowserRouter>
       </AuthProvider>
       </ClientAuthProvider>

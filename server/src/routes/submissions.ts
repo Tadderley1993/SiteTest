@@ -1,9 +1,9 @@
 import { Router } from 'express'
-import { PrismaClient } from '@prisma/client'
+import { prisma } from '../lib/prisma.js'
+import { logger } from '../lib/logger.js'
 import { createNotification } from '../lib/notify.js'
 
 const router = Router()
-const prisma = new PrismaClient()
 
 // POST /api/submissions - Create a new submission
 router.post('/', async (req, res) => {

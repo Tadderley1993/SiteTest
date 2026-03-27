@@ -1,11 +1,11 @@
 import { Router } from 'express'
-import { PrismaClient } from '@prisma/client'
-import nodemailer from 'nodemailer'
 import type Mail from 'nodemailer/lib/mailer'
+import { prisma } from '../lib/prisma.js'
+import { getSmtpTransporter } from '../lib/smtp.js'
 import { authMiddleware } from '../middleware/auth.js'
+import { logger } from '../lib/logger.js'
 
 const router = Router()
-const prisma = new PrismaClient()
 
 router.use(authMiddleware)
 
@@ -37,7 +37,7 @@ router.post('/', async (req, res) => {
     })
     res.json(proposal)
   } catch (error) {
-    console.error('Error creating proposal:', error)
+    logger.error({ err: error }, 'Error creating proposal')
     res.status(500).json({ error: 'Failed to create proposal' })
   }
 })
@@ -84,29 +84,10 @@ router.post('/:id/send-email', async (req, res) => {
 
     const { to, subject, message, pdfBase64 } = req.body
 
-    // Build transporter: DB settings override .env
-    const dbSettings = await prisma.adminSettings.findFirst()
-    const smtpHost = dbSettings?.smtpHost || process.env.SMTP_HOST
-    const smtpPort = parseInt(dbSettings?.smtpPort || process.env.SMTP_PORT || '587')
-    const smtpUser = dbSettings?.smtpUser || process.env.SMTP_USER
-    const smtpPass = dbSettings?.smtpPass || process.env.SMTP_PASS
-    const smtpFrom = dbSettings?.smtpFrom || process.env.SMTP_FROM || smtpUser
-    const smtpSecure = dbSettings?.smtpSecure ?? (process.env.SMTP_SECURE === 'true')
-
-    if (!smtpHost || !smtpUser || !smtpPass) {
+    const smtp = await getSmtpTransporter()
+    if (!smtp) {
       return res.status(503).json({ error: 'Email not configured. Add SMTP credentials in Settings → Email, or in .env' })
     }
-
-    const transporter = nodemailer.createTransport({
-      host: smtpHost,
-      port: smtpPort,
-      secure: smtpPort === 465,
-      requireTLS: smtpPort !== 465,
-      auth: { user: smtpUser, pass: smtpPass },
-      tls: { rejectUnauthorized: false },
-      connectionTimeout: 10000,
-      greetingTimeout: 10000,
-    })
 
     const currency = proposal.currency ?? 'USD'
     const sym = ({ USD: '$', EUR: '€', GBP: '£', CAD: 'CA$', AUD: 'A$' } as Record<string, string>)[currency] ?? '$'
@@ -187,8 +168,8 @@ ${proposal.termsConditions ? `<div class="section"><h2>Terms & Conditions</h2><p
       })
     }
 
-    await transporter.sendMail({
-      from: smtpFrom,
+    await smtp.transporter.sendMail({
+      from: smtp.from,
       to,
       subject: subject || `Proposal: ${proposal.title}`,
       html,
@@ -203,7 +184,7 @@ ${proposal.termsConditions ? `<div class="section"><h2>Terms & Conditions</h2><p
 
     res.json({ success: true })
   } catch (error) {
-    console.error('Error sending email:', error)
+    logger.error({ err: error }, 'Error sending proposal email')
     const msg = error instanceof Error ? error.message : 'Failed to send email'
     res.status(500).json({ error: msg })
   }

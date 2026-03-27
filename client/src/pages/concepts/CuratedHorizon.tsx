@@ -1,3 +1,4 @@
+import { Helmet } from 'react-helmet-async'
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 
@@ -1174,6 +1175,11 @@ export default function CuratedHorizon() {
 
   return (
     <>
+      <Helmet>
+        <title>Curated Horizon Concept | Designs By TA</title>
+        <meta name="description" content="Curated Horizon — a luxury real estate concept designed and developed by Designs By TA." />
+        <meta name="robots" content="index, follow" />
+      </Helmet>
       <style>{STYLES}</style>
       <div className="ch-body" style={{ minHeight: '100vh', background: SURF, color: OS }}>
         <Nav page={page} go={go} />

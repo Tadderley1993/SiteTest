@@ -29,6 +29,8 @@ export default function PageWrapper({
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={title} />
         <meta name="twitter:description" content={description} />
+        <meta name="twitter:image" content={ogImage} />
+        <meta property="og:type" content="website" />
       </Helmet>
       <div className="min-h-screen bg-background text-text-primary">
         {children}

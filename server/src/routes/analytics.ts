@@ -1,10 +1,9 @@
 import { Router } from 'express'
 import { BetaAnalyticsDataClient } from '@google-analytics/data'
-import { PrismaClient } from '@prisma/client'
+import { prisma } from '../lib/prisma.js'
 import { authMiddleware } from '../middleware/auth.js'
 
 const router = Router()
-const prisma = new PrismaClient()
 
 // GET /api/admin/analytics/gtag-id — public, no auth (used by frontend to inject tracking)
 router.get('/gtag-id', async (_req, res) => {

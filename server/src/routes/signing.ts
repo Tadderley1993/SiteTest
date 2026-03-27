@@ -1,9 +1,28 @@
 import { Router } from 'express'
-import { PrismaClient } from '@prisma/client'
 import { randomBytes } from 'crypto'
+import { prisma } from '../lib/prisma.js'
+import { authMiddleware } from '../middleware/auth.js'
 
 const router = Router()
-const prisma = new PrismaClient()
+
+// POST /api/sign/generate/:id — admin only, generate or return existing signing token
+// MUST be registered before /:token routes to avoid Express matching "generate" as a token
+router.post('/generate/:id', authMiddleware, async (req, res) => {
+  try {
+    const id = parseInt(req.params.id)
+    const existing = await prisma.proposal.findUnique({ where: { id }, select: { signingToken: true } })
+    if (!existing) return res.status(404).json({ error: 'Proposal not found.' })
+
+    const token = existing.signingToken ?? randomBytes(32).toString('hex')
+    if (!existing.signingToken) {
+      await prisma.proposal.update({ where: { id }, data: { signingToken: token } })
+    }
+
+    res.json({ token })
+  } catch {
+    res.status(500).json({ error: 'Failed to generate signing link.' })
+  }
+})
 
 // GET /api/sign/:token — public, returns proposal data for client viewing
 router.get('/:token', async (req, res) => {
@@ -63,24 +82,6 @@ router.post('/:token', async (req, res) => {
     res.json({ success: true, signedAt })
   } catch {
     res.status(500).json({ error: 'Failed to save signature.' })
-  }
-})
-
-// POST /api/sign/generate/:id — admin, generate or return existing signing token
-router.post('/generate/:id', async (req, res) => {
-  try {
-    const id = parseInt(req.params.id)
-    const existing = await prisma.proposal.findUnique({ where: { id }, select: { signingToken: true } })
-    if (!existing) return res.status(404).json({ error: 'Proposal not found.' })
-
-    const token = existing.signingToken ?? randomBytes(32).toString('hex')
-    if (!existing.signingToken) {
-      await prisma.proposal.update({ where: { id }, data: { signingToken: token } })
-    }
-
-    res.json({ token })
-  } catch {
-    res.status(500).json({ error: 'Failed to generate signing link.' })
   }
 })
 

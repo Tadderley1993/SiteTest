@@ -1,3 +1,4 @@
+import { Helmet } from 'react-helmet-async'
 import { useState, useRef, useEffect } from 'react'
 import { Shield, Zap, Globe, BarChart3, ArrowRight, CheckCircle, Star, CreditCard, TrendingUp, Building2, Wallet } from 'lucide-react'
 import { ShimmerButton } from '@/components/ui/shimmer-button'
@@ -236,6 +237,11 @@ export default function FintechDemo() {
 
   return (
     <div style={{ backgroundColor: BG, minHeight: '100vh', fontFamily: FONT_BODY, color: TEXT }}>
+      <Helmet>
+        <title>NexaBank | Demo by Designs By TA</title>
+        <meta name="description" content="A fintech demo site showcasing modern banking UI design by Designs By TA." />
+        <meta name="robots" content="noindex, nofollow" />
+      </Helmet>
 
       {/* ── Nav ── */}
       <nav style={{

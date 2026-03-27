@@ -1,9 +1,9 @@
 import { Router } from 'express'
-import { PrismaClient } from '@prisma/client'
+import { prisma } from '../lib/prisma.js'
+import { logger } from '../lib/logger.js'
 import { authMiddleware } from '../middleware/auth.js'
 
 const router = Router()
-const prisma = new PrismaClient()
 
 // GET /admin/calendar/events?start=ISO&end=ISO
 router.get('/events', authMiddleware, async (req, res) => {
@@ -18,7 +18,7 @@ router.get('/events', authMiddleware, async (req, res) => {
     const events = await prisma.$queryRawUnsafe<unknown[]>(`
       SELECT
         ce.id, ce.title, ce.description, ce."startAt", ce."endAt",
-        ce."allDay", ce."eventType", ce."clientId", ce.color,
+        ce."allDay", ce."eventType", ce."clientId", ce.color, ce.reminders,
         ce."createdAt", ce."updatedAt",
         c."firstName", c."lastName", c.email, c.organization,
         ps.status AS "projectStatus"
@@ -48,7 +48,7 @@ router.get('/upcoming', authMiddleware, async (req, res) => {
     const events = await prisma.$queryRawUnsafe<unknown[]>(`
       SELECT
         ce.id, ce.title, ce.description, ce."startAt", ce."endAt",
-        ce."allDay", ce."eventType", ce."clientId", ce.color,
+        ce."allDay", ce."eventType", ce."clientId", ce.color, ce.reminders,
         c."firstName", c."lastName", c.organization,
         ps.status AS "projectStatus"
       FROM "CalendarEvent" ce
@@ -84,14 +84,15 @@ router.get('/clients', authMiddleware, async (req, res) => {
 // POST /admin/calendar/events
 router.post('/events', authMiddleware, async (req, res) => {
   try {
-    const { title, description, startAt, endAt, allDay, eventType, clientId, color } = req.body
+    const { title, description, startAt, endAt, allDay, eventType, clientId, color, reminders } = req.body
     if (!title || !startAt) return res.status(400).json({ error: 'Title and start date are required' })
+    const remindersJson = JSON.stringify(Array.isArray(reminders) ? reminders : [])
     const rows = await prisma.$queryRawUnsafe<unknown[]>(`
-      INSERT INTO "CalendarEvent" (title, description, "startAt", "endAt", "allDay", "eventType", "clientId", color, "createdAt", "updatedAt")
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
+      INSERT INTO "CalendarEvent" (title, description, "startAt", "endAt", "allDay", "eventType", "clientId", color, reminders, "createdAt", "updatedAt")
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW())
       RETURNING *
     `, title, description || null, new Date(startAt), endAt ? new Date(endAt) : null,
-       allDay ?? false, eventType || 'reminder', clientId ? Number(clientId) : null, color || '#18181b')
+       allDay ?? false, eventType || 'reminder', clientId ? Number(clientId) : null, color || '#18181b', remindersJson)
     res.json(rows[0])
   } catch (e) {
     console.error(e)
@@ -102,16 +103,17 @@ router.post('/events', authMiddleware, async (req, res) => {
 // PUT /admin/calendar/events/:id
 router.put('/events/:id', authMiddleware, async (req, res) => {
   try {
-    const { title, description, startAt, endAt, allDay, eventType, clientId, color } = req.body
+    const { title, description, startAt, endAt, allDay, eventType, clientId, color, reminders } = req.body
+    const remindersJson = JSON.stringify(Array.isArray(reminders) ? reminders : [])
     const rows = await prisma.$queryRawUnsafe<unknown[]>(`
       UPDATE "CalendarEvent"
       SET title=$1, description=$2, "startAt"=$3, "endAt"=$4, "allDay"=$5,
-          "eventType"=$6, "clientId"=$7, color=$8, "updatedAt"=NOW()
-      WHERE id=$9
+          "eventType"=$6, "clientId"=$7, color=$8, reminders=$9, "updatedAt"=NOW()
+      WHERE id=$10
       RETURNING *
     `, title, description || null, new Date(startAt), endAt ? new Date(endAt) : null,
        allDay ?? false, eventType || 'reminder', clientId ? Number(clientId) : null,
-       color || '#18181b', Number(req.params.id))
+       color || '#18181b', remindersJson, Number(req.params.id))
     if (!(rows as unknown[]).length) return res.status(404).json({ error: 'Event not found' })
     res.json(rows[0])
   } catch (e) {

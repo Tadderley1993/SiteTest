@@ -1,10 +1,9 @@
 import { Router } from 'express'
-import { PrismaClient } from '@prisma/client'
-import nodemailer from 'nodemailer'
+import { prisma } from '../lib/prisma.js'
+import { getSmtpTransporter } from '../lib/smtp.js'
 import { authMiddleware } from '../middleware/auth.js'
 
 const router = Router()
-const prisma = new PrismaClient()
 
 router.use(authMiddleware)
 
@@ -64,30 +63,12 @@ router.put('/', async (req, res) => {
 // POST /api/admin/settings/test-smtp
 router.post('/test-smtp', async (_req, res) => {
   try {
-    const s = await getOrCreateSettings()
-    const host = s.smtpHost || process.env.SMTP_HOST
-    const port = parseInt(s.smtpPort || process.env.SMTP_PORT || '587')
-    const user = s.smtpUser || process.env.SMTP_USER
-    const pass = s.smtpPass || process.env.SMTP_PASS
-    const secure = s.smtpSecure ?? (process.env.SMTP_SECURE === 'true')
-
-    if (!host || !user || !pass) {
+    const smtp = await getSmtpTransporter()
+    if (!smtp) {
       return res.status(400).json({ success: false, error: 'SMTP not configured' })
     }
-
-    const transporter = nodemailer.createTransport({
-      host,
-      port,
-      secure: port === 465,       // true only for port 465 (SSL), false for 587 (STARTTLS)
-      requireTLS: port !== 465,   // force STARTTLS upgrade on port 587
-      auth: { user, pass },
-      tls: { rejectUnauthorized: false },
-      connectionTimeout: 10000,
-      greetingTimeout: 10000,
-    })
-
-    await transporter.verify()
-    res.json({ success: true, message: `SMTP connection to ${host}:${port} verified successfully!` })
+    await smtp.transporter.verify()
+    res.json({ success: true, message: 'SMTP connection verified successfully!' })
   } catch (error) {
     const msg = error instanceof Error ? error.message : 'Connection failed'
     const isTenantBlock = msg.includes('SmtpClientAuthentication is disabled')

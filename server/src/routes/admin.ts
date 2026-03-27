@@ -1,9 +1,9 @@
 import { Router } from 'express'
-import { PrismaClient } from '@prisma/client'
+import { prisma } from '../lib/prisma.js'
 import { authMiddleware, AuthRequest } from '../middleware/auth.js'
+import { logger } from '../lib/logger.js'
 
 const router = Router()
-const prisma = new PrismaClient()
 
 // All admin routes require authentication
 router.use(authMiddleware)
@@ -48,6 +48,20 @@ router.get('/submissions/:id', async (req, res) => {
   } catch (error) {
     console.error('Error fetching submission:', error)
     res.status(500).json({ error: 'Failed to fetch submission' })
+  }
+})
+
+// DELETE /api/admin/submissions/:id - Delete a submission
+router.delete('/submissions/:id', async (req, res) => {
+  try {
+    const id = parseInt(req.params.id)
+    // If a client is linked to this submission, unlink it first
+    await prisma.client.updateMany({ where: { submissionId: id }, data: { submissionId: null } })
+    await prisma.submission.delete({ where: { id } })
+    res.json({ success: true })
+  } catch (error) {
+    console.error('Error deleting submission:', error)
+    res.status(500).json({ error: 'Failed to delete submission' })
   }
 })
 

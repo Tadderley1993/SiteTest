@@ -52,4 +52,15 @@ router.delete('/clear', asyncHandler(async (_req, res) => {
   res.json({ success: true })
 }))
 
+// POST /api/admin/notifications — create a notification (used by reminder system)
+router.post('/', asyncHandler(async (req, res) => {
+  const { type, title, body } = req.body
+  if (!title) { res.status(400).json({ error: 'title required' }); return }
+  const rows = await prisma.$queryRawUnsafe(
+    `INSERT INTO "Notification" (type, title, body, read, "createdAt") VALUES ($1, $2, $3, false, NOW()) RETURNING *`,
+    type ?? 'reminder', title, body ?? ''
+  ) as NotificationRow[]
+  res.json(rows[0])
+}))
+
 export { router as notificationsRouter }

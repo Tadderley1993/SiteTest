@@ -1,3 +1,4 @@
+import { Helmet } from 'react-helmet-async'
 import { useRef, useState, useEffect } from 'react'
 import { motion, useInView, useScroll, useTransform } from 'framer-motion'
 import { Check, ArrowRight, Star } from 'lucide-react'
@@ -198,6 +199,11 @@ export default function ProductDemo() {
 
   return (
     <div style={{ backgroundColor: '#000', minHeight: '100vh', fontFamily: FONT, color: '#f5f5f7', overflowX: 'hidden' }}>
+      <Helmet>
+        <title>Apex Audio | Demo by Designs By TA</title>
+        <meta name="description" content="A premium audio brand demo showcasing product web design by Designs By TA." />
+        <meta name="robots" content="noindex, nofollow" />
+      </Helmet>
 
       {/* ── Nav ── */}
       <nav style={{

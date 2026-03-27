@@ -1,3 +1,4 @@
+import { Helmet } from 'react-helmet-async'
 import { useState, useEffect } from 'react'
 import { Star, ArrowRight, Clock, MapPin, Phone, Plus } from 'lucide-react'
 
@@ -179,6 +180,11 @@ export default function RestaurantDemo() {
 
   return (
     <div style={{ backgroundColor: BG, minHeight: '100vh', fontFamily: "'DM Sans', sans-serif", color: DARK }}>
+      <Helmet>
+        <title>Chez Laurent | Demo by Designs By TA</title>
+        <meta name="description" content="A fine dining restaurant demo showcasing elegant web design by Designs By TA." />
+        <meta name="robots" content="noindex, nofollow" />
+      </Helmet>
 
       {/* ── Announcement bar ── */}
       <div style={{ backgroundColor: RED, padding: '10px 24px', textAlign: 'center' }}>

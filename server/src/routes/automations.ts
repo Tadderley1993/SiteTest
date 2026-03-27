@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import { z } from 'zod'
-import nodemailer from 'nodemailer'
 import { prisma } from '../lib/prisma.js'
+import { requireSmtpTransporter } from '../lib/smtp.js'
 import { authMiddleware } from '../middleware/auth.js'
 import { asyncHandler } from '../middleware/errorHandler.js'
 import { validate } from '../middleware/validate.js'
@@ -18,22 +18,6 @@ const RuleSchema = z.object({
   subject:   z.string().optional(),
   body:      z.string().optional(),
 })
-
-async function getTransporter() {
-  const settings = await prisma.adminSettings.findFirst()
-  const host = settings?.smtpHost || process.env.SMTP_HOST
-  const port = parseInt(settings?.smtpPort || process.env.SMTP_PORT || '587')
-  const user = settings?.smtpUser || process.env.SMTP_USER
-  const pass = settings?.smtpPass || process.env.SMTP_PASS
-  const from = settings?.smtpFrom || process.env.SMTP_FROM || user
-
-  if (!host || !user || !pass) throw new Error('SMTP not configured')
-
-  return {
-    transporter: nodemailer.createTransport({ host, port, secure: false, auth: { user, pass } }),
-    from,
-  }
-}
 
 // GET /api/admin/automations
 router.get('/', authMiddleware, asyncHandler(async (_req, res) => {
@@ -150,7 +134,7 @@ router.post('/:id/run', authMiddleware, asyncHandler(async (req, res) => {
   const results: { status: string; message: string; sentTo?: string }[] = []
 
   try {
-    const { transporter, from } = await getTransporter()
+    const { transporter, from } = await requireSmtpTransporter()
     const cutoff = new Date(Date.now() - rule.delayDays * 24 * 60 * 60 * 1000)
 
     if (rule.type === 'proposal_followup') {

@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express'
-import { PrismaClient } from '@prisma/client'
+import { prisma } from '../lib/prisma.js'
 import multer from 'multer'
 import path from 'path'
 import fs from 'fs'
@@ -12,7 +12,6 @@ const uploadsDir = path.join(__dirname, '../../uploads')
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true })
 
 const router = Router()
-const prisma = new PrismaClient()
 router.use(authMiddleware)
 
 const receiptStorage = multer.diskStorage({

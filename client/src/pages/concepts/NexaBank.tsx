@@ -1,3 +1,4 @@
+import { Helmet } from 'react-helmet-async'
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 
@@ -136,6 +137,11 @@ function Nav() {
 export default function NexaBank() {
   return (
     <>
+      <Helmet>
+        <title>NexaBank Concept | Designs By TA</title>
+        <meta name="description" content="NexaBank — a fintech banking app concept designed and developed by Designs By TA, showcasing modern UI/UX." />
+        <meta name="robots" content="index, follow" />
+      </Helmet>
       <style>{styles}</style>
       <div className="nb-page antialiased min-h-screen" style={{ background: SURFACE, color: ON_SURFACE }}>
         <Nav />

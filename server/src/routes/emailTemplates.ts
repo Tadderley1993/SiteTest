@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import { z, ZodError } from 'zod'
-import nodemailer from 'nodemailer'
 import { prisma } from '../lib/prisma.js'
+import { requireSmtpTransporter } from '../lib/smtp.js'
 import { authMiddleware } from '../middleware/auth.js'
 import { asyncHandler } from '../middleware/errorHandler.js'
 import { logger } from '../lib/logger.js'
@@ -21,22 +21,6 @@ function zodError(err: ZodError): string {
   return err.issues.map(e => `${String(e.path.join('.') || 'field')}: ${e.message}`).join(', ')
 }
 
-async function getTransporter() {
-  const settings = await prisma.adminSettings.findFirst()
-  const host = settings?.smtpHost || process.env.SMTP_HOST
-  const port = parseInt(settings?.smtpPort || process.env.SMTP_PORT || '587')
-  const user = settings?.smtpUser || process.env.SMTP_USER
-  const pass = settings?.smtpPass || process.env.SMTP_PASS
-  const from = settings?.smtpFrom || process.env.SMTP_FROM || user
-
-  if (!host || !user || !pass) throw new Error('SMTP not configured')
-
-  return {
-    transporter: nodemailer.createTransport({ host, port, secure: false, auth: { user, pass } }),
-    from,
-  }
-}
-
 function applyVariables(template: string, vars: Record<string, string>): string {
   return template.replace(/\{\{(\w+)\}\}/g, (_, key) => vars[key] ?? `{{${key}}}`)
 }
@@ -45,6 +29,25 @@ function applyVariables(template: string, vars: Record<string, string>): string 
 router.get('/', asyncHandler(async (_req, res) => {
   const templates = await prisma.emailTemplate.findMany({ orderBy: { createdAt: 'desc' } })
   res.json(templates)
+}))
+
+// GET /api/admin/email-templates/sent — must be before /:id to avoid conflict
+router.get('/sent', asyncHandler(async (_req, res) => {
+  const rows = await prisma.$queryRawUnsafe(
+    `SELECT id, "toEmail", subject, "templateId", "templateName", status, "createdAt" FROM "SentEmailLog" ORDER BY "createdAt" DESC LIMIT 200`
+  )
+  res.json(rows)
+}))
+
+// GET /api/admin/email-templates/sent/:id — single sent email with body
+router.get('/sent/:id', asyncHandler(async (req, res) => {
+  const id = parseInt(req.params.id)
+  const rows = await prisma.$queryRawUnsafe(
+    `SELECT id, "toEmail", subject, body, "templateId", "templateName", status, "createdAt" FROM "SentEmailLog" WHERE id = $1 LIMIT 1`,
+    id
+  ) as { id: number; toEmail: string; subject: string; body: string | null; templateId: number | null; templateName: string | null; status: string; createdAt: string }[]
+  if (!rows.length) return res.status(404).json({ error: 'Not found' })
+  res.json(rows[0])
 }))
 
 // GET /api/admin/email-templates/:id
@@ -99,7 +102,7 @@ router.post('/:id/send', asyncHandler(async (req, res) => {
   const template = await prisma.emailTemplate.findUnique({ where: { id } })
   if (!template) return res.status(404).json({ error: 'Template not found' })
 
-  const { transporter, from } = await getTransporter()
+  const { transporter, from } = await requireSmtpTransporter()
 
   const html = applyVariables(
     `<style>${template.cssContent ?? ''}</style>${template.htmlContent}`,
@@ -110,21 +113,13 @@ router.post('/:id/send', asyncHandler(async (req, res) => {
   await transporter.sendMail({ from: from ?? undefined, to, subject, html })
   logger.info(`Email template ${id} sent to ${to}`)
 
-  // Log to sent mail history
+  // Log to sent mail history (including rendered body)
   await prisma.$executeRawUnsafe(
-    `INSERT INTO "SentEmailLog" ("toEmail", subject, "templateId", "templateName", status, "createdAt") VALUES ($1, $2, $3, $4, 'sent', NOW())`,
-    to, subject, template.id, template.name
+    `INSERT INTO "SentEmailLog" ("toEmail", subject, body, "templateId", "templateName", status, "createdAt") VALUES ($1, $2, $3, $4, $5, 'sent', NOW())`,
+    to, subject, html, template.id, template.name
   ).catch(() => { /* non-fatal */ })
 
   res.json({ success: true })
-}))
-
-// GET /api/admin/email-templates/sent — sent mail log
-router.get('/sent', asyncHandler(async (_req, res) => {
-  const rows = await prisma.$queryRawUnsafe(
-    `SELECT id, "toEmail", subject, "templateId", "templateName", status, "createdAt" FROM "SentEmailLog" ORDER BY "createdAt" DESC LIMIT 200`
-  )
-  res.json(rows)
 }))
 
 export { router as emailTemplatesRouter }

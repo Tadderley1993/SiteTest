@@ -1,12 +1,11 @@
 import { Router } from 'express'
-import { PrismaClient } from '@prisma/client'
-import nodemailer from 'nodemailer'
+import { prisma } from '../lib/prisma.js'
+import { getSmtpTransporter } from '../lib/smtp.js'
 import { authMiddleware } from '../middleware/auth.js'
 import { paypalFetch, getPayPalSettings } from '../lib/paypal.js'
 import { createNotification } from '../lib/notify.js'
 
 const router = Router()
-const prisma = new PrismaClient()
 
 router.use(authMiddleware)
 
@@ -86,21 +85,6 @@ async function queryInvoices(where?: string, params: unknown[] = []) {
   }))
 }
 
-// ── SMTP helper ───────────────────────────────────────────────────────────────
-
-async function getSmtpTransporter() {
-  const settings = await prisma.adminSettings.findFirst()
-  const host = settings?.smtpHost || process.env.SMTP_HOST
-  const port = parseInt(settings?.smtpPort || process.env.SMTP_PORT || '587')
-  const user = settings?.smtpUser || process.env.SMTP_USER
-  const pass = settings?.smtpPass || process.env.SMTP_PASS
-  const from = settings?.smtpFrom || process.env.SMTP_FROM || user
-  if (!host || !user || !pass) return null
-  return {
-    transporter: nodemailer.createTransport({ host, port, secure: false, auth: { user, pass } }),
-    from,
-  }
-}
 
 // ── PayPal button email builder ───────────────────────────────────────────────
 

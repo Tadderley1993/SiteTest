@@ -1,10 +1,9 @@
 import { Router } from 'express'
-import { PrismaClient } from '@prisma/client'
+import { prisma } from '../lib/prisma.js'
 import { authMiddleware } from '../middleware/auth.js'
 import { getPayPalSettings, getAccessToken, getBaseUrl } from '../lib/paypal.js'
 
 const router = Router()
-const prisma = new PrismaClient()
 router.use(authMiddleware)
 
 function monthKey(dateStr: string): string {
