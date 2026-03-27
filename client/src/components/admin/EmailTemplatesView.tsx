@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import {
   EmailTemplate,
   getEmailTemplates,
@@ -26,8 +26,9 @@ const EMAIL_CATEGORIES = [
   { value: 'proposal',   label: 'Proposal',    icon: 'description' },
   { value: 'followup',   label: 'Follow-up',   icon: 'reply' },
   { value: 'reminder',   label: 'Reminder',    icon: 'notifications_active' },
-  { value: 'onboarding', label: 'Onboarding',  icon: 'rocket_launch' },
-  { value: 'general',    label: 'General',     icon: 'mail' },
+  { value: 'onboarding',    label: 'Onboarding',    icon: 'rocket_launch' },
+  { value: 'personalized', label: 'Personalized',  icon: 'person' },
+  { value: 'general',      label: 'General',       icon: 'mail' },
 ]
 
 const CATEGORY_LABEL: Record<string, string> = Object.fromEntries(
@@ -487,6 +488,226 @@ function buildPreviewDoc(html: string, css: string, vars: Record<string, string>
   return `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>${css}</style></head><body>${substituted}</body></html>`
 }
 
+// ── Personalized template builder ─────────────────────────────────────────────
+
+interface PersonalizedFields {
+  headerText: string
+  headerColor: string
+  greeting: string
+  message: string
+  ctaText: string
+  ctaUrl: string
+  footerEmail: string
+  footerWebsite: string
+  accentColor: string
+}
+
+const PERSONALIZED_DEFAULTS: PersonalizedFields = {
+  headerText: 'A Message For You',
+  headerColor: '#111111',
+  greeting: 'Hi {{clientName}},',
+  message: '',
+  ctaText: 'Get in Touch',
+  ctaUrl: 'https://www.designsbyta.com/contact',
+  footerEmail: 'terrenceadderley@designsbyta.com',
+  footerWebsite: 'https://www.designsbyta.com',
+  accentColor: '#C6A84B',
+}
+
+function buildPersonalizedHtml(f: PersonalizedFields): string {
+  return `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+</head>
+<body style="margin:0;background:#f4f4f4;font-family:'Helvetica Neue',Arial,sans-serif">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f4;padding:40px 20px">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08)">
+        <!-- Header -->
+        <tr><td style="background:${f.headerColor};padding:32px 40px">
+          <p style="margin:0;font-size:24px;font-weight:700;color:#fff;letter-spacing:-0.5px">${f.headerText}</p>
+        </td></tr>
+        <!-- Body -->
+        <tr><td style="padding:36px 40px">
+          <p style="margin:0 0 16px;font-size:14px;color:#111">${f.greeting}</p>
+          <p style="margin:0 0 28px;font-size:14px;color:#444;line-height:1.75">{{message}}</p>
+          <!-- CTA button -->
+          <table cellpadding="0" cellspacing="0"><tr><td>
+            <a href="{{ctaUrl}}" style="display:inline-block;background:${f.accentColor};color:#fff;font-size:14px;font-weight:700;text-decoration:none;padding:14px 32px;border-radius:8px">{{ctaText}}</a>
+          </td></tr></table>
+        </td></tr>
+        <!-- Footer -->
+        <tr><td style="padding:24px 40px;border-top:1px solid #f0f0f0;background:#fafafa">
+          <p style="margin:0;font-size:12px;color:#999">Designs By Terrence Adderley &middot; <a href="${f.footerWebsite}" style="color:#999">${f.footerWebsite}</a> &middot; ${f.footerEmail}</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`
+}
+
+function parsePersonalizedFields(htmlContent: string): PersonalizedFields | null {
+  try {
+    const headerColorMatch = htmlContent.match(/background:(#[0-9a-fA-F]{3,8});padding:32px/)
+    const headerTextMatch = htmlContent.match(/letter-spacing:-0\.5px">(.*?)<\/p>/)
+    const greetingMatch = htmlContent.match(/margin:0 0 16px;font-size:14px;color:#111">(.*?)<\/p>/)
+    const accentColorMatch = htmlContent.match(/background:(#[0-9a-fA-F]{3,8});color:#fff;font-size:14px;font-weight:700/)
+    const footerWebsiteMatch = htmlContent.match(/href="(https?:\/\/[^"]+)"[^>]*style="color:#999"/)
+    const footerEmailMatch = htmlContent.match(/&middot;\s*([^\s<&]+@[^\s<&]+)\s*<\/p>/)
+
+    if (!headerColorMatch || !headerTextMatch) return null
+
+    const footerWebsite = footerWebsiteMatch?.[1] ?? PERSONALIZED_DEFAULTS.footerWebsite
+    const footerEmail = footerEmailMatch?.[1] ?? PERSONALIZED_DEFAULTS.footerEmail
+
+    return {
+      headerColor: headerColorMatch[1],
+      headerText: headerTextMatch[1],
+      greeting: greetingMatch?.[1] ?? PERSONALIZED_DEFAULTS.greeting,
+      message: '',
+      ctaText: '',
+      ctaUrl: '',
+      footerEmail,
+      footerWebsite,
+      accentColor: accentColorMatch?.[1] ?? PERSONALIZED_DEFAULTS.accentColor,
+    }
+  } catch {
+    return null
+  }
+}
+
+// ── Personalized form component ───────────────────────────────────────────────
+
+interface ColorFieldProps {
+  label: string
+  value: string
+  onChange: (v: string) => void
+}
+
+function ColorField({ label, value, onChange }: ColorFieldProps) {
+  return (
+    <div>
+      <label className="block text-[11px] font-semibold text-zinc-500 uppercase tracking-wider mb-1.5">{label}</label>
+      <div className="flex items-center gap-2">
+        <input
+          type="color"
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          className="w-9 h-9 rounded border border-zinc-200 cursor-pointer p-0.5 bg-white"
+        />
+        <input
+          type="text"
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          className="flex-1 border border-zinc-200 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-black/10"
+        />
+      </div>
+    </div>
+  )
+}
+
+function PersonalizedFormBuilder({
+  fields,
+  onChange,
+}: {
+  fields: PersonalizedFields
+  onChange: (f: PersonalizedFields) => void
+}) {
+  const set = (key: keyof PersonalizedFields) => (val: string) =>
+    onChange({ ...fields, [key]: val })
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-[11px] font-semibold text-zinc-500 uppercase tracking-wider mb-1.5">Header Text</label>
+          <input
+            type="text"
+            value={fields.headerText}
+            onChange={e => set('headerText')(e.target.value)}
+            placeholder="Banner / title text"
+            className="w-full border border-zinc-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
+          />
+        </div>
+        <ColorField label="Header Color" value={fields.headerColor} onChange={set('headerColor')} />
+      </div>
+
+      <div>
+        <label className="block text-[11px] font-semibold text-zinc-500 uppercase tracking-wider mb-1.5">Greeting</label>
+        <input
+          type="text"
+          value={fields.greeting}
+          onChange={e => set('greeting')(e.target.value)}
+          placeholder="Hi {{clientName}},"
+          className="w-full border border-zinc-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
+        />
+      </div>
+
+      <div>
+        <label className="block text-[11px] font-semibold text-zinc-500 uppercase tracking-wider mb-1.5">Message <span className="normal-case font-normal text-zinc-400">— use {'{{tokens}}'} for dynamic values</span></label>
+        <textarea
+          value={fields.message}
+          onChange={e => set('message')(e.target.value)}
+          placeholder="Your message here. You can use {{tokens}} for dynamic content."
+          rows={5}
+          className="w-full border border-zinc-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/10 resize-none"
+        />
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-[11px] font-semibold text-zinc-500 uppercase tracking-wider mb-1.5">CTA Button Text</label>
+          <input
+            type="text"
+            value={fields.ctaText}
+            onChange={e => set('ctaText')(e.target.value)}
+            placeholder="Get in Touch"
+            className="w-full border border-zinc-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
+          />
+        </div>
+        <div>
+          <label className="block text-[11px] font-semibold text-zinc-500 uppercase tracking-wider mb-1.5">CTA URL</label>
+          <input
+            type="text"
+            value={fields.ctaUrl}
+            onChange={e => set('ctaUrl')(e.target.value)}
+            placeholder="https://www.designsbyta.com/contact"
+            className="w-full border border-zinc-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-[11px] font-semibold text-zinc-500 uppercase tracking-wider mb-1.5">Footer Email</label>
+          <input
+            type="text"
+            value={fields.footerEmail}
+            onChange={e => set('footerEmail')(e.target.value)}
+            placeholder="terrenceadderley@designsbyta.com"
+            className="w-full border border-zinc-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
+          />
+        </div>
+        <div>
+          <label className="block text-[11px] font-semibold text-zinc-500 uppercase tracking-wider mb-1.5">Footer Website</label>
+          <input
+            type="text"
+            value={fields.footerWebsite}
+            onChange={e => set('footerWebsite')(e.target.value)}
+            placeholder="https://www.designsbyta.com"
+            className="w-full border border-zinc-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
+          />
+        </div>
+      </div>
+
+      <ColorField label="Accent Color" value={fields.accentColor} onChange={set('accentColor')} />
+    </div>
+  )
+}
+
 // ── Sub-components ────────────────────────────────────────────────────────────
 
 function CodeEditor({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder?: string }) {
@@ -705,6 +926,16 @@ export default function EmailTemplatesView() {
   const [css, setCss] = useState('')
   const [codeTab, setCodeTab] = useState<'html' | 'css'>('html')
 
+  // Personalized template structured fields
+  const [personalizedFields, setPersonalizedFields] = useState<PersonalizedFields>(PERSONALIZED_DEFAULTS)
+
+  // When personalized fields change, regenerate HTML
+  const handlePersonalizedChange = useCallback((f: PersonalizedFields) => {
+    setPersonalizedFields(f)
+    setHtml(buildPersonalizedHtml(f))
+    setCss('')
+  }, [])
+
   // Variables
   const vars = useMemo(() => extractVars(html, css), [html, css])
   const [varValues, setVarValues] = useState<Record<string, string>>({})
@@ -716,6 +947,14 @@ export default function EmailTemplatesView() {
       setVarValues(prev => applyAgencyDefaults(vars, prev))
     }
   }, [vars, agencyAutoFill])
+
+  // When category changes to personalized on a NEW template, seed HTML from defaults
+  useEffect(() => {
+    if (isNew && category === 'personalized') {
+      setHtml(buildPersonalizedHtml(personalizedFields))
+      setCss('')
+    }
+  }, [category]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Preview + send
   const [previewTab, setPreviewTab] = useState<'editor' | 'preview'>('editor')
@@ -754,6 +993,13 @@ export default function EmailTemplatesView() {
     setSubject(t.subject)
     setHtml(t.htmlContent)
     setCss(t.cssContent ?? '')
+    // Try to restore personalized fields if applicable
+    if (t.category === 'personalized') {
+      const parsed = parsePersonalizedFields(t.htmlContent)
+      setPersonalizedFields(parsed ?? PERSONALIZED_DEFAULTS)
+    } else {
+      setPersonalizedFields(PERSONALIZED_DEFAULTS)
+    }
     const templateVars = extractVars(t.htmlContent, t.cssContent ?? '')
     setVarValues(agencyAutoFill ? applyAgencyDefaults(templateVars, {}) : {})
     setPreviewTab('editor')
@@ -767,6 +1013,8 @@ export default function EmailTemplatesView() {
     setName('')
     setCategory(getDocCategory(docType))
     setSubject('')
+    const defaultFields = { ...PERSONALIZED_DEFAULTS }
+    setPersonalizedFields(defaultFields)
     setHtml(`<!DOCTYPE html>\n<html>\n<head><meta charset="UTF-8" /></head>\n<body>\n  <h1>Hello, {{clientName}}!</h1>\n  <p>{{message}}</p>\n</body>\n</html>`)
     setCss(`body {\n  font-family: Arial, sans-serif;\n  color: #333;\n  max-width: 650px;\n  margin: 0 auto;\n  padding: 24px;\n}\nh1 { color: #111; }`)
     setVarValues({})
@@ -1054,35 +1302,51 @@ export default function EmailTemplatesView() {
                     </div>
                   </div>
 
-                  {/* Code editor */}
-                  <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden">
-                    <div className="flex border-b border-zinc-200">
-                      <button
-                        type="button"
-                        onClick={() => setCodeTab('html')}
-                        className={`px-5 py-2.5 text-xs font-bold tracking-wide uppercase transition-colors border-r border-zinc-200 ${codeTab === 'html' ? 'bg-[#1e1e1e] text-[#d4d4d4]' : 'text-zinc-500 hover:bg-zinc-50'}`}
-                      >
-                        HTML
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setCodeTab('css')}
-                        className={`px-5 py-2.5 text-xs font-bold tracking-wide uppercase transition-colors ${codeTab === 'css' ? 'bg-[#1e1e1e] text-[#d4d4d4]' : 'text-zinc-500 hover:bg-zinc-50'}`}
-                      >
-                        CSS
-                      </button>
-                      <div className="flex-1 flex items-center justify-end px-4">
-                        <span className="text-[10px] text-zinc-400">
-                          Use <code className="bg-zinc-100 text-zinc-600 px-1 rounded">{'{{variableName}}'}</code> for dynamic values
-                        </span>
+                  {/* Code editor — or Personalized form builder */}
+                  {category === 'personalized' ? (
+                    <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden">
+                      <div className="flex items-center gap-2 px-5 py-3 border-b border-zinc-100 bg-zinc-50">
+                        <span className="material-symbols-outlined text-[18px] text-zinc-400">person</span>
+                        <p className="text-sm font-bold text-black">Personalized Email Builder</p>
+                        <span className="ml-auto text-[10px] text-zinc-400">HTML is auto-generated from these fields</span>
+                      </div>
+                      <div className="p-5">
+                        <PersonalizedFormBuilder
+                          fields={personalizedFields}
+                          onChange={handlePersonalizedChange}
+                        />
                       </div>
                     </div>
-                    {codeTab === 'html' ? (
-                      <CodeEditor value={html} onChange={setHtml} placeholder="Paste AI-generated HTML here…" />
-                    ) : (
-                      <CodeEditor value={css} onChange={setCss} placeholder="body { font-family: sans-serif; }" />
-                    )}
-                  </div>
+                  ) : (
+                    <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden">
+                      <div className="flex border-b border-zinc-200">
+                        <button
+                          type="button"
+                          onClick={() => setCodeTab('html')}
+                          className={`px-5 py-2.5 text-xs font-bold tracking-wide uppercase transition-colors border-r border-zinc-200 ${codeTab === 'html' ? 'bg-[#1e1e1e] text-[#d4d4d4]' : 'text-zinc-500 hover:bg-zinc-50'}`}
+                        >
+                          HTML
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setCodeTab('css')}
+                          className={`px-5 py-2.5 text-xs font-bold tracking-wide uppercase transition-colors ${codeTab === 'css' ? 'bg-[#1e1e1e] text-[#d4d4d4]' : 'text-zinc-500 hover:bg-zinc-50'}`}
+                        >
+                          CSS
+                        </button>
+                        <div className="flex-1 flex items-center justify-end px-4">
+                          <span className="text-[10px] text-zinc-400">
+                            Use <code className="bg-zinc-100 text-zinc-600 px-1 rounded">{'{{variableName}}'}</code> for dynamic values
+                          </span>
+                        </div>
+                      </div>
+                      {codeTab === 'html' ? (
+                        <CodeEditor value={html} onChange={setHtml} placeholder="Paste AI-generated HTML here…" />
+                      ) : (
+                        <CodeEditor value={css} onChange={setCss} placeholder="body { font-family: sans-serif; }" />
+                      )}
+                    </div>
+                  )}
 
                   {/* Detected variables */}
                   <div className="bg-white rounded-xl border border-zinc-200 p-5">

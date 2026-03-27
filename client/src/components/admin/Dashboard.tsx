@@ -18,6 +18,7 @@ import FilesView from './FilesView'
 import AutomationsView from './AutomationsView'
 import ProjectsView from './ProjectsView'
 import EmailTemplatesView from './EmailTemplatesView'
+import ComposeEmailView from './ComposeEmailView'
 import NotificationsPanel from './NotificationsPanel'
 import MessagesView from './MessagesView'
 import CalendarView from './CalendarView'
@@ -42,6 +43,7 @@ type View =
   | 'files'
   | 'automations'
   | 'email-templates'
+  | 'compose'
   | 'messages'
   | 'calendar'
 
@@ -65,6 +67,7 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'automations',      label: 'Automations',      icon: 'auto_awesome' },
   { id: 'email-templates',  label: 'Templates',        icon: 'description' },
   { id: 'messages',         label: 'Messages',         icon: 'chat_bubble' },
+  { id: 'compose',          label: 'Compose',          icon: 'send' },
   { id: 'calendar',         label: 'Calendar',         icon: 'calendar_month' },
   { id: 'settings',         label: 'Settings',         icon: 'settings' },
 ]
@@ -365,6 +368,13 @@ export default function Dashboard({ onLogout }: Props) {
           {view === 'email-templates' && (
             <motion.div key="email-templates" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
               <EmailTemplatesView />
+            </motion.div>
+          )}
+
+          {/* ── COMPOSE VIEW ── */}
+          {view === 'compose' && (
+            <motion.div key="compose" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
+              <ComposeEmailView />
             </motion.div>
           )}
 
