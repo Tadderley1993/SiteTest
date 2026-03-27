@@ -26,11 +26,12 @@ router.post(
     const result = await authService.login(username, password, ip, ua)
 
     res.json({
-      accessToken:  result.accessToken,
-      refreshToken: result.refreshToken,
-      username:     result.username,
-      role:         result.role,
-      sessionId:    result.sessionId,
+      accessToken:       result.accessToken,
+      refreshToken:      result.refreshToken,
+      username:          result.username,
+      role:              result.role,
+      sessionId:         result.sessionId,
+      mustChangePassword: result.mustChangePassword,
     })
   }),
 )

@@ -38,7 +38,9 @@ const PORT = process.env.PORT || 3001
 
 const ALLOWED_ORIGINS = [
   'http://localhost:5173',
-  'https://client-ruddy-one.vercel.app',
+  'https://dta-puce.vercel.app',
+  'https://designsbyta.com',
+  'https://www.designsbyta.com',
   /\.vercel\.app$/,
 ]
 

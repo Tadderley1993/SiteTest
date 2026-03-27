@@ -37,7 +37,7 @@ function ScrollToTop() {
 
 function GtagInjector() {
   useEffect(() => {
-    fetch('/api/admin/analytics/gtag-id')
+    fetch(`${import.meta.env.VITE_API_URL ?? '/api'}/admin/analytics/gtag-id`)
       .then(r => r.json())
       .then(({ measurementId }: { measurementId: string | null }) => {
         if (!measurementId || document.getElementById('gtag-script')) return

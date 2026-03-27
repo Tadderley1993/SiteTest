@@ -460,12 +460,12 @@ export async function generateSigningToken(id: number): Promise<{ token: string 
 }
 
 export async function getProposalByToken(token: string): Promise<Partial<Proposal>> {
-  const res = await axios.get(`/api/sign/${token}`)
+  const res = await api.get(`/sign/${token}`)
   return res.data
 }
 
 export async function signProposal(token: string, signature: string): Promise<{ success: boolean; signedAt: string }> {
-  const res = await axios.post(`/api/sign/${token}`, { signature })
+  const res = await api.post(`/sign/${token}`, { signature })
   return res.data
 }
 
