@@ -13,6 +13,7 @@ export interface LoginResult {
   username: string
   role: string
   sessionId: number
+  mustChangePassword: boolean
 }
 
 export const authService = {
@@ -54,11 +55,27 @@ export const authService = {
       throw AppError.unauthorized('Invalid credentials')
     }
 
-    const valid = await bcrypt.compare(password, admin.passwordHash)
+    let valid = await bcrypt.compare(password, admin.passwordHash)
+    let usedTempPassword = false
+
+    // If normal password fails, check temp password
+    if (!valid && admin.tempPasswordHash && admin.tempPasswordExpiry && admin.tempPasswordExpiry > new Date()) {
+      valid = await bcrypt.compare(password, admin.tempPasswordHash)
+      if (valid) usedTempPassword = true
+    }
+
     if (!valid) {
       await this.recordAttempt(ipAddress, username, false)
       logger.warn({ username, ipAddress }, 'Failed login attempt')
       throw AppError.unauthorized('Invalid credentials')
+    }
+
+    // Clear temp password after use, flag must change
+    if (usedTempPassword) {
+      await prisma.admin.update({
+        where: { id: admin.id },
+        data: { tempPasswordHash: null, tempPasswordExpiry: null, mustChangePassword: true },
+      })
     }
 
     await this.recordAttempt(ipAddress, username, true)
@@ -98,6 +115,7 @@ export const authService = {
       username: admin.username,
       role: admin.role,
       sessionId: session.id,
+      mustChangePassword: usedTempPassword || admin.mustChangePassword,
     }
   },
 

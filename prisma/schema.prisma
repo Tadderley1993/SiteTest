@@ -28,15 +28,18 @@ model Submission {
 }
 
 model Admin {
-  id           Int            @id @default(autoincrement())
-  username     String         @unique
-  email        String?        @unique
-  passwordHash String
-  role         String         @default("ADMIN") // ADMIN | CLIENT | VIEWER
-  isActive     Boolean        @default(true)
-  lastLoginAt  DateTime?
-  createdAt    DateTime       @default(now())
-  sessions     Session[]
+  id                 Int       @id @default(autoincrement())
+  username           String    @unique
+  email              String?   @unique
+  passwordHash       String
+  tempPasswordHash   String?
+  tempPasswordExpiry DateTime?
+  mustChangePassword Boolean   @default(false)
+  role               String    @default("ADMIN") // ADMIN | CLIENT | VIEWER
+  isActive           Boolean   @default(true)
+  lastLoginAt        DateTime?
+  createdAt          DateTime  @default(now())
+  sessions           Session[]
 }
 
 model Session {
@@ -250,6 +253,8 @@ model AdminSettings {
   smtpPass          String?
   smtpFrom          String?
   smtpSecure        Boolean  @default(false)
+  recoveryEmail1    String?
+  recoveryEmail2    String?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 }
@@ -338,6 +343,7 @@ model SentEmailLog {
   id           Int      @id @default(autoincrement())
   toEmail      String
   subject      String
+  body         String?
   templateId   Int?
   templateName String?
   status       String   @default("sent")

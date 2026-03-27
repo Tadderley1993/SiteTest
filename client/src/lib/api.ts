@@ -50,6 +50,12 @@ export interface LoginResponse {
   username: string
   role: string
   sessionId: number
+  mustChangePassword?: boolean
+}
+
+export async function forgotPassword(username: string): Promise<{ message: string }> {
+  const res = await api.post('/auth/forgot-password', { username })
+  return res.data
 }
 
 // Client types
@@ -159,6 +165,10 @@ export async function getSubmissions(): Promise<Submission[]> {
 export async function getSubmission(id: number): Promise<Submission> {
   const response = await api.get(`/admin/submissions/${id}`)
   return response.data
+}
+
+export async function deleteSubmission(id: number): Promise<void> {
+  await api.delete(`/admin/submissions/${id}`)
 }
 
 // Client API
@@ -483,6 +493,8 @@ export interface AdminSettings {
   hasSmtpPass: boolean
   smtpFrom: string | null
   smtpSecure: boolean
+  recoveryEmail1: string | null
+  recoveryEmail2: string | null
 }
 
 export async function getAdminSettings(): Promise<AdminSettings> {
@@ -820,6 +832,7 @@ export interface SentEmailLog {
   id: number
   toEmail: string
   subject: string
+  body?: string | null
   templateId: number | null
   templateName: string | null
   status: string
@@ -828,6 +841,11 @@ export interface SentEmailLog {
 
 export async function getSentEmailLogs(): Promise<SentEmailLog[]> {
   const res = await api.get('/admin/email-templates/sent')
+  return res.data
+}
+
+export async function getSentEmailLog(id: number): Promise<SentEmailLog> {
+  const res = await api.get(`/admin/email-templates/sent/${id}`)
   return res.data
 }
 

@@ -75,6 +75,11 @@ export default function Settings() {
   const [accountMsg, setAccountMsg] = useState('')
   const [accountError, setAccountError] = useState('')
 
+  // Recovery emails state
+  const [recoveryForm, setRecoveryForm] = useState({ recoveryEmail1: '', recoveryEmail2: '' })
+  const [recoverySaving, setRecoverySaving] = useState(false)
+  const [recoveryMsg, setRecoveryMsg] = useState('')
+
   useEffect(() => {
     getAdminSettings().then(s => {
       setSettings(s)
@@ -91,6 +96,10 @@ export default function Settings() {
         smtpPass: s.hasSmtpPass ? '••••••••' : '',
         smtpFrom: s.smtpFrom ?? '',
         smtpSecure: s.smtpSecure ?? false,
+      })
+      setRecoveryForm({
+        recoveryEmail1: s.recoveryEmail1 ?? '',
+        recoveryEmail2: s.recoveryEmail2 ?? '',
       })
     })
   }, [])
@@ -249,6 +258,21 @@ export default function Settings() {
       setAccountError(ae?.response?.data?.error ?? ae?.message ?? 'Failed to update account')
     } finally {
       setAccountSaving(false)
+    }
+  }
+
+  const handleRecoverySave = async () => {
+    setRecoveryMsg('')
+    setRecoverySaving(true)
+    try {
+      await saveAdminSettings({ recoveryEmail1: recoveryForm.recoveryEmail1, recoveryEmail2: recoveryForm.recoveryEmail2 } as Parameters<typeof saveAdminSettings>[0])
+      setRecoveryMsg('Recovery emails saved.')
+      setTimeout(() => setRecoveryMsg(''), 4000)
+    } catch (e) {
+      const ae = e as { response?: { data?: { error?: string } }; message?: string }
+      setRecoveryMsg(ae?.response?.data?.error ?? ae?.message ?? 'Failed to save')
+    } finally {
+      setRecoverySaving(false)
     }
   }
 
@@ -850,6 +874,53 @@ export default function Settings() {
               className="w-full px-4 py-2 bg-black text-white text-sm font-semibold rounded-lg hover:bg-zinc-800 transition-colors disabled:opacity-50"
             >
               {accountSaving ? 'Saving...' : 'Save Changes'}
+            </button>
+          </div>
+
+          {/* Recovery emails */}
+          <div className="bg-white border border-zinc-200 rounded-xl p-6 space-y-4">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="material-symbols-outlined text-base text-black">mail_lock</span>
+              <h3 className="text-sm font-semibold text-black">Password Recovery Emails</h3>
+            </div>
+            <p className="text-xs text-zinc-500">When you use "Forgot password?" on the login page, a temporary password is sent to these addresses.</p>
+
+            <div>
+              <label className="block text-xs text-zinc-500 mb-1">Recovery Email 1</label>
+              <input
+                type="email"
+                value={recoveryForm.recoveryEmail1}
+                onChange={e => setRecoveryForm(f => ({ ...f, recoveryEmail1: e.target.value }))}
+                placeholder="you@example.com"
+                className={inputCls}
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs text-zinc-500 mb-1">Recovery Email 2 <span className="text-zinc-400">(optional)</span></label>
+              <input
+                type="email"
+                value={recoveryForm.recoveryEmail2}
+                onChange={e => setRecoveryForm(f => ({ ...f, recoveryEmail2: e.target.value }))}
+                placeholder="backup@example.com"
+                className={inputCls}
+              />
+            </div>
+
+            {recoveryMsg && (
+              <div className={`flex items-center gap-2 p-3 rounded-lg text-sm ${recoveryMsg.includes('saved') ? 'bg-green-500/10 border border-green-400/20 text-green-600' : 'bg-red-500/10 border border-red-400/20 text-red-500'}`}>
+                {recoveryMsg.includes('saved') ? <CheckCircle2 className="w-4 h-4 flex-shrink-0" /> : <XCircle className="w-4 h-4 flex-shrink-0" />}
+                <span>{recoveryMsg}</span>
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={handleRecoverySave}
+              disabled={recoverySaving}
+              className="w-full px-4 py-2 bg-black text-white text-sm font-semibold rounded-lg hover:bg-zinc-800 transition-colors disabled:opacity-50"
+            >
+              {recoverySaving ? 'Saving...' : 'Save Recovery Emails'}
             </button>
           </div>
         </motion.div>

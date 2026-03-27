@@ -40,6 +40,7 @@ router.put('/', async (req, res) => {
     const {
       paypalClientId, paypalSecret, paypalEnvironment, paypalMerchantId, paypalEmail,
       smtpHost, smtpPort, smtpUser, smtpPass, smtpFrom, smtpSecure,
+      recoveryEmail1, recoveryEmail2,
     } = req.body
     const updateData: Record<string, unknown> = {}
     if (paypalClientId !== undefined) updateData.paypalClientId = paypalClientId
@@ -53,6 +54,8 @@ router.put('/', async (req, res) => {
     if (smtpPass !== undefined && smtpPass !== '••••••••') updateData.smtpPass = smtpPass || null
     if (smtpFrom !== undefined) updateData.smtpFrom = smtpFrom || null
     if (smtpSecure !== undefined) updateData.smtpSecure = Boolean(smtpSecure)
+    if (recoveryEmail1 !== undefined) updateData.recoveryEmail1 = recoveryEmail1 || null
+    if (recoveryEmail2 !== undefined) updateData.recoveryEmail2 = recoveryEmail2 || null
     const updated = await prisma.adminSettings.update({ where: { id: s.id }, data: updateData })
     res.json(maskSettings(updated as unknown as Record<string, unknown>))
   } catch {
