@@ -17,6 +17,9 @@ import DealsView from './DealsView'
 import FilesView from './FilesView'
 import AutomationsView from './AutomationsView'
 import ProjectsView from './ProjectsView'
+import EmailTemplatesView from './EmailTemplatesView'
+import NotificationsPanel from './NotificationsPanel'
+import MessagesView from './MessagesView'
 
 interface Props {
   onLogout: () => void
@@ -35,6 +38,8 @@ type View =
   | 'projects'
   | 'files'
   | 'automations'
+  | 'email-templates'
+  | 'messages'
 
 interface NavItem {
   id: View
@@ -53,9 +58,25 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'financials',   label: 'Financials',   icon: 'payments' },
   { id: 'files',        label: 'Files',        icon: 'folder' },
   { id: 'analytics',    label: 'Analytics',    icon: 'insights' },
-  { id: 'automations',  label: 'Automations',  icon: 'auto_awesome' },
-  { id: 'settings',     label: 'Settings',     icon: 'settings' },
+  { id: 'automations',      label: 'Automations',      icon: 'auto_awesome' },
+  { id: 'email-templates',  label: 'Templates',        icon: 'description' },
+  { id: 'messages',         label: 'Messages',         icon: 'chat_bubble' },
+  { id: 'settings',         label: 'Settings',         icon: 'settings' },
 ]
+
+// ── Badge helpers ─────────────────────────────────────────────────────────────
+
+const BADGE_KEY = (view: View) => `ota_seen_${view}`
+
+function getSeenCount(view: View): number {
+  return parseInt(localStorage.getItem(BADGE_KEY(view)) ?? '0', 10)
+}
+
+function markSeen(view: View, count: number) {
+  localStorage.setItem(BADGE_KEY(view), String(count))
+}
+
+// ── Dashboard ─────────────────────────────────────────────────────────────────
 
 export default function Dashboard({ onLogout }: Props) {
   const { username, logout } = useAuth()
@@ -66,6 +87,7 @@ export default function Dashboard({ onLogout }: Props) {
   const [view, setView] = useState<View>('dashboard')
   const [selectedClientId, setSelectedClientId] = useState<number | null>(null)
   const [editingProposal, setEditingProposal] = useState<Proposal | 'new' | null>(null)
+  const [badges, setBadges] = useState<Partial<Record<View, number>>>({})
 
   useEffect(() => {
     const fetchData = async () => {
@@ -73,6 +95,9 @@ export default function Dashboard({ onLogout }: Props) {
         const [subs, cls] = await Promise.all([getSubmissions(), getClients()])
         setSubmissions(subs)
         setClients(cls)
+        // Compute badges after data loads
+        const subBadge = Math.max(0, subs.length - getSeenCount('submissions'))
+        setBadges({ submissions: subBadge })
       } catch {
         setError('Failed to load data')
       } finally {
@@ -104,6 +129,11 @@ export default function Dashboard({ onLogout }: Props) {
     setView(id)
     setSelectedClientId(null)
     setEditingProposal(null)
+    // Clear badge for this view when navigating to it
+    if (id === 'submissions') {
+      markSeen('submissions', submissions.length)
+      setBadges(prev => ({ ...prev, submissions: 0 }))
+    }
   }
 
   return (
@@ -120,6 +150,7 @@ export default function Dashboard({ onLogout }: Props) {
         <nav className="flex-1 space-y-1 overflow-y-auto">
           {NAV_ITEMS.map(item => {
             const isActive = view === item.id
+            const badge = badges[item.id] ?? 0
             return (
               <button
                 key={item.id}
@@ -131,7 +162,12 @@ export default function Dashboard({ onLogout }: Props) {
                 }`}
               >
                 <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
-                <span>{item.label}</span>
+                <span className="flex-1">{item.label}</span>
+                {badge > 0 && (
+                  <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-black text-white text-[10px] font-bold flex items-center justify-center leading-none">
+                    {badge > 99 ? '99+' : badge}
+                  </span>
+                )}
               </button>
             )
           })}
@@ -172,9 +208,7 @@ export default function Dashboard({ onLogout }: Props) {
           />
         </div>
         <div className="flex items-center gap-4">
-          <button className="text-zinc-500 hover:text-black transition-colors">
-            <span className="material-symbols-outlined">notifications</span>
-          </button>
+          <NotificationsPanel onUnreadCountChange={() => {}} />
           <a
             href="/"
             target="_blank"
@@ -315,6 +349,20 @@ export default function Dashboard({ onLogout }: Props) {
           {view === 'automations' && (
             <motion.div key="automations" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
               <AutomationsView />
+            </motion.div>
+          )}
+
+          {/* ── EMAIL TEMPLATES VIEW ── */}
+          {view === 'email-templates' && (
+            <motion.div key="email-templates" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
+              <EmailTemplatesView />
+            </motion.div>
+          )}
+
+          {/* ── MESSAGES VIEW ── */}
+          {view === 'messages' && (
+            <motion.div key="messages" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
+              <MessagesView />
             </motion.div>
           )}
 

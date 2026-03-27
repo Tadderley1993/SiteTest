@@ -5,7 +5,7 @@ import Footer from '../components/layout/Footer'
 
 const PROBLEMS = [
   { n: '01', title: 'Invisible online', desc: 'Competitors are showing up in search results while your business stays buried on page three.' },
-  { n: '02', title: 'Low conversion rate', desc: 'Visitors come to your site and leave without taking action — your site isn\'t turning traffic into revenue.' },
+  { n: '02', title: 'Low conversion rate', desc: 'Visitors come to your site and leave without taking action. Your site isn\'t turning traffic into revenue.' },
   { n: '03', title: 'Outdated design', desc: 'A site that looks old signals a business that doesn\'t care. First impressions cost you clients every day.' },
   { n: '04', title: 'Slow page speeds', desc: 'Every extra second of load time costs you 7% in conversions. Your site may be silently driving customers away.' },
 ]
@@ -14,12 +14,12 @@ const SERVICES_LIST = [
   {
     icon: 'brush',
     title: 'Brand Identity',
-    desc: 'A cohesive visual system that communicates who you are before a single word is read — logo, color, typography, and more.',
+    desc: 'A cohesive visual system that communicates who you are before a single word is read: logo, color, typography, and more.',
   },
   {
     icon: 'code',
     title: 'Web Development',
-    desc: 'Fast, accessible, SEO-ready websites built with modern tech. No templates — engineered from scratch for your goals.',
+    desc: 'Fast, accessible, SEO-ready websites built with modern tech. No templates. Engineered from scratch for your goals.',
   },
   {
     icon: 'trending_up',
@@ -30,21 +30,31 @@ const SERVICES_LIST = [
 
 const PROCESS_STEPS = [
   { n: '01', title: 'Discovery', desc: 'We dig into your goals, competitors, and audience to define a strategy that wins.' },
-  { n: '02', title: 'Design', desc: 'Every screen designed with purpose — pixel-perfect before a line of code is written.' },
+  { n: '02', title: 'Design', desc: 'Every screen designed with purpose, pixel-perfect before a line of code is written.' },
   { n: '03', title: 'Build', desc: 'Clean, performant code. Fast load times, mobile-first, built to scale.' },
-  { n: '04', title: 'Launch', desc: 'Deployment, SEO setup, analytics — go live ready to compete from day one.' },
+  { n: '04', title: 'Launch', desc: 'Deployment, SEO setup, analytics. Go live ready to compete from day one.' },
 ]
 
 const TESTIMONIALS = [
   {
-    quote: 'Working with Terrence was the best investment we made this year. Our organic traffic tripled in 90 days.',
-    name: 'Jordan T.',
-    role: 'Founder, NexaBank',
+    quote: 'Speed is everything. A one-second delay in page load time can reduce conversions by 7%. Performance isn\'t optional — it\'s a revenue strategy.',
+    name: 'Neil Patel',
+    role: 'Co-Founder, NP Digital',
   },
   {
-    quote: 'The site he built for us generated more leads in the first month than the previous one did all year.',
-    name: 'Marcus L.',
-    role: 'Owner, Apex Audio',
+    quote: 'Design is not just what it looks like and feels like. Design is how it works.',
+    name: 'Steve Jobs',
+    role: 'Co-Founder, Apple',
+  },
+  {
+    quote: 'Your website is your best salesperson. It works 24/7, never calls in sick, and reaches every potential customer at once.',
+    name: 'Marcus Sheridan',
+    role: 'Author, They Ask You Answer',
+  },
+  {
+    quote: 'In the world of internet customer service, it\'s important to remember your competitor is only one mouse click away.',
+    name: 'Doug Warner',
+    role: 'Former CEO, J.P. Morgan',
   },
 ]
 
@@ -74,13 +84,13 @@ export default function Home() {
             transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
           >
             <p className="text-[11px] font-semibold tracking-[0.2em] uppercase text-[#777] mb-6">
-              Boston, MA · Available Worldwide
+              Boston, MA
             </p>
             <h1 className="text-[clamp(38px,7vw,88px)] font-extrabold leading-[1.0] tracking-[-0.04em] text-black mb-6 max-w-4xl uppercase">
               Websites That Work As Hard As You Do
             </h1>
             <p className="text-[17px] text-[#474747] leading-relaxed max-w-xl mb-10">
-              Award-winning design. Engineering precision. Business results. I build websites that don't just look good — they convert visitors into clients.
+              Award-winning design. Engineering precision. Business results. I build websites that don't just look good. They convert visitors into clients.
             </p>
           </motion.div>
           <motion.div
@@ -110,9 +120,13 @@ export default function Home() {
         <img
           src="/imgs/hero-desk.png"
           alt="Terrence Adderley — Web Design Studio Boston MA"
-          className="w-full h-full object-cover grayscale blur-[2px] scale-105"
+          className="w-full h-full object-cover grayscale scale-105"
         />
-        <div className="absolute inset-0 bg-black/50" />
+        <div className="absolute inset-0 flex items-center justify-center">
+          <p className="text-white font-black uppercase tracking-[0.15em] text-center" style={{ fontSize: 'clamp(18px, 3.5vw, 56px)' }}>
+            Engineered to Innovate
+          </p>
+        </div>
       </div>
 
       {/* ── PROBLEM SECTION ──────────────────────────────────────── */}
@@ -215,9 +229,9 @@ export default function Home() {
       {/* ── TESTIMONIALS ─────────────────────────────────────────── */}
       <section className="bg-white py-20 md:py-28 px-6 lg:px-8 border-b border-[#e5e5e5]">
         <div className="max-w-7xl mx-auto">
-          <p className="text-[11px] font-semibold tracking-[0.2em] uppercase text-[#777] mb-5">Results</p>
+          <p className="text-[11px] font-semibold tracking-[0.2em] uppercase text-[#777] mb-5">Why It Matters</p>
           <h2 className="text-[clamp(28px,4vw,48px)] font-bold leading-[1.1] tracking-[-0.03em] text-black mb-14 max-w-lg">
-            Businesses that chose to compete.
+            What the world's sharpest minds say about optimization.
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-[#e5e5e5]">
             {TESTIMONIALS.map(({ quote, name, role }, i) => (

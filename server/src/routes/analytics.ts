@@ -175,6 +175,40 @@ router.get('/traffic', async (req, res) => {
   }
 })
 
+// ── Referrers ────────────────────────────────────────────────────────────────
+
+// GET /api/admin/analytics/referrers?period=...&limit=20
+router.get('/referrers', async (req, res) => {
+  try {
+    const ga = await getGASettings()
+    if (!ga) return res.status(503).json({ error: 'Google Analytics not configured' })
+
+    const { startDate, endDate } = periodToDates((req.query.period as string) ?? '30d')
+    const limit = parseInt((req.query.limit as string) ?? '20')
+    const client = makeClient(ga.credentials)
+
+    const [response] = await client.runReport({
+      property: `properties/${ga.propertyId}`,
+      dateRanges: [{ startDate, endDate }],
+      dimensions: [{ name: 'sessionSource' }, { name: 'sessionMedium' }],
+      metrics: [{ name: 'sessions' }, { name: 'activeUsers' }],
+      orderBys: [{ metric: { metricName: 'sessions' }, desc: true }],
+      limit,
+    })
+
+    const data = (response.rows ?? []).map(row => ({
+      source: row.dimensionValues?.[0]?.value ?? 'Unknown',
+      medium: row.dimensionValues?.[1]?.value ?? '',
+      sessions: Math.round(mv(row, 0)),
+      users: Math.round(mv(row, 1)),
+    }))
+
+    res.json(data)
+  } catch (error) {
+    res.status(500).json({ error: error instanceof Error ? error.message : 'Failed to fetch referrers' })
+  }
+})
+
 // ── Top Pages ──────────────────────────────────────────────────────────────────
 
 // GET /api/admin/analytics/pages?period=...&limit=25

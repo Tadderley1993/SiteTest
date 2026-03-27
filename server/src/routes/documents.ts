@@ -5,6 +5,7 @@ import path from 'path'
 import fs from 'fs'
 import { fileURLToPath } from 'url'
 import { authMiddleware } from '../middleware/auth.js'
+import { createNotification } from '../lib/notify.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -51,6 +52,11 @@ router.post('/:clientId/documents', upload.single('file'), async (req: Request, 
         size: req.file.size,
       },
     })
+    await createNotification(
+      'file_uploaded',
+      'File uploaded',
+      `"${req.file.originalname}" uploaded for client #${req.params.clientId}`,
+    )
     res.json(doc)
   } catch (error) {
     console.error('Error uploading document:', error)

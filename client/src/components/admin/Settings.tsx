@@ -8,8 +8,9 @@ import {
 import {
   AdminSettings, getAdminSettings, saveAdminSettings, testPayPalConnection,
   getPayPalInvoices, sendPayPalInvoice, cancelPayPalInvoice, deletePayPalInvoice,
-  getPayPalTransactions, testSmtp,
+  getPayPalTransactions, testSmtp, updateAdminAccount,
 } from '../../lib/api'
+import { useAuth } from '../../context/AuthContext'
 
 const inputCls = "w-full px-3 py-2 bg-[#f3f3f3] border border-zinc-200 rounded-lg text-black text-sm focus:outline-none focus:border-black/20 placeholder-text-muted"
 
@@ -28,12 +29,13 @@ function fmtCurrency(amount: { currency_code: string; value: string } | undefine
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: amount.currency_code }).format(parseFloat(amount.value))
 }
 
-type Tab = 'paypal' | 'invoices' | 'transactions' | 'email'
+type Tab = 'paypal' | 'invoices' | 'transactions' | 'email' | 'account'
 
 export default function Settings() {
+  const { username: currentUsername } = useAuth()
   const [tab, setTab] = useState<Tab>('paypal')
   const [settings, setSettings] = useState<AdminSettings | null>(null)
-  const [form, setForm] = useState({ paypalClientId: '', paypalSecret: '', paypalEnvironment: 'sandbox' })
+  const [form, setForm] = useState({ paypalClientId: '', paypalSecret: '', paypalEnvironment: 'sandbox', paypalMerchantId: '' })
   const [showSecret, setShowSecret] = useState(false)
   const [saving, setSaving] = useState(false)
   const [testing, setTesting] = useState(false)
@@ -65,6 +67,14 @@ export default function Settings() {
   const [smtpTestResult, setSmtpTestResult] = useState<{ success: boolean; message?: string; error?: string } | null>(null)
   const [showSmtpPass, setShowSmtpPass] = useState(false)
 
+  // Account state
+  const [accountForm, setAccountForm] = useState({ currentPassword: '', newUsername: '', newPassword: '', confirmPassword: '' })
+  const [showAccountPass, setShowAccountPass] = useState(false)
+  const [showNewPass, setShowNewPass] = useState(false)
+  const [accountSaving, setAccountSaving] = useState(false)
+  const [accountMsg, setAccountMsg] = useState('')
+  const [accountError, setAccountError] = useState('')
+
   useEffect(() => {
     getAdminSettings().then(s => {
       setSettings(s)
@@ -72,6 +82,7 @@ export default function Settings() {
         paypalClientId: s.paypalClientId ?? '',
         paypalSecret: s.hasSecret ? '••••••••' : '',
         paypalEnvironment: s.paypalEnvironment,
+        paypalMerchantId: s.paypalMerchantId ?? '',
       })
       setSmtpForm({
         smtpHost: s.smtpHost ?? '',
@@ -217,6 +228,30 @@ export default function Settings() {
     }
   }
 
+  const handleAccountSave = async () => {
+    setAccountError('')
+    setAccountMsg('')
+    if (!accountForm.currentPassword) { setAccountError('Current password is required'); return }
+    if (!accountForm.newUsername && !accountForm.newPassword) { setAccountError('Enter a new username or new password'); return }
+    if (accountForm.newPassword && accountForm.newPassword !== accountForm.confirmPassword) { setAccountError('New passwords do not match'); return }
+    if (accountForm.newPassword && accountForm.newPassword.length < 8) { setAccountError('New password must be at least 8 characters'); return }
+    setAccountSaving(true)
+    try {
+      const data: { currentPassword: string; newUsername?: string; newPassword?: string } = { currentPassword: accountForm.currentPassword }
+      if (accountForm.newUsername) data.newUsername = accountForm.newUsername
+      if (accountForm.newPassword) data.newPassword = accountForm.newPassword
+      const result = await updateAdminAccount(data)
+      setAccountMsg(result.message)
+      setAccountForm({ currentPassword: '', newUsername: '', newPassword: '', confirmPassword: '' })
+      setTimeout(() => setAccountMsg(''), 4000)
+    } catch (e) {
+      const ae = e as { response?: { data?: { error?: string } }; message?: string }
+      setAccountError(ae?.response?.data?.error ?? ae?.message ?? 'Failed to update account')
+    } finally {
+      setAccountSaving(false)
+    }
+  }
+
   const tabBtn = (id: Tab, label: string) => (
     <button
       onClick={() => setTab(id)}
@@ -246,6 +281,7 @@ export default function Settings() {
         {tabBtn('invoices', 'PayPal Invoices')}
         {tabBtn('transactions', 'Transactions')}
         {tabBtn('email', 'Email / SMTP')}
+        {tabBtn('account', 'My Account')}
       </div>
 
       {/* ── PAYPAL TAB ── */}
@@ -325,6 +361,23 @@ export default function Settings() {
                   {showSecret ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
+            </div>
+
+            <div>
+              <label className="block text-xs text-zinc-500 mb-1.5">
+                Merchant ID
+                <span className="ml-2 text-[10px] px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded font-semibold">Required for PayPal Button</span>
+              </label>
+              <input
+                value={form.paypalMerchantId}
+                onChange={e => setForm(f => ({ ...f, paypalMerchantId: e.target.value }))}
+                placeholder="e.g. ABCDE12345XYZ"
+                className={inputCls}
+              />
+              <p className="mt-1.5 text-[11px] text-zinc-400">
+                Find your Merchant ID in PayPal → Account Settings → Business Information → PayPal Merchant ID.
+                Required to display the "Pay with PayPal" button in invoice emails.
+              </p>
             </div>
 
             {saveMsg && (
@@ -707,6 +760,97 @@ export default function Settings() {
                 {smtpSaving ? 'Saving...' : 'Save Email Settings'}
               </button>
             </div>
+          </div>
+        </motion.div>
+      )}
+
+      {/* ── MY ACCOUNT TAB ── */}
+      {tab === 'account' && (
+        <motion.div key="account" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="max-w-lg space-y-6">
+          <div className="bg-white border border-zinc-200 rounded-xl p-6 space-y-5">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="material-symbols-outlined text-base text-black">manage_accounts</span>
+              <h3 className="text-sm font-semibold text-black">Change Username or Password</h3>
+            </div>
+
+            <div>
+              <p className="text-xs text-zinc-500 mb-1">Current username</p>
+              <p className="text-sm font-medium text-black">{currentUsername ?? '—'}</p>
+            </div>
+
+            <div>
+              <label className="block text-xs text-zinc-500 mb-1">New Username <span className="text-zinc-400">(leave blank to keep current)</span></label>
+              <input
+                value={accountForm.newUsername}
+                onChange={e => setAccountForm(f => ({ ...f, newUsername: e.target.value }))}
+                placeholder={currentUsername ?? 'admin'}
+                className={inputCls}
+              />
+            </div>
+
+            <div className="border-t border-zinc-100 pt-4">
+              <label className="block text-xs text-zinc-500 mb-1">New Password <span className="text-zinc-400">(leave blank to keep current)</span></label>
+              <div className="relative mb-3">
+                <input
+                  type={showNewPass ? 'text' : 'password'}
+                  value={accountForm.newPassword}
+                  onChange={e => setAccountForm(f => ({ ...f, newPassword: e.target.value }))}
+                  placeholder="Min. 8 characters"
+                  className={inputCls + ' pr-10'}
+                />
+                <button type="button" onClick={() => setShowNewPass(v => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-black">
+                  {showNewPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+              <label className="block text-xs text-zinc-500 mb-1">Confirm New Password</label>
+              <input
+                type="password"
+                value={accountForm.confirmPassword}
+                onChange={e => setAccountForm(f => ({ ...f, confirmPassword: e.target.value }))}
+                placeholder="Re-enter new password"
+                className={inputCls}
+              />
+            </div>
+
+            <div className="border-t border-zinc-100 pt-4">
+              <label className="block text-xs text-zinc-500 mb-1">Current Password <span className="text-red-400">*</span></label>
+              <div className="relative">
+                <input
+                  type={showAccountPass ? 'text' : 'password'}
+                  value={accountForm.currentPassword}
+                  onChange={e => setAccountForm(f => ({ ...f, currentPassword: e.target.value }))}
+                  placeholder="Required to confirm changes"
+                  className={inputCls + ' pr-10'}
+                />
+                <button type="button" onClick={() => setShowAccountPass(v => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-black">
+                  {showAccountPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            {accountError && (
+              <div className="flex items-center gap-2 p-3 bg-red-500/10 border border-red-400/20 rounded-lg text-sm text-red-500">
+                <XCircle className="w-4 h-4 flex-shrink-0" />
+                <span>{accountError}</span>
+              </div>
+            )}
+            {accountMsg && (
+              <div className="flex items-center gap-2 p-3 bg-green-500/10 border border-green-400/20 rounded-lg text-sm text-green-600">
+                <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+                <span>{accountMsg}</span>
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={handleAccountSave}
+              disabled={accountSaving}
+              className="w-full px-4 py-2 bg-black text-white text-sm font-semibold rounded-lg hover:bg-zinc-800 transition-colors disabled:opacity-50"
+            >
+              {accountSaving ? 'Saving...' : 'Save Changes'}
+            </button>
           </div>
         </motion.div>
       )}

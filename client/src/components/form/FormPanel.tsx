@@ -24,6 +24,7 @@ interface FormState {
   phone: string
   clientType: string
   services: string[]
+  painPoints: string[]
   description: string
   teamSize: string
   budget: string
@@ -39,6 +40,7 @@ const initialFormState: FormState = {
   phone: '',
   clientType: '',
   services: [],
+  painPoints: [],
   description: '',
   teamSize: '',
   budget: '',
@@ -76,6 +78,15 @@ export default function FormPanel({ onComplete }: FormPanelProps) {
         : [...prev.services, serviceId],
     }))
     if (errors.services) setErrors((prev) => ({ ...prev, services: undefined }))
+  }
+
+  const togglePainPoint = (id: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      painPoints: prev.painPoints.includes(id)
+        ? prev.painPoints.filter((p) => p !== id)
+        : [...prev.painPoints, id],
+    }))
   }
 
   const validateStep1 = (): boolean => {
@@ -127,6 +138,7 @@ export default function FormPanel({ onComplete }: FormPanelProps) {
         phone: formData.phone,
         clientType: formData.clientType,
         services: formData.services,
+        painPoints: formData.painPoints.length > 0 ? formData.painPoints : undefined,
         description: formData.description,
         teamSize: formData.teamSize,
         budget: formData.budget,
@@ -233,8 +245,10 @@ export default function FormPanel({ onComplete }: FormPanelProps) {
               <Step2Services
                 key="step2"
                 selectedServices={formData.services}
+                selectedPainPoints={formData.painPoints}
                 description={formData.description}
                 onServiceToggle={toggleService}
+                onPainPointToggle={togglePainPoint}
                 onDescriptionChange={(v) => updateField('description', v)}
                 onNext={handleStep2Next}
                 onBack={() => setStep(1)}

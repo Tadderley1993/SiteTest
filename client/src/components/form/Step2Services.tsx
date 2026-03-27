@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion'
 import { Monitor, Smartphone, Palette, RefreshCw, Megaphone, Search } from 'lucide-react'
+
 import { HoverBorderGradient } from '../ui/HoverBorderGradient'
 
 const services = [
@@ -11,10 +12,25 @@ const services = [
   { id: 'seo', label: 'SEO Optimization', icon: Search },
 ]
 
+const painPoints = [
+  { id: 'outdated', label: 'Outdated website' },
+  { id: 'no-presence', label: 'No online presence' },
+  { id: 'low-traffic', label: 'Low traffic' },
+  { id: 'mobile', label: 'Poor mobile experience' },
+  { id: 'branding', label: 'Weak brand identity' },
+  { id: 'conversions', label: 'Low conversions' },
+  { id: 'speed', label: 'Slow load times' },
+  { id: 'seo', label: 'Not ranking on Google' },
+  { id: 'cms', label: 'Hard to update content' },
+  { id: 'messaging', label: 'No clear message' },
+]
+
 interface Props {
   selectedServices: string[]
+  selectedPainPoints: string[]
   description: string
   onServiceToggle: (serviceId: string) => void
+  onPainPointToggle: (id: string) => void
   onDescriptionChange: (value: string) => void
   onNext: () => void
   onBack: () => void
@@ -23,8 +39,10 @@ interface Props {
 
 export default function Step2Services({
   selectedServices,
+  selectedPainPoints,
   description,
   onServiceToggle,
+  onPainPointToggle,
   onDescriptionChange,
   onNext,
   onBack,
@@ -42,37 +60,73 @@ export default function Step2Services({
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -16 }}
       transition={{ duration: 0.25 }}
-      className="space-y-4"
+      className="space-y-5"
     >
+      {/* Pain Points */}
       <div>
         <label className="block text-xs font-medium text-white/50 mb-2 tracking-wide">
-          What do you need help with?
+          What's holding you back?
+          <span className="ml-1.5 text-white/25 font-normal">(select all that apply)</span>
+        </label>
+        <div className="flex flex-wrap gap-2">
+          {painPoints.map((point) => {
+            const isSelected = selectedPainPoints.includes(point.id)
+            return (
+              <button
+                key={point.id}
+                type="button"
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); onPainPointToggle(point.id) }}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 border ${
+                  isSelected
+                    ? 'bg-white text-black border-white'
+                    : 'bg-transparent text-white/45 border-white/[0.12] hover:border-white/30 hover:text-white/65'
+                }`}
+              >
+                {point.label}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* Services */}
+      <div>
+        <label className="block text-xs font-medium text-white/50 mb-2 tracking-wide">
+          What do you need?
+          <span className="ml-1.5 text-white/25 font-normal">(select all that apply)</span>
         </label>
         <div className="grid grid-cols-2 gap-2">
           {services.map((service) => {
             const Icon = service.icon
             const isSelected = selectedServices.includes(service.id)
             return (
-              <motion.button
+              <button
                 key={service.id}
                 type="button"
-                onClick={() => onServiceToggle(service.id)}
-                whileTap={{ scale: 0.97 }}
-                className={`p-3 rounded-xl border transition-all duration-200 text-left ${
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); onServiceToggle(service.id) }}
+                className={`p-3 rounded-xl border transition-all duration-200 text-left relative ${
                   isSelected
-                    ? 'border-white/40 bg-white/[0.1] text-white'
+                    ? 'border-white/60 bg-white/[0.14] text-white'
                     : 'border-white/[0.08] bg-white/[0.03] text-white/40 hover:border-white/20 hover:bg-white/[0.06] hover:text-white/60'
                 }`}
               >
+                {isSelected && (
+                  <span className="absolute top-2 right-2 w-3.5 h-3.5 rounded-full bg-white flex items-center justify-center">
+                    <svg className="w-2 h-2 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  </span>
+                )}
                 <Icon className="w-4 h-4 mb-1.5" />
                 <span className="text-xs font-medium leading-tight block">{service.label}</span>
-              </motion.button>
+              </button>
             )
           })}
         </div>
         {errors.services && <p className="text-red-400 text-xs mt-1.5">{errors.services}</p>}
       </div>
 
+      {/* Description */}
       <div>
         <label className="block text-xs font-medium text-white/50 mb-1.5 tracking-wide">
           Describe your project

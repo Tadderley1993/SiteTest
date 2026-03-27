@@ -1,11 +1,17 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Plus, ArrowLeft, Trash2, Send, ExternalLink, Bell, XCircle,
   Copy, ChevronDown, ChevronUp, FileText, CheckCircle, Clock, AlertCircle,
-  Search, User, RefreshCw,
+  Search, User, RefreshCw, Download, Eye, EyeOff, FileCode,
 } from 'lucide-react'
-import api from '../../lib/api'
+import api, { getEmailTemplates } from '../../lib/api'
+import type { EmailTemplate } from '../../lib/api'
+import {
+  buildInvoiceTokenMap,
+  renderTemplateDocument,
+  downloadTemplateAsPdf,
+} from '../../lib/templateRenderer'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -185,19 +191,18 @@ function ClientSelect({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}
             transition={{ duration: 0.15 }}
-            className="absolute z-50 top-full mt-1 left-0 right-0 rounded-xl border border-zinc-200 shadow-2xl overflow-hidden"
-            style={{ backgroundColor: '#0E1117' }}
+            className="absolute z-50 top-full mt-1 left-0 right-0 rounded-xl border border-zinc-200 shadow-xl bg-white overflow-hidden"
           >
             {/* Search */}
             <div className="flex items-center gap-2 px-3 py-2.5 border-b border-zinc-100">
-              <Search className="w-3.5 h-3.5 text-zinc-500 flex-shrink-0" />
+              <Search className="w-3.5 h-3.5 text-zinc-400 flex-shrink-0" />
               <input
                 autoFocus
                 type="text"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder="Search clients…"
-                className="flex-1 bg-transparent text-sm text-black placeholder:text-zinc-500 focus:outline-none font-body"
+                className="flex-1 bg-transparent text-sm text-black placeholder:text-zinc-400 focus:outline-none font-body"
               />
             </div>
 
@@ -215,7 +220,7 @@ function ClientSelect({
                     key={c.id}
                     type="button"
                     onClick={() => { onChange(c.id); setOpen(false); setSearch('') }}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-white/[0.06] transition-colors"
+                    className="w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-zinc-50 transition-colors"
                   >
                     <div className="w-7 h-7 rounded-full bg-zinc-100 flex items-center justify-center flex-shrink-0">
                       <User className="w-3.5 h-3.5 text-black" />
@@ -287,6 +292,13 @@ function InvoiceBuilder({
   const [sending, setSending] = useState(false)
   const [error, setError] = useState('')
   const [sendSuccess, setSendSuccess] = useState('')
+  const [includePaypalButton, setIncludePaypalButton] = useState(false)
+
+  // Template
+  const [invoiceTemplates, setInvoiceTemplates] = useState<EmailTemplate[]>([])
+  const [selectedTemplateId, setSelectedTemplateId] = useState<number | null>(null)
+  const [showPreview, setShowPreview] = useState(false)
+  const [downloadingPdf, setDownloadingPdf] = useState(false)
 
   // Auto-generate invoice number + ensure clients loaded
   useEffect(() => {
@@ -297,11 +309,13 @@ function InvoiceBuilder({
     if (clients.length === 0) {
       api.get('/admin/clients').then(r => {
         if (Array.isArray(r.data) && r.data.length > 0) {
-          // Merge into parent via local state override — store locally
           setLocalClients(r.data)
         }
       }).catch(() => {})
     }
+    getEmailTemplates()
+      .then(all => setInvoiceTemplates(all.filter(t => t.category === 'invoice_doc')))
+      .catch(() => {})
   }, [initial, clients.length])
 
   // Totals
@@ -310,6 +324,36 @@ function InvoiceBuilder({
   const taxableAmount = subtotal - discountAmt
   const taxAmt = (taxableAmount * taxRate) / 100
   const total = taxableAmount + taxAmt
+
+  const selectedTemplate = invoiceTemplates.find(t => t.id === selectedTemplateId) ?? null
+
+  const selectedClient = allClients.find(c => c.id === clientId)
+
+  const renderedHtml = useMemo(() => {
+    if (!selectedTemplate) return null
+    const invoiceData = {
+      invoiceNumber,
+      title,
+      issuedDate,
+      dueDate,
+      status: initial?.status ?? 'draft',
+      currency,
+      subtotal,
+      discountType,
+      discountValue,
+      taxRate,
+      amount: total,
+      notes: notes || null,
+      termsConditions: termsConditions || null,
+      paypalInvoiceUrl: initial?.paypalInvoiceUrl ?? null,
+      client: selectedClient
+        ? { firstName: selectedClient.firstName, lastName: selectedClient.lastName, email: selectedClient.email }
+        : undefined,
+    }
+    const tokens = buildInvoiceTokenMap(invoiceData, lineItems)
+    return renderTemplateDocument(selectedTemplate.htmlContent, selectedTemplate.cssContent ?? '', tokens)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedTemplate, clientId, invoiceNumber, title, issuedDate, dueDate, currency, subtotal, discountType, discountValue, taxRate, total, notes, termsConditions, lineItems, selectedClient])
 
   const addItem = () =>
     setLineItems(prev => [...prev, { id: crypto.randomUUID(), description: '', quantity: 1, unitPrice: 0 }])
@@ -377,7 +421,7 @@ function InvoiceBuilder({
         invId = r.data.id
       }
       // Send via PayPal
-      const sendRes = await api.post(`/admin/invoices/${invId}/send`)
+      const sendRes = await api.post(`/admin/invoices/${invId}/send`, { includePaypalButton })
       setSendSuccess(
         sendRes.data.sandbox
           ? 'Invoice sent in Sandbox mode — no real email is delivered. Switch to Live credentials in Settings → PayPal when ready to bill real clients.'
@@ -430,12 +474,12 @@ function InvoiceBuilder({
                 <ClientSelect clients={allClients} value={clientId} onChange={setClientId} />
               </div>
               <div>
-                <label className="block text-xs text-zinc-500 mb-1.5 uppercase tracking-wider font-body">Invoice Number *</label>
-                <input
-                  value={invoiceNumber}
-                  onChange={e => setInvoiceNumber(e.target.value)}
-                  className="w-full bg-[#f3f3f3] border border-zinc-200 rounded-lg px-3 py-2.5 text-sm text-black focus:outline-none focus:border-black/20 font-body"
-                />
+                <label className="block text-xs text-zinc-500 mb-1.5 uppercase tracking-wider font-body">Invoice Number</label>
+                <div className="w-full flex items-center gap-2 bg-zinc-100 border border-zinc-200 rounded-lg px-3 py-2.5 text-sm text-zinc-500 font-body cursor-default select-none">
+                  <span className="material-symbols-outlined text-[14px] text-zinc-400">lock</span>
+                  <span className="text-black font-medium">{invoiceNumber || '—'}</span>
+                  <span className="ml-auto text-[10px] text-zinc-400 uppercase tracking-wider">Auto</span>
+                </div>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4 mb-4">
@@ -589,6 +633,115 @@ function InvoiceBuilder({
               </div>
             </div>
 
+            {/* Template picker */}
+            <div className="mb-4 p-3.5 rounded-xl border border-zinc-200 bg-white">
+              <p className="text-sm font-semibold text-black font-body leading-tight mb-2">Document Template</p>
+              <select
+                value={selectedTemplateId ?? ''}
+                onChange={e => setSelectedTemplateId(e.target.value ? Number(e.target.value) : null)}
+                className="w-full bg-[#f3f3f3] border border-zinc-200 rounded-lg px-3 py-2 text-sm text-black focus:outline-none font-body mb-2"
+              >
+                <option value="">No template</option>
+                {invoiceTemplates.map(t => (
+                  <option key={t.id} value={t.id}>{t.name}</option>
+                ))}
+              </select>
+              {invoiceTemplates.length === 0 && (
+                <p className="text-[11px] text-zinc-400 font-body">Create invoice templates in Templates → Invoices.</p>
+              )}
+              {selectedTemplate && (
+                <div className="flex items-center gap-2 mt-1">
+                  <button
+                    type="button"
+                    onClick={() => setShowPreview(v => !v)}
+                    className="flex items-center gap-1.5 text-xs text-zinc-600 hover:text-black transition-colors font-body"
+                  >
+                    {showPreview ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                    {showPreview ? 'Hide preview' : 'Preview'}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={downloadingPdf}
+                    onClick={async () => {
+                      setDownloadingPdf(true)
+                      try {
+                        const invoiceData = {
+                          invoiceNumber, title, issuedDate, dueDate,
+                          status: initial?.status ?? 'draft', currency, subtotal,
+                          discountType, discountValue, taxRate, amount: total,
+                          notes: notes || null, termsConditions: termsConditions || null,
+                          paypalInvoiceUrl: initial?.paypalInvoiceUrl ?? null,
+                          client: selectedClient
+                            ? { firstName: selectedClient.firstName, lastName: selectedClient.lastName, email: selectedClient.email }
+                            : undefined,
+                        }
+                        await downloadTemplateAsPdf(
+                          selectedTemplate.htmlContent,
+                          selectedTemplate.cssContent ?? '',
+                          buildInvoiceTokenMap(invoiceData, lineItems),
+                          `${invoiceNumber || 'invoice'}.pdf`,
+                        )
+                      } finally {
+                        setDownloadingPdf(false)
+                      }
+                    }}
+                    className="flex items-center gap-1.5 text-xs text-zinc-600 hover:text-black transition-colors font-body disabled:opacity-50"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    {downloadingPdf ? 'Generating...' : 'Download PDF'}
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Template preview panel */}
+            {showPreview && selectedTemplate && renderedHtml && (
+              <div className="mb-4 rounded-xl border border-violet-200 overflow-hidden">
+                <div className="flex items-center gap-2 px-3 py-2 bg-violet-50 border-b border-violet-200">
+                  <FileCode className="w-3.5 h-3.5 text-violet-600" />
+                  <span className="text-xs font-semibold text-violet-700 font-body">{selectedTemplate.name}</span>
+                </div>
+                <iframe
+                  srcDoc={renderedHtml}
+                  sandbox="allow-same-origin"
+                  className="w-full"
+                  style={{ height: '480px', border: 'none' }}
+                  title="Invoice Template Preview"
+                />
+              </div>
+            )}
+
+            {/* PayPal button toggle */}
+            <div className="mb-4 p-3.5 rounded-xl border border-zinc-200 bg-white">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-black font-body leading-tight">PayPal Payment Button</p>
+                  <p className="text-[11px] text-zinc-400 font-body mt-0.5 leading-snug">
+                    Send a branded email with a "Pay with PayPal" button. Requires SMTP to be configured.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIncludePaypalButton(v => !v)}
+                  className={`relative flex-shrink-0 w-11 h-6 rounded-full transition-colors duration-200 focus:outline-none ${
+                    includePaypalButton ? 'bg-[#0070ba]' : 'bg-zinc-200'
+                  }`}
+                  aria-pressed={includePaypalButton}
+                >
+                  <span
+                    className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 ${
+                      includePaypalButton ? 'translate-x-5' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
+              </div>
+              {includePaypalButton && (
+                <p className="mt-2.5 text-[11px] text-[#0070ba] font-medium font-body flex items-center gap-1">
+                  <span>✓</span> Branded invoice email will be sent via your SMTP
+                </p>
+              )}
+            </div>
+
             {/* Actions */}
             <div className="space-y-3">
               <button
@@ -611,7 +764,7 @@ function InvoiceBuilder({
             </div>
 
             <p className="mt-4 text-xs text-zinc-500 font-body text-center leading-relaxed">
-              Sending will create a PayPal invoice and email the client a direct payment link.
+              Sending creates a PayPal invoice and emails the client a direct payment link.
             </p>
           </div>
         </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { getDeals, createDeal, updateDeal, moveDeal, deleteDeal, type Deal } from '../../lib/api'
 
 const STAGES: { id: Deal['stage']; label: string; color: string }[] = [
@@ -109,18 +109,28 @@ function DealModal({ deal, onSave, onClose }: {
   )
 }
 
-function DealCard({ deal, onEdit, onMove, onDelete }: {
+function DealCard({ deal, onEdit, onMove, onDelete, onDragStart, onDragEnd, isDragging }: {
   deal: Deal
   onEdit: (d: Deal) => void
   onMove: (d: Deal, stage: Deal['stage']) => void
   onDelete: (id: number) => void
+  onDragStart: (d: Deal) => void
+  onDragEnd: () => void
+  isDragging: boolean
 }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const currentIdx = STAGES.findIndex(s => s.id === deal.stage)
   const nextStage = STAGES[currentIdx + 1]
 
   return (
-    <div className="bg-white rounded-xl p-4 ring-1 ring-black/[0.06] hover:shadow-md transition-all group">
+    <div
+      draggable
+      onDragStart={() => onDragStart(deal)}
+      onDragEnd={onDragEnd}
+      className={`bg-white rounded-xl p-4 ring-1 ring-black/[0.06] hover:shadow-md transition-all group cursor-grab active:cursor-grabbing select-none ${
+        isDragging ? 'opacity-40 scale-95' : ''
+      }`}
+    >
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-2.5 min-w-0">
           <div className="h-8 w-8 rounded-lg bg-zinc-900 flex items-center justify-center text-white text-[11px] font-bold flex-shrink-0">
@@ -166,6 +176,9 @@ export default function DealsView() {
   const [deals, setDeals] = useState<Deal[]>([])
   const [loading, setLoading] = useState(true)
   const [modal, setModal] = useState<Partial<Deal> | null | 'new'>(null)
+  const [draggingId, setDraggingId] = useState<number | null>(null)
+  const [dragOverStage, setDragOverStage] = useState<Deal['stage'] | null>(null)
+  const dragDeal = useRef<Deal | null>(null)
 
   useEffect(() => {
     getDeals().then(setDeals).catch(console.error).finally(() => setLoading(false))
@@ -186,13 +199,46 @@ export default function DealsView() {
   }
 
   const handleMove = async (deal: Deal, stage: Deal['stage']) => {
-    const updated = await moveDeal(deal.id, stage)
-    setDeals(prev => prev.map(d => d.id === updated.id ? updated : d))
+    // Optimistic update
+    setDeals(prev => prev.map(d => d.id === deal.id ? { ...d, stage } : d))
+    try {
+      const updated = await moveDeal(deal.id, stage)
+      setDeals(prev => prev.map(d => d.id === updated.id ? updated : d))
+    } catch {
+      // Revert on failure
+      setDeals(prev => prev.map(d => d.id === deal.id ? deal : d))
+    }
   }
 
   const handleDelete = async (id: number) => {
     await deleteDeal(id)
     setDeals(prev => prev.filter(d => d.id !== id))
+  }
+
+  // Drag handlers
+  const onCardDragStart = (deal: Deal) => {
+    dragDeal.current = deal
+    setDraggingId(deal.id)
+  }
+
+  const onCardDragEnd = () => {
+    dragDeal.current = null
+    setDraggingId(null)
+    setDragOverStage(null)
+  }
+
+  const onColumnDragOver = (e: React.DragEvent, stage: Deal['stage']) => {
+    e.preventDefault()
+    setDragOverStage(stage)
+  }
+
+  const onColumnDrop = (stage: Deal['stage']) => {
+    if (dragDeal.current && dragDeal.current.stage !== stage) {
+      handleMove(dragDeal.current, stage)
+    }
+    dragDeal.current = null
+    setDraggingId(null)
+    setDragOverStage(null)
   }
 
   return (
@@ -238,8 +284,25 @@ export default function DealsView() {
           {STAGES.map(stage => {
             const stageDeals = deals.filter(d => d.stage === stage.id)
             const stageValue = stageDeals.reduce((s, d) => s + d.value, 0)
+            const isOver = dragOverStage === stage.id
+            const isDragSource = draggingId !== null && stageDeals.some(d => d.id === draggingId)
             return (
-              <div key={stage.id} className="bg-[#f3f3f3] rounded-xl p-3">
+              <div
+                key={stage.id}
+                onDragOver={e => onColumnDragOver(e, stage.id)}
+                onDrop={() => onColumnDrop(stage.id)}
+                onDragLeave={e => {
+                  // Only clear if leaving the column entirely (not entering a child)
+                  if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                    setDragOverStage(null)
+                  }
+                }}
+                className={`rounded-xl p-3 transition-colors ${
+                  isOver && !isDragSource
+                    ? 'bg-zinc-200 ring-2 ring-black/20'
+                    : 'bg-[#f3f3f3]'
+                }`}
+              >
                 <div className="flex items-center justify-between mb-3">
                   <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full ${stage.color}`}>{stage.label}</span>
                   <span className="text-xs text-zinc-400 font-medium">{stageDeals.length}</span>
@@ -247,10 +310,25 @@ export default function DealsView() {
                 {stageValue > 0 && (
                   <p className="text-xs font-semibold text-zinc-500 mb-3">{fmt(stageValue)}</p>
                 )}
-                <div className="space-y-2.5">
+                <div className="space-y-2.5 min-h-[60px]">
                   {stageDeals.map(deal => (
-                    <DealCard key={deal.id} deal={deal} onEdit={setModal} onMove={handleMove} onDelete={handleDelete} />
+                    <DealCard
+                      key={deal.id}
+                      deal={deal}
+                      onEdit={setModal}
+                      onMove={handleMove}
+                      onDelete={handleDelete}
+                      onDragStart={onCardDragStart}
+                      onDragEnd={onCardDragEnd}
+                      isDragging={draggingId === deal.id}
+                    />
                   ))}
+                  {/* Drop indicator when dragging into empty/different column */}
+                  {isOver && !isDragSource && (
+                    <div className="h-16 border-2 border-dashed border-zinc-400 rounded-xl flex items-center justify-center">
+                      <span className="text-xs text-zinc-400 font-medium">Drop here</span>
+                    </div>
+                  )}
                   <button type="button" onClick={() => setModal({ stage: stage.id })}
                     className="w-full py-2 text-xs text-zinc-400 hover:text-black border border-dashed border-zinc-300 rounded-lg transition-colors flex items-center justify-center gap-1">
                     <span className="material-symbols-outlined text-[14px]">add</span>Add

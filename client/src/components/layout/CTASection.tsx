@@ -15,7 +15,7 @@ export default function CTASection() {
             Ready to start your project?
           </h2>
           <p className="text-[17px] text-[#78706A] leading-relaxed">
-            Tell me what you need. I'll take care of the rest — on time, on budget, and built to perform.
+            Tell me what you need. I'll take care of the rest, on time, on budget, and built to perform.
           </p>
         </div>
 

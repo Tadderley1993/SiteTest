@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { getAllFiles, deleteFile, uploadDocument, getClients, type FileEntry, type Client } from '../../lib/api'
+import { getAllFiles, deleteFile, uploadDocument, downloadDocument, getClients, type FileEntry, type Client } from '../../lib/api'
 
 const DOC_TYPES: Record<string, string> = {
   contract: 'Contract', nda: 'NDA', invoice: 'Invoice', brief: 'Creative Brief',
@@ -34,22 +34,26 @@ function UploadModal({ clients, onDone, onClose }: {
   const [files, setFiles] = useState<File[]>([])
   const [uploading, setUploading] = useState(false)
   const [drag, setDrag] = useState(false)
+  const [uploadError, setUploadError] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
 
   const addFiles = (list: FileList | null) => {
     if (!list) return
+    setUploadError('')
     setFiles(prev => [...prev, ...Array.from(list)])
   }
 
   const handleUpload = async () => {
     if (!clientId || files.length === 0) return
     setUploading(true)
+    setUploadError('')
     try {
       await Promise.all(files.map(f => uploadDocument(parseInt(clientId), f, docType)))
       onDone()
       onClose()
-    } catch (e) {
-      console.error(e)
+    } catch (e: unknown) {
+      const msg = (e as { response?: { data?: { error?: string } } })?.response?.data?.error
+      setUploadError(msg ?? 'Upload failed. Check the file type and try again.')
     } finally {
       setUploading(false)
     }
@@ -108,6 +112,11 @@ function UploadModal({ clients, onDone, onClose }: {
             </div>
           )}
         </div>
+        {uploadError && (
+          <div className="mx-6 mb-3 px-4 py-2.5 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
+            {uploadError}
+          </div>
+        )}
         <div className="px-6 pb-6 flex justify-end gap-3">
           <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-semibold text-zinc-600 hover:text-black">Cancel</button>
           <button type="button" onClick={handleUpload} disabled={!clientId || files.length === 0 || uploading}
@@ -133,11 +142,12 @@ export default function FilesView() {
 
   const load = () => {
     setLoading(true)
-    Promise.all([getAllFiles(), getClients()]).then(([data, cls]) => {
-      setFiles(data.files)
-      setStats(data.stats)
-      setClients(cls)
-    }).catch(console.error).finally(() => setLoading(false))
+    // Load clients independently so a files error can't block the upload modal
+    getClients().then(setClients).catch(console.error)
+    getAllFiles()
+      .then(data => { setFiles(data.files); setStats(data.stats) })
+      .catch(console.error)
+      .finally(() => setLoading(false))
   }
 
   useEffect(() => { load() }, [])
@@ -267,10 +277,11 @@ export default function FilesView() {
                 <td className="px-4 py-3 text-sm text-zinc-400">{fmtDate(f.createdAt)}</td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2 justify-end">
-                    <a href={`/api/admin/download/${f.id}`} target="_blank" rel="noreferrer"
-                      className="text-zinc-400 hover:text-black transition-colors">
+                    <button type="button" onClick={() => downloadDocument(f.id, f.fileName)}
+                      className="text-zinc-400 hover:text-black transition-colors"
+                      title="Download">
                       <span className="material-symbols-outlined text-[18px]">download</span>
-                    </a>
+                    </button>
                     <button type="button" onClick={() => handleDelete(f.id)} disabled={deleting === f.id}
                       className="text-zinc-400 hover:text-red-500 transition-colors disabled:opacity-50">
                       <span className="material-symbols-outlined text-[18px]">delete</span>

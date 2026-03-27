@@ -18,6 +18,9 @@ import FintechDemo from './pages/demos/FintechDemo'
 import RestaurantDemo from './pages/demos/RestaurantDemo'
 import ProductDemo from './pages/demos/ProductDemo'
 import SignProposal from './pages/SignProposal'
+import Concepts from './pages/Concepts'
+import NexaBank from './pages/concepts/NexaBank'
+import CuratedHorizon from './pages/concepts/CuratedHorizon'
 
 function ScrollToTop() {
   const { pathname } = useLocation()
@@ -70,6 +73,9 @@ function App() {
             <Route path="/demo/product" element={<ProductDemo />} />
             <Route path="/sign/:token" element={<SignProposal />} />
             <Route path="/portal" element={<ClientPortal />} />
+            <Route path="/concepts" element={<PublicLayout><Concepts /></PublicLayout>} />
+            <Route path="/concepts/nexabank" element={<NexaBank />} />
+            <Route path="/concepts/curated-horizon" element={<CuratedHorizon />} />
           </Routes>
         </BrowserRouter>
       </AuthProvider>

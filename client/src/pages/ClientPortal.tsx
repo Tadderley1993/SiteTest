@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useClientAuth } from '../context/ClientAuthContext'
 import { createPortalApi } from '../lib/portalApi'
 
@@ -80,12 +80,24 @@ function ClientLoginForm() {
 }
 
 // ── Types ────────────────────────────────────────────────────────
+const JOURNEY_PHASES = [
+  { id: 'discovery',       label: 'Discovery' },
+  { id: 'planning',        label: 'Planning' },
+  { id: 'design_1',        label: 'Phase 1 Design' },
+  { id: 'design_2',        label: 'Phase 2 Design' },
+  { id: 'development',     label: 'Development' },
+  { id: 'review',          label: 'Client Review' },
+  { id: 'final_approval',  label: 'Final Approval' },
+  { id: 'handoff',         label: 'Handoff' },
+]
+
 interface ClientData {
   id: number
   firstName: string
   lastName: string
   email: string
   organization?: string
+  journeyPhase?: string
   projectScope?: {
     projectName?: string
     status?: string
@@ -123,8 +135,17 @@ interface PortalFile {
   createdAt: string
 }
 
+interface PortalMessage {
+  id: number
+  clientId: number
+  fromAdmin: boolean
+  body: string
+  read: boolean
+  createdAt: string
+}
+
 // ── Dashboard ────────────────────────────────────────────────────
-type PortalView = 'dashboard' | 'files' | 'invoices' | 'proposals'
+type PortalView = 'dashboard' | 'files' | 'invoices' | 'proposals' | 'messages'
 
 function ClientDashboard() {
   const { clientUser, clientLogout } = useClientAuth()
@@ -133,6 +154,31 @@ function ClientDashboard() {
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [proposals, setProposals] = useState<Proposal[]>([])
   const [files, setFiles] = useState<PortalFile[]>([])
+  const [downloadingId, setDownloadingId] = useState<number | null>(null)
+  const [messages, setMessages] = useState<PortalMessage[]>([])
+  const [msgInput, setMsgInput] = useState('')
+  const [msgSending, setMsgSending] = useState(false)
+  const [unreadMessages, setUnreadMessages] = useState(0)
+  const chatBottomRef = useRef<HTMLDivElement>(null)
+
+  const handleFileDownload = async (file: PortalFile) => {
+    if (!clientUser) return
+    setDownloadingId(file.id)
+    try {
+      const portalApi = createPortalApi(clientUser.accessToken)
+      const res = await portalApi.get(`/portal/files/${file.id}/download`, { responseType: 'blob' })
+      const url = URL.createObjectURL(res.data)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = file.fileName
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch (e) {
+      console.error('Download failed', e)
+    } finally {
+      setDownloadingId(null)
+    }
+  }
 
   useEffect(() => {
     if (!clientUser) return
@@ -142,24 +188,49 @@ function ClientDashboard() {
       portalApi.get('/portal/invoices'),
       portalApi.get('/portal/proposals'),
       portalApi.get('/portal/files'),
-    ]).then(([me, inv, prop, fil]) => {
+      portalApi.get('/portal/messages'),
+    ]).then(([me, inv, prop, fil, msgs]) => {
       setClientData(me.data)
       setInvoices(inv.data)
       setProposals(prop.data)
       setFiles(fil.data)
+      setMessages(msgs.data)
+      setUnreadMessages((msgs.data as PortalMessage[]).filter(m => m.fromAdmin && !m.read).length)
     }).catch(() => {})
   }, [clientUser])
 
-  const totalTasks = clientData?.tasks?.length ?? 0
-  const doneTasks = clientData?.tasks?.filter(t => t.column === 'done').length ?? 0
-  const progress = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0
+  const handleSendMessage = async () => {
+    if (!msgInput.trim() || msgSending || !clientUser) return
+    setMsgSending(true)
+    try {
+      const portalApi = createPortalApi(clientUser.accessToken)
+      const res = await portalApi.post('/portal/messages', { body: msgInput.trim() })
+      setMessages(prev => [...prev, res.data])
+      setMsgInput('')
+      setTimeout(() => chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50)
+    } catch { /* silent */ } finally {
+      setMsgSending(false)
+    }
+  }
+
+  const handleOpenMessages = async () => {
+    setView('messages')
+    setUnreadMessages(0)
+    setTimeout(() => chatBottomRef.current?.scrollIntoView({ behavior: 'auto' }), 100)
+  }
+
+  const journeyPhase = clientData?.journeyPhase ?? 'discovery'
+  const currentPhaseIdx = JOURNEY_PHASES.findIndex(p => p.id === journeyPhase)
+  const progressPct = JOURNEY_PHASES.length > 1
+    ? Math.round((currentPhaseIdx / (JOURNEY_PHASES.length - 1)) * 100)
+    : 0
   const outstanding = invoices.filter(i => i.status === 'sent' || i.status === 'unpaid')
   const outstandingTotal = outstanding.reduce((sum, i) => sum + i.amount, 0)
 
-  const navItem = (id: PortalView, icon: string, label: string) => (
+  const navItem = (id: PortalView, icon: string, label: string, badge?: number) => (
     <button
       key={id}
-      onClick={() => setView(id)}
+      onClick={() => id === 'messages' ? handleOpenMessages() : setView(id)}
       className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm w-full transition-colors ${
         view === id
           ? 'bg-white text-black font-semibold shadow-sm'
@@ -167,7 +238,12 @@ function ClientDashboard() {
       }`}
     >
       <span className="material-symbols-outlined text-[20px]">{icon}</span>
-      <span>{label}</span>
+      <span className="flex-1 text-left">{label}</span>
+      {badge != null && badge > 0 && (
+        <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-black text-white text-[10px] font-bold flex items-center justify-center leading-none">
+          {badge}
+        </span>
+      )}
     </button>
   )
 
@@ -184,6 +260,7 @@ function ClientDashboard() {
           {navItem('files', 'folder_open', 'Files')}
           {navItem('invoices', 'receipt_long', 'Invoices')}
           {navItem('proposals', 'description', 'Proposals')}
+          {navItem('messages', 'chat_bubble', 'Messages', unreadMessages)}
         </nav>
         <div className="mt-auto pt-6 border-t border-zinc-200 space-y-3">
           <div className="flex items-center gap-3">
@@ -250,31 +327,51 @@ function ClientDashboard() {
                 )}
               </div>
 
-              {/* Progress */}
-              <div className="grid grid-cols-12 gap-6 items-end">
-                <div className="col-span-8 space-y-4">
-                  <div className="flex justify-between items-end">
-                    <span className="text-xs font-bold uppercase tracking-widest text-zinc-400">
-                      Project Completion
-                    </span>
-                    <span className="text-5xl font-black tracking-tighter">{progress}%</span>
-                  </div>
-                  <div className="h-1.5 w-full bg-zinc-200 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-black rounded-full transition-all"
-                      style={{ width: `${progress}%` }}
-                    />
-                  </div>
-                  <p className="text-xs text-zinc-400">
-                    {doneTasks} of {totalTasks} tasks completed
-                  </p>
+              {/* Project Journey */}
+              <div className="space-y-4">
+                <div className="flex items-end justify-between">
+                  <span className="text-xs font-bold uppercase tracking-widest text-zinc-400">
+                    Project Journey
+                  </span>
+                  <span className="text-5xl font-black tracking-tighter">{progressPct}%</span>
                 </div>
+
+                {/* Progress bar */}
+                <div className="h-1.5 w-full bg-zinc-200 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-black rounded-full transition-all duration-700"
+                    style={{ width: `${progressPct}%` }}
+                  />
+                </div>
+
+                {/* Phase stepper */}
+                <div className="grid grid-cols-4 gap-2 pt-2">
+                  {JOURNEY_PHASES.map((phase, i) => {
+                    const isDone = i < currentPhaseIdx
+                    const isCurrent = i === currentPhaseIdx
+                    return (
+                      <div key={phase.id} className="flex flex-col items-center gap-1.5 text-center">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black transition-colors ${
+                          isCurrent ? 'bg-black text-white ring-4 ring-black/10'
+                          : isDone ? 'bg-zinc-800 text-white'
+                          : 'bg-zinc-100 text-zinc-300'
+                        }`}>
+                          {isDone ? '✓' : i + 1}
+                        </div>
+                        <span className={`text-[10px] font-semibold leading-tight ${
+                          isCurrent ? 'text-black' : isDone ? 'text-zinc-500' : 'text-zinc-300'
+                        }`}>
+                          {phase.label}
+                        </span>
+                      </div>
+                    )
+                  })}
+                </div>
+
                 {clientData?.projectScope?.endDate && (
-                  <div className="col-span-4 bg-white p-5 rounded-xl">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">
-                      Est. Delivery
-                    </p>
-                    <p className="font-bold">{clientData.projectScope.endDate}</p>
+                  <div className="inline-flex items-center gap-2 bg-white px-4 py-2 rounded-lg mt-1">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Est. Delivery</span>
+                    <span className="font-bold text-sm">{clientData.projectScope.endDate}</span>
                   </div>
                 )}
               </div>
@@ -306,9 +403,17 @@ function ClientDashboard() {
                               {f.docType} &middot; {Math.round(f.size / 1024)} KB
                             </p>
                           </div>
-                          <span className="text-xs text-zinc-400">
-                            {new Date(f.createdAt).toLocaleDateString()}
-                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleFileDownload(f)}
+                            disabled={downloadingId === f.id}
+                            className="text-zinc-400 hover:text-black transition-colors disabled:opacity-50"
+                            title="Download"
+                          >
+                            <span className="material-symbols-outlined text-[18px]">
+                              {downloadingId === f.id ? 'hourglass_empty' : 'download'}
+                            </span>
+                          </button>
                         </div>
                       ))}
                     </div>
@@ -398,6 +503,7 @@ function ClientDashboard() {
                         <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-zinc-400">
                           Date
                         </th>
+                        <th className="px-6 py-4" />
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-zinc-50">
@@ -419,6 +525,19 @@ function ClientDashboard() {
                           </td>
                           <td className="px-6 py-4 text-sm text-zinc-500">
                             {new Date(f.createdAt).toLocaleDateString()}
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            <button
+                              type="button"
+                              onClick={() => handleFileDownload(f)}
+                              disabled={downloadingId === f.id}
+                              className="text-zinc-400 hover:text-black transition-colors disabled:opacity-50"
+                              title="Download"
+                            >
+                              <span className="material-symbols-outlined text-[20px]">
+                                {downloadingId === f.id ? 'hourglass_empty' : 'download'}
+                              </span>
+                            </button>
                           </td>
                         </tr>
                       ))}
@@ -526,6 +645,66 @@ function ClientDashboard() {
                   ))}
                 </div>
               )}
+            </div>
+          )}
+
+          {/* ── MESSAGES VIEW ── */}
+          {view === 'messages' && (
+            <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden flex flex-col" style={{ height: '560px' }}>
+              {/* Header */}
+              <div className="px-5 py-3 border-b border-zinc-100 flex items-center gap-2">
+                <span className="material-symbols-outlined text-[18px] text-black">chat_bubble</span>
+                <h2 className="text-sm font-bold text-black">Messages</h2>
+                <span className="text-xs text-zinc-400 ml-1">Private conversation with your project manager</span>
+              </div>
+
+              {/* Thread */}
+              <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3 bg-[#f9f9f9]">
+                {messages.length === 0 ? (
+                  <div className="h-full flex items-center justify-center text-sm text-zinc-400">
+                    No messages yet. Send one below.
+                  </div>
+                ) : (
+                  messages.map(msg => (
+                    <div key={msg.id} className={`flex flex-col gap-0.5 ${!msg.fromAdmin ? 'items-end' : 'items-start'}`}>
+                      <span className="text-[10px] font-medium text-zinc-400 px-1">
+                        {msg.fromAdmin ? 'Terrence Adderley' : 'You'}
+                      </span>
+                      <div className={`max-w-[75%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
+                        !msg.fromAdmin
+                          ? 'bg-black text-white rounded-br-sm'
+                          : 'bg-white border border-zinc-200 text-black rounded-bl-sm'
+                      }`}>
+                        <p>{msg.body}</p>
+                        <p className={`text-[10px] mt-1 ${!msg.fromAdmin ? 'text-white/50' : 'text-zinc-400'}`}>
+                          {new Date(msg.createdAt).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                      </div>
+                    </div>
+                  ))
+                )}
+                <div ref={chatBottomRef} />
+              </div>
+
+              {/* Input */}
+              <div className="px-4 py-3 border-t border-zinc-100 bg-white flex gap-2">
+                <input
+                  type="text"
+                  value={msgInput}
+                  onChange={e => setMsgInput(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage() } }}
+                  placeholder="Type a message…"
+                  className="flex-1 bg-[#f3f3f3] border border-zinc-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
+                />
+                <button
+                  type="button"
+                  onClick={handleSendMessage}
+                  disabled={msgSending || !msgInput.trim()}
+                  className="px-3 py-2 bg-black text-white rounded-lg hover:bg-zinc-800 disabled:opacity-40 transition-colors flex items-center"
+                >
+                  <span className="material-symbols-outlined text-[18px]">send</span>
+                </button>
+              </div>
             </div>
           )}
 

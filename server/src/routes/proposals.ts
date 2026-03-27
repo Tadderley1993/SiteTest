@@ -135,8 +135,8 @@ router.post('/:id/send-email', async (req, res) => {
 </style></head>
 <body>
 <div class="header">
-  <h1>DTA</h1>
-  <p>Digital Transformation Agency</p>
+  <h1>Designs By Terrence Adderley</h1>
+  <p>terrenceadderley@designsbyta.com · www.designsbyta.com</p>
 </div>
 ${message ? `<p style="font-size:15px;margin-bottom:24px">${message}</p>` : ''}
 <div class="meta">
@@ -173,7 +173,7 @@ ${proposal.timeline ? `<div class="section"><h2>Timeline</h2><p style="color:#4b
 ${proposal.paymentTerms ? `<div class="section"><h2>Payment Terms</h2><p style="color:#4b5563">${proposal.paymentTerms}</p></div>` : ''}
 ${proposal.termsConditions ? `<div class="section"><h2>Terms & Conditions</h2><p style="color:#4b5563;white-space:pre-wrap;font-size:12px">${proposal.termsConditions}</p></div>` : ''}
 <div class="footer">
-  <p>This proposal was prepared by DTA. Please review the attached PDF for the full formatted proposal.</p>
+  <p>This proposal was prepared by Designs By Terrence Adderley. Please review the attached PDF for the full formatted proposal.</p>
   <p>Questions? Reply to this email or contact us directly.</p>
 </div>
 </body></html>`

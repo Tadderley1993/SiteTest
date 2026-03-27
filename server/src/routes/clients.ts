@@ -13,12 +13,18 @@ router.get('/', async (_req, res) => {
   try {
     const clients = await prisma.client.findMany({
       orderBy: { createdAt: 'desc' },
-      include: {
-        projectScope: true,
-        tasks: { orderBy: [{ column: 'asc' }, { order: 'asc' }] },
-      },
+      include: { projectScope: true, tasks: { orderBy: [{ column: 'asc' }, { order: 'asc' }] } },
     })
-    res.json(clients)
+    // Overlay taskOwner from raw SQL (stale Prisma client omits it)
+    const rawTasks = await prisma.$queryRawUnsafe(
+      `SELECT id, "taskOwner" FROM "KanbanTask"`
+    ) as Array<{ id: number; taskOwner: string }>
+    const ownerMap = Object.fromEntries(rawTasks.map(t => [t.id, t.taskOwner]))
+    const patched = clients.map(c => ({
+      ...c,
+      tasks: c.tasks.map(t => ({ ...t, taskOwner: ownerMap[t.id] ?? 'client' })),
+    }))
+    res.json(patched)
   } catch (error) {
     console.error('Error fetching clients:', error)
     res.status(500).json({ error: 'Failed to fetch clients' })
@@ -49,15 +55,27 @@ router.post('/', async (req, res) => {
 // GET /api/admin/clients/:id
 router.get('/:id', async (req, res) => {
   try {
+    const id = parseInt(req.params.id)
     const client = await prisma.client.findUnique({
-      where: { id: parseInt(req.params.id) },
-      include: {
-        projectScope: true,
-        tasks: { orderBy: [{ column: 'asc' }, { order: 'asc' }] },
-      },
+      where: { id },
+      include: { projectScope: true, tasks: { orderBy: [{ column: 'asc' }, { order: 'asc' }] } },
     })
     if (!client) return res.status(404).json({ error: 'Client not found' })
-    res.json(client)
+    // Overlay taskOwner from raw SQL (stale Prisma client omits it)
+    const rawTasks = await prisma.$queryRawUnsafe(
+      `SELECT id, "taskOwner" FROM "KanbanTask" WHERE "clientId" = $1`, id
+    ) as Array<{ id: number; taskOwner: string }>
+    const ownerMap = Object.fromEntries(rawTasks.map(t => [t.id, t.taskOwner]))
+    // Overlay portalPasswordPlain from raw SQL
+    const rawClient = await prisma.$queryRawUnsafe(
+      `SELECT "portalPasswordPlain" FROM "Client" WHERE id = $1`, id
+    ) as Array<{ portalPasswordPlain: string | null }>
+    const portalPasswordPlain = rawClient[0]?.portalPasswordPlain ?? null
+    res.json({
+      ...client,
+      portalPasswordPlain,
+      tasks: client.tasks.map(t => ({ ...t, taskOwner: ownerMap[t.id] ?? 'client' })),
+    })
   } catch (error) {
     console.error('Error fetching client:', error)
     res.status(500).json({ error: 'Failed to fetch client' })
@@ -79,6 +97,26 @@ router.put('/:id', async (req, res) => {
   } catch (error) {
     console.error('Error updating client:', error)
     res.status(500).json({ error: 'Failed to update client' })
+  }
+})
+
+// PUT /api/admin/clients/:id/journey — update journey phase via raw SQL (bypasses stale client)
+router.put('/:id/journey', async (req, res) => {
+  try {
+    const id = parseInt(req.params.id)
+    const { journeyPhase } = req.body as { journeyPhase: string }
+    if (!journeyPhase) return res.status(400).json({ error: 'journeyPhase required' })
+    await prisma.$executeRawUnsafe(
+      `UPDATE "Client" SET "journeyPhase" = $1, "updatedAt" = NOW() WHERE id = $2`,
+      journeyPhase, id
+    )
+    const rows = await prisma.$queryRawUnsafe(
+      `SELECT "journeyPhase" FROM "Client" WHERE id = $1`, id
+    ) as Array<{ journeyPhase: string }>
+    res.json({ journeyPhase: rows[0]?.journeyPhase })
+  } catch (error) {
+    console.error('Error updating journey phase:', error)
+    res.status(500).json({ error: 'Failed to update journey phase' })
   }
 })
 
@@ -109,28 +147,44 @@ router.put('/:id/scope', async (req, res) => {
   }
 })
 
-// POST /api/admin/clients/:id/tasks
+// POST /api/admin/clients/:id/tasks — always client-owned, raw SQL bypasses stale client
 router.post('/:id/tasks', async (req, res) => {
   try {
     const clientId = parseInt(req.params.id)
-    const task = await prisma.kanbanTask.create({
-      data: { clientId, ...req.body },
-    })
-    res.json(task)
+    const { title, description, column = 'backlog', priority = 'medium', dueDate, order = 0 } = req.body
+    const rows = await prisma.$queryRawUnsafe(`
+      INSERT INTO "KanbanTask" ("clientId", title, description, "column", priority, "dueDate", "order", "taskOwner", "createdAt", "updatedAt")
+      VALUES ($1, $2, $3, $4, $5, $6, $7, 'client', NOW(), NOW())
+      RETURNING id, "clientId", title, description, "column", priority, "dueDate", "order", "taskOwner", "createdAt", "updatedAt"
+    `, clientId, title, description ?? null, column, priority, dueDate ?? null, order) as unknown[]
+    res.json((rows as unknown[])[0])
   } catch (error) {
     console.error('Error creating task:', error)
     res.status(500).json({ error: 'Failed to create task' })
   }
 })
 
-// PUT /api/admin/clients/:id/tasks/:taskId
+// PUT /api/admin/clients/:id/tasks/:taskId — raw SQL to handle taskOwner safely
 router.put('/:id/tasks/:taskId', async (req, res) => {
   try {
-    const task = await prisma.kanbanTask.update({
-      where: { id: parseInt(req.params.taskId) },
-      data: req.body,
-    })
-    res.json(task)
+    const taskId = parseInt(req.params.taskId)
+    const { title, description, column, priority, dueDate, order } = req.body
+    const sets: string[] = []
+    const params: unknown[] = []
+    let idx = 1
+    if (title !== undefined)       { sets.push(`title = $${idx++}`);       params.push(title) }
+    if (description !== undefined) { sets.push(`description = $${idx++}`); params.push(description) }
+    if (column !== undefined)      { sets.push(`"column" = $${idx++}`);     params.push(column) }
+    if (priority !== undefined)    { sets.push(`priority = $${idx++}`);    params.push(priority) }
+    if (dueDate !== undefined)     { sets.push(`"dueDate" = $${idx++}`);   params.push(dueDate) }
+    if (order !== undefined)       { sets.push(`"order" = $${idx++}`);     params.push(order) }
+    sets.push(`"updatedAt" = NOW()`)
+    params.push(taskId)
+    const rows = await prisma.$queryRawUnsafe(`
+      UPDATE "KanbanTask" SET ${sets.join(', ')} WHERE id = $${idx}
+      RETURNING id, "clientId", title, description, "column", priority, "dueDate", "order", "taskOwner", "createdAt", "updatedAt"
+    `, ...params) as unknown[]
+    res.json((rows as unknown[])[0])
   } catch (error) {
     console.error('Error updating task:', error)
     res.status(500).json({ error: 'Failed to update task' })
@@ -265,11 +319,11 @@ router.post('/:id/set-portal-password', authMiddleware, async (req, res) => {
       return res.status(400).json({ error: 'Password must be at least 6 characters' })
     }
     const hash = await bcrypt.hash(password, 10)
-    const client = await prisma.client.update({
-      where: { id: clientId },
-      data: { passwordHash: hash, portalActive: true },
-    })
-    res.json({ message: 'Portal password set', clientId: client.id, portalActive: true })
+    await prisma.$executeRawUnsafe(
+      `UPDATE "Client" SET "passwordHash"=$1, "portalPasswordPlain"=$2, "portalActive"=true, "updatedAt"=NOW() WHERE id=$3`,
+      hash, password, clientId,
+    )
+    res.json({ message: 'Portal password set', clientId, portalActive: true })
   } catch (error) {
     console.error('Error setting portal password:', error)
     res.status(500).json({ error: 'Failed to set portal password' })

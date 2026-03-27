@@ -1,7 +1,9 @@
 import { Router } from 'express'
 import { PrismaClient } from '@prisma/client'
+import nodemailer from 'nodemailer'
 import { authMiddleware } from '../middleware/auth.js'
 import { paypalFetch, getPayPalSettings } from '../lib/paypal.js'
+import { createNotification } from '../lib/notify.js'
 
 const router = Router()
 const prisma = new PrismaClient()
@@ -9,10 +11,6 @@ const prisma = new PrismaClient()
 router.use(authMiddleware)
 
 // ── Raw SQL helpers (bypass stale Prisma client schema) ───────────────────────
-
-function now() {
-  return new Date().toISOString()
-}
 
 function fmt(n: number) {
   return n.toFixed(2)
@@ -22,16 +20,37 @@ function fmt(n: number) {
 async function queryInvoices(where?: string, params: unknown[] = []) {
   const sql = `
     SELECT
-      i.id, i.clientId, i.invoiceNumber, i.title, i.lineItems, i.currency,
-      i.subtotal, i.discountType, i.discountValue, i.taxRate, i.amount,
-      i.issuedDate, i.dueDate, i.status, i.notes, i.termsConditions,
-      i.paypalInvoiceId, i.paypalInvoiceUrl, i.paypalStatus, i.sentAt,
-      i.createdAt, i.updatedAt,
-      c.id AS c_id, c.firstName, c.lastName, c.email, c.organization
+      i.id,
+      i."clientId",
+      i."invoiceNumber",
+      i.title,
+      i."lineItems",
+      i.currency,
+      i.subtotal,
+      i."discountType",
+      i."discountValue",
+      i."taxRate",
+      i.amount,
+      i."issuedDate",
+      i."dueDate",
+      i.status,
+      i.notes,
+      i."termsConditions",
+      i."paypalInvoiceId",
+      i."paypalInvoiceUrl",
+      i."paypalStatus",
+      i."sentAt",
+      i."createdAt",
+      i."updatedAt",
+      c.id AS c_id,
+      c."firstName",
+      c."lastName",
+      c.email,
+      c.organization
     FROM "Invoice" i
-    LEFT JOIN "Client" c ON i.clientId = c.id
+    LEFT JOIN "Client" c ON i."clientId" = c.id
     ${where ? 'WHERE ' + where : ''}
-    ORDER BY i.createdAt DESC
+    ORDER BY i."createdAt" DESC
   `
   const rows = await prisma.$queryRawUnsafe(sql, ...params) as Record<string, unknown>[]
   return rows.map(r => ({
@@ -65,6 +84,132 @@ async function queryInvoices(where?: string, params: unknown[] = []) {
       organization: r.organization,
     } : null,
   }))
+}
+
+// ── SMTP helper ───────────────────────────────────────────────────────────────
+
+async function getSmtpTransporter() {
+  const settings = await prisma.adminSettings.findFirst()
+  const host = settings?.smtpHost || process.env.SMTP_HOST
+  const port = parseInt(settings?.smtpPort || process.env.SMTP_PORT || '587')
+  const user = settings?.smtpUser || process.env.SMTP_USER
+  const pass = settings?.smtpPass || process.env.SMTP_PASS
+  const from = settings?.smtpFrom || process.env.SMTP_FROM || user
+  if (!host || !user || !pass) return null
+  return {
+    transporter: nodemailer.createTransport({ host, port, secure: false, auth: { user, pass } }),
+    from,
+  }
+}
+
+// ── PayPal button email builder ───────────────────────────────────────────────
+
+function buildPaypalButtonEmail(inv: Record<string, unknown>, client: { firstName: string; lastName: string; email: string }, paypalUrl: string): string {
+  const lineItems: { description: string; quantity: number; unitPrice: number }[] =
+    inv.lineItems ? JSON.parse(inv.lineItems as string) : []
+
+  const rowsHtml = lineItems.map(item => `
+    <tr>
+      <td style="padding:10px 16px;font-size:14px;color:#111;border-bottom:1px solid #f0f0f0">${item.description}</td>
+      <td style="padding:10px 16px;font-size:14px;color:#555;text-align:center;border-bottom:1px solid #f0f0f0">${item.quantity}</td>
+      <td style="padding:10px 16px;font-size:14px;color:#111;text-align:right;border-bottom:1px solid #f0f0f0">$${Number(item.unitPrice).toFixed(2)}</td>
+      <td style="padding:10px 16px;font-size:14px;color:#111;text-align:right;border-bottom:1px solid #f0f0f0">$${(item.quantity * item.unitPrice).toFixed(2)}</td>
+    </tr>`).join('')
+
+  const subtotal = Number(inv.subtotal) || 0
+  const discountType = (inv.discountType as string) || 'fixed'
+  const discountValue = Number(inv.discountValue) || 0
+  const taxRate = Number(inv.taxRate) || 0
+  const discountAmt = discountType === 'percent' ? (subtotal * discountValue) / 100 : discountValue
+  const taxAmt = ((subtotal - discountAmt) * taxRate) / 100
+  const total = Number(inv.amount) || 0
+
+  return `<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f9f9f9;font-family:'Helvetica Neue',Arial,sans-serif">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f9f9f9;padding:40px 20px">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.06)">
+
+        <!-- Header -->
+        <tr>
+          <td style="background:#111;padding:32px 40px">
+            <p style="margin:0;font-size:22px;font-weight:700;color:#fff;letter-spacing:-0.5px">Invoice</p>
+            <p style="margin:6px 0 0;font-size:13px;color:rgba(255,255,255,0.5)">${inv.invoiceNumber}</p>
+          </td>
+        </tr>
+
+        <!-- Bill to / dates -->
+        <tr>
+          <td style="padding:28px 40px;border-bottom:1px solid #f0f0f0">
+            <table width="100%" cellpadding="0" cellspacing="0">
+              <tr>
+                <td style="width:50%;vertical-align:top">
+                  <p style="margin:0 0 4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#999">Bill To</p>
+                  <p style="margin:0;font-size:14px;font-weight:600;color:#111">${client.firstName} ${client.lastName}</p>
+                  <p style="margin:2px 0 0;font-size:13px;color:#555">${client.email}</p>
+                </td>
+                <td style="width:50%;text-align:right;vertical-align:top">
+                  <p style="margin:0 0 4px;font-size:11px;color:#999">Issue date: <strong style="color:#111">${inv.issuedDate}</strong></p>
+                  <p style="margin:4px 0 0;font-size:11px;color:#999">Due date: <strong style="color:#e55">${inv.dueDate}</strong></p>
+                  ${inv.title ? `<p style="margin:8px 0 0;font-size:12px;font-style:italic;color:#777">${inv.title}</p>` : ''}
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- Line items -->
+        <tr>
+          <td style="padding:0 40px 8px">
+            <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:24px">
+              <thead>
+                <tr style="background:#f9f9f9">
+                  <th style="padding:10px 16px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#999;text-align:left">Description</th>
+                  <th style="padding:10px 16px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#999;text-align:center">Qty</th>
+                  <th style="padding:10px 16px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#999;text-align:right">Unit Price</th>
+                  <th style="padding:10px 16px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#999;text-align:right">Amount</th>
+                </tr>
+              </thead>
+              <tbody>${rowsHtml}</tbody>
+            </table>
+          </td>
+        </tr>
+
+        <!-- Totals -->
+        <tr>
+          <td style="padding:16px 40px 28px">
+            <table width="100%" cellpadding="0" cellspacing="0">
+              ${discountAmt > 0 ? `<tr><td style="padding:4px 0;font-size:13px;color:#555;text-align:right">Discount</td><td style="padding:4px 0 4px 24px;font-size:13px;color:#22c55e;text-align:right;width:100px">−$${discountAmt.toFixed(2)}</td></tr>` : ''}
+              ${taxAmt > 0 ? `<tr><td style="padding:4px 0;font-size:13px;color:#555;text-align:right">Tax (${taxRate}%)</td><td style="padding:4px 0 4px 24px;font-size:13px;color:#111;text-align:right">$${taxAmt.toFixed(2)}</td></tr>` : ''}
+              <tr>
+                <td style="padding:12px 0 0;font-size:16px;font-weight:700;color:#111;text-align:right;border-top:2px solid #111">Total Due</td>
+                <td style="padding:12px 0 0 24px;font-size:20px;font-weight:800;color:#111;text-align:right;border-top:2px solid #111;width:100px">$${total.toFixed(2)}</td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        ${inv.notes ? `<tr><td style="padding:0 40px 24px"><p style="margin:0;font-size:13px;color:#777;font-style:italic">${inv.notes}</p></td></tr>` : ''}
+
+        <!-- PayPal Button -->
+        <tr>
+          <td style="padding:24px 40px 40px;text-align:center;border-top:1px solid #f0f0f0">
+            <p style="margin:0 0 16px;font-size:13px;color:#777">Click the button below to pay securely with PayPal</p>
+            <a href="${paypalUrl}" target="_blank"
+              style="display:inline-block;background:#0070ba;color:#fff;font-size:15px;font-weight:700;text-decoration:none;padding:14px 40px;border-radius:8px;letter-spacing:0.3px">
+              Pay with PayPal
+            </a>
+            <p style="margin:16px 0 0;font-size:11px;color:#bbb">Powered by PayPal · Secure &amp; encrypted</p>
+          </td>
+        </tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`
 }
 
 // ── PayPal payload builder ────────────────────────────────────────────────────
@@ -177,14 +322,13 @@ router.get('/', async (_req, res) => {
 router.post('/', async (req, res) => {
   try {
     const { clientId, invoiceNumber, title, lineItems, currency, subtotal, discountType, discountValue, taxRate, amount, issuedDate, dueDate, notes, termsConditions } = req.body
-    const n = now()
     await prisma.$executeRawUnsafe(`
       INSERT INTO "Invoice" (
         "clientId","invoiceNumber","title","lineItems","currency",
         "subtotal","discountType","discountValue","taxRate","amount",
         "issuedDate","dueDate","notes","termsConditions","status",
         "createdAt","updatedAt"
-      ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,'draft',?,?)
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,'draft',NOW(),NOW())
     `,
       Number(clientId),
       invoiceNumber,
@@ -199,8 +343,7 @@ router.post('/', async (req, res) => {
       issuedDate,
       dueDate,
       notes || null,
-      termsConditions || null,
-      n, n
+      termsConditions || null
     )
 
     const rows = await queryInvoices('i.id = (SELECT MAX(id) FROM "Invoice")')
@@ -213,7 +356,7 @@ router.post('/', async (req, res) => {
 // GET /api/admin/invoices/:id
 router.get('/:id', async (req, res) => {
   try {
-    const rows = await queryInvoices('i.id = ?', [Number(req.params.id)])
+    const rows = await queryInvoices('i.id = $1', [Number(req.params.id)])
     if (!rows.length) return res.status(404).json({ error: 'Not found' })
     res.json(rows[0])
   } catch (e) {
@@ -227,10 +370,10 @@ router.put('/:id', async (req, res) => {
     const { invoiceNumber, title, lineItems, currency, subtotal, discountType, discountValue, taxRate, amount, issuedDate, dueDate, notes, termsConditions } = req.body
     await prisma.$executeRawUnsafe(`
       UPDATE "Invoice" SET
-        "invoiceNumber"=?,"title"=?,"lineItems"=?,"currency"=?,
-        "subtotal"=?,"discountType"=?,"discountValue"=?,"taxRate"=?,"amount"=?,
-        "issuedDate"=?,"dueDate"=?,"notes"=?,"termsConditions"=?,"updatedAt"=?
-      WHERE id=?
+        "invoiceNumber"=$1,"title"=$2,"lineItems"=$3,"currency"=$4,
+        "subtotal"=$5,"discountType"=$6,"discountValue"=$7,"taxRate"=$8,"amount"=$9,
+        "issuedDate"=$10,"dueDate"=$11,"notes"=$12,"termsConditions"=$13,"updatedAt"=NOW()
+      WHERE id=$14
     `,
       invoiceNumber,
       title || null,
@@ -245,10 +388,9 @@ router.put('/:id', async (req, res) => {
       dueDate,
       notes || null,
       termsConditions || null,
-      now(),
       Number(req.params.id)
     )
-    const rows = await queryInvoices('i.id = ?', [Number(req.params.id)])
+    const rows = await queryInvoices('i.id = $1', [Number(req.params.id)])
     res.json(rows[0])
   } catch (e) {
     res.status(500).json({ error: e instanceof Error ? e.message : 'Failed to update invoice' })
@@ -258,7 +400,7 @@ router.put('/:id', async (req, res) => {
 // DELETE /api/admin/invoices/:id
 router.delete('/:id', async (req, res) => {
   try {
-    const rows = await queryInvoices('i.id = ?', [Number(req.params.id)])
+    const rows = await queryInvoices('i.id = $1', [Number(req.params.id)])
     const inv = rows[0]
     if (inv?.paypalInvoiceId && inv.status === 'sent') {
       try {
@@ -267,7 +409,7 @@ router.delete('/:id', async (req, res) => {
         })
       } catch { /* ignore */ }
     }
-    await prisma.$executeRawUnsafe('DELETE FROM "Invoice" WHERE id = ?', Number(req.params.id))
+    await prisma.$executeRawUnsafe('DELETE FROM "Invoice" WHERE id = $1', Number(req.params.id))
     res.json({ success: true })
   } catch (e) {
     res.status(500).json({ error: e instanceof Error ? e.message : 'Failed to delete invoice' })
@@ -283,13 +425,17 @@ router.post('/:id/send', async (req, res) => {
     }
 
     const isSandbox = creds.environment !== 'live'
+    const includePaypalButton: boolean = req.body.includePaypalButton === true
 
-    const rows = await queryInvoices('i.id = ?', [Number(req.params.id)])
+    const rows = await queryInvoices('i.id = $1', [Number(req.params.id)])
     const inv = rows[0]
     if (!inv) return res.status(404).json({ error: 'Invoice not found' })
     if (!inv.client) return res.status(400).json({ error: 'Invoice has no associated client' })
 
     const client = inv.client as { firstName: string; lastName: string; email: string }
+
+    let paypalInvoiceId: string
+    let paypalInvoiceUrl: string | null
 
     // Re-send existing PayPal invoice
     if (inv.paypalInvoiceId) {
@@ -298,31 +444,49 @@ router.post('/:id/send', async (req, res) => {
         subject: req.body.subject || `Invoice ${inv.invoiceNumber} from Designs by TA`,
       })
       await prisma.$executeRawUnsafe(
-        'UPDATE "Invoice" SET "status"=\'sent\',"sentAt"=?,"updatedAt"=? WHERE id=?',
-        now(), now(), Number(req.params.id)
+        `UPDATE "Invoice" SET "status"='sent',"sentAt"=NOW(),"updatedAt"=NOW() WHERE id=$1`,
+        Number(req.params.id)
       )
-      return res.json({ success: true, paypalInvoiceId: inv.paypalInvoiceId, paypalInvoiceUrl: inv.paypalInvoiceUrl, sandbox: isSandbox })
+      paypalInvoiceId = inv.paypalInvoiceId as string
+      paypalInvoiceUrl = inv.paypalInvoiceUrl as string | null
+    } else {
+      // Create new PayPal invoice (retries with suffix on duplicate number)
+      const created = await createPayPalInvoice(inv as Record<string, unknown>, client)
+      paypalInvoiceId = created.id
+      paypalInvoiceUrl = created.links?.find(l => l.rel === 'payer-view')?.href || null
+
+      // Send it via PayPal
+      await paypalFetch(`/v2/invoicing/invoices/${paypalInvoiceId}/send`, 'POST', {
+        send_to_invoicer: false, send_to_recipient: true,
+        subject: req.body.subject || `Invoice ${inv.invoiceNumber} from Designs by TA`,
+      })
+
+      await prisma.$executeRawUnsafe(
+        `UPDATE "Invoice" SET "paypalInvoiceId"=$1,"paypalInvoiceUrl"=$2,"status"='sent',"sentAt"=NOW(),"updatedAt"=NOW() WHERE id=$3`,
+        paypalInvoiceId, paypalInvoiceUrl, Number(req.params.id)
+      )
     }
 
-    // Create new PayPal invoice (retries with suffix on duplicate number)
-    const created = await createPayPalInvoice(inv as Record<string, unknown>, client)
+    // Optional: send branded SMTP email with PayPal button
+    if (includePaypalButton && paypalInvoiceUrl) {
+      const smtp = await getSmtpTransporter()
+      if (smtp) {
+        const html = buildPaypalButtonEmail(inv as Record<string, unknown>, client, paypalInvoiceUrl)
+        await smtp.transporter.sendMail({
+          from: smtp.from ?? undefined,
+          to: client.email,
+          subject: req.body.subject || `Invoice ${inv.invoiceNumber} — Payment Due`,
+          html,
+        })
+      }
+    }
 
-    const paypalInvoiceId = created.id
-    const paypalInvoiceUrl = created.links?.find(l => l.rel === 'payer-view')?.href || null
-
-    // Send it
-    await paypalFetch(`/v2/invoicing/invoices/${paypalInvoiceId}/send`, 'POST', {
-      send_to_invoicer: false, send_to_recipient: true,
-      subject: req.body.subject || `Invoice ${inv.invoiceNumber} from Designs by TA`,
-    })
-
-    await prisma.$executeRawUnsafe(`
-      UPDATE "Invoice" SET
-        "paypalInvoiceId"=?,"paypalInvoiceUrl"=?,"status"='sent',"sentAt"=?,"updatedAt"=?
-      WHERE id=?
-    `, paypalInvoiceId, paypalInvoiceUrl, now(), now(), Number(req.params.id))
-
-    const updated = await queryInvoices('i.id = ?', [Number(req.params.id)])
+    const updated = await queryInvoices('i.id = $1', [Number(req.params.id)])
+    await createNotification(
+      'invoice_sent',
+      'Invoice sent',
+      `Invoice #${inv.invoiceNumber} sent to ${client.firstName} ${client.lastName} (${client.email})`,
+    )
     res.json({ success: true, invoice: updated[0], paypalInvoiceId, paypalInvoiceUrl, sandbox: isSandbox })
   } catch (e) {
     res.status(500).json({ error: e instanceof Error ? e.message : 'Failed to send invoice' })
@@ -332,7 +496,7 @@ router.post('/:id/send', async (req, res) => {
 // POST /api/admin/invoices/:id/cancel
 router.post('/:id/cancel', async (req, res) => {
   try {
-    const rows = await queryInvoices('i.id = ?', [Number(req.params.id)])
+    const rows = await queryInvoices('i.id = $1', [Number(req.params.id)])
     const inv = rows[0]
     if (!inv) return res.status(404).json({ error: 'Not found' })
 
@@ -345,10 +509,10 @@ router.post('/:id/cancel', async (req, res) => {
     }
 
     await prisma.$executeRawUnsafe(
-      'UPDATE "Invoice" SET "status"=\'cancelled\',"updatedAt"=? WHERE id=?',
-      now(), Number(req.params.id)
+      `UPDATE "Invoice" SET "status"='cancelled',"updatedAt"=NOW() WHERE id=$1`,
+      Number(req.params.id)
     )
-    const updated = await queryInvoices('i.id = ?', [Number(req.params.id)])
+    const updated = await queryInvoices('i.id = $1', [Number(req.params.id)])
     res.json(updated[0])
   } catch (e) {
     res.status(500).json({ error: e instanceof Error ? e.message : 'Failed to cancel invoice' })
@@ -358,7 +522,7 @@ router.post('/:id/cancel', async (req, res) => {
 // POST /api/admin/invoices/:id/remind
 router.post('/:id/remind', async (req, res) => {
   try {
-    const rows = await queryInvoices('i.id = ?', [Number(req.params.id)])
+    const rows = await queryInvoices('i.id = $1', [Number(req.params.id)])
     const inv = rows[0]
     if (!inv?.paypalInvoiceId) return res.status(400).json({ error: 'Invoice not sent via PayPal yet' })
 
@@ -399,11 +563,22 @@ router.post('/sync', async (_req, res) => {
           newLocalStatus = 'cancelled'
         }
 
-        if (newLocalStatus !== inv.status) updated++
+        if (newLocalStatus !== inv.status) {
+          updated++
+          if (newLocalStatus === 'paid') {
+            const c = inv.client as { firstName?: string; lastName?: string } | null
+            const clientName = c ? `${c.firstName ?? ''} ${c.lastName ?? ''}`.trim() : `Client #${inv.clientId}`
+            await createNotification(
+              'invoice_paid',
+              'Payment received',
+              `${clientName} paid Invoice #${inv.invoiceNumber} — $${(inv.amount as number).toFixed(2)}`,
+            )
+          }
+        }
 
         await prisma.$executeRawUnsafe(
-          'UPDATE "Invoice" SET "status"=?, "paypalStatus"=?, "updatedAt"=? WHERE id=?',
-          newLocalStatus, ppStatus, now(), inv.id
+          'UPDATE "Invoice" SET "status"=$1,"paypalStatus"=$2,"updatedAt"=NOW() WHERE id=$3',
+          newLocalStatus, ppStatus, inv.id
         )
       } catch { /* skip individual failures silently */ }
     }))
@@ -417,8 +592,12 @@ router.post('/sync', async (_req, res) => {
 // POST /api/admin/invoices/generate-number
 router.post('/generate-number', async (_req, res) => {
   try {
-    const rows = await prisma.$queryRawUnsafe('SELECT MAX(id) as maxId FROM "Invoice"') as [{ maxId: number | null }]
-    const num = (rows[0]?.maxId ?? 0) + 1
+    // Count all invoices (including deleted ones never re-use numbers) using MAX id
+    // Then find any existing INV-XXXX numbers to avoid duplicates
+    const rows = await prisma.$queryRawUnsafe(
+      `SELECT COALESCE(MAX(CAST(SUBSTRING("invoiceNumber" FROM 'INV-([0-9]+)') AS INTEGER)), 0) AS last FROM "Invoice" WHERE "invoiceNumber" ~ '^INV-[0-9]+'`
+    ) as [{ last: number }]
+    const num = (rows[0]?.last ?? 0) + 1
     res.json({ invoiceNumber: `INV-${String(num).padStart(4, '0')}` })
   } catch (e) {
     res.status(500).json({ error: e instanceof Error ? e.message : 'Failed to generate number' })

@@ -84,9 +84,12 @@ model Client {
   invoices     Invoice[]
   documents    ClientDocument[]
   deals        Deal[]
-  passwordHash  String?
-  portalActive  Boolean   @default(false)
-  lastLoginAt   DateTime?
+  passwordHash       String?
+  portalPasswordPlain String?
+  portalActive       Boolean   @default(false)
+  lastLoginAt        DateTime?
+  journeyPhase       String?   @default("discovery")
+  messages           Message[]
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 }
@@ -127,14 +130,15 @@ model ProjectScope {
 
 model KanbanTask {
   id          Int      @id @default(autoincrement())
-  clientId    Int
-  client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  clientId    Int?
+  client      Client?  @relation(fields: [clientId], references: [id], onDelete: Cascade)
   title       String
   description String?
   column      String   @default("backlog")
   priority    String   @default("medium")
   dueDate     String?
   order       Int      @default(0)
+  taskOwner   String   @default("admin")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
@@ -267,18 +271,33 @@ model Deal {
 }
 
 model AutomationRule {
-  id        Int             @id @default(autoincrement())
-  name      String
-  type      String
-  enabled   Boolean         @default(false)
-  delayDays Int             @default(3)
-  subject   String?
-  body      String?
-  lastRunAt DateTime?
-  runCount  Int             @default(0)
-  createdAt DateTime        @default(now())
-  updatedAt DateTime        @updatedAt
-  logs      AutomationLog[]
+  id              Int             @id @default(autoincrement())
+  name            String
+  type            String
+  enabled         Boolean         @default(false)
+  delayDays       Int             @default(3)
+  subject         String?
+  body            String?
+  templateId      Int?
+  targetClientIds String?         // JSON array of client IDs, null = all matching clients
+  dedupeEnabled   Boolean         @default(false)
+  dedupeDays      Int             @default(30)
+  lastRunAt       DateTime?
+  runCount        Int             @default(0)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  logs            AutomationLog[]
+}
+
+model EmailTemplate {
+  id          Int      @id @default(autoincrement())
+  name        String
+  category    String
+  subject     String
+  htmlContent String
+  cssContent  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model AutomationLog {
@@ -304,4 +323,23 @@ model Expense {
   receiptName String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  type      String   // 'submission' | 'email_sent' | 'file_uploaded' | 'invoice_sent' | 'invoice_paid' | 'message'
+  title     String
+  body      String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model Message {
+  id        Int      @id @default(autoincrement())
+  clientId  Int
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  fromAdmin Boolean  @default(false)
+  body      String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
 }

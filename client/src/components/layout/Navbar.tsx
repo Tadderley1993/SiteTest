@@ -4,8 +4,8 @@ import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom'
 const NAV_LINKS = [
   { to: '/',          label: 'Home'     },
   { to: '/services',  label: 'Services' },
+  { to: '/concepts',  label: 'Concepts' },
   { to: '/about',     label: 'About'    },
-  { to: '/insights',  label: 'Insights' },
 ]
 
 export default function Navbar() {
@@ -42,7 +42,7 @@ export default function Navbar() {
           >
             <img
               src="/dbt_slate.png"
-              alt="Designs By TA"
+              alt="Designs By Terrence Adderley"
               style={{ height: 28, width: 'auto' }}
             />
             <span className="text-[12px] tracking-[0.12em] uppercase text-black font-bold leading-tight">

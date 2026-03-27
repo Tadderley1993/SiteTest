@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { getAutomations, createAutomation, updateAutomation, deleteAutomation, runAutomation, type AutomationRule } from '../../lib/api'
+import { getAutomations, createAutomation, updateAutomation, deleteAutomation, runAutomation, getClients, type AutomationRule, type Client } from '../../lib/api'
 
 const AUTOMATION_TYPES = [
   { id: 'proposal_followup', label: 'Proposal Follow-up', icon: 'follow_the_signs', desc: 'Auto-email clients whose proposals have been pending past the delay window.' },
@@ -27,8 +27,28 @@ function RuleModal({ rule, onSave, onClose }: {
     body: rule?.body || '',
     enabled: rule?.enabled ?? false,
   })
+  const [targetMode, setTargetMode] = useState<'all' | 'specific'>(
+    rule?.targetClientIds && rule.targetClientIds.length > 0 ? 'specific' : 'all'
+  )
+  const [selectedClientIds, setSelectedClientIds] = useState<number[]>(rule?.targetClientIds ?? [])
+  const [dedupeEnabled, setDedupeEnabled] = useState(rule?.dedupeEnabled ?? false)
+  const [dedupeDays, setDedupeDays] = useState(rule?.dedupeDays ?? 30)
+  const [clients, setClients] = useState<Client[]>([])
   const [saving, setSaving] = useState(false)
   const f = (k: keyof typeof form, v: string | number | boolean) => setForm(p => ({ ...p, [k]: v }))
+
+  useEffect(() => {
+    getClients().then(setClients).catch(console.error)
+  }, [])
+
+  const toggleClient = (id: number) => {
+    setSelectedClientIds(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    )
+  }
+
+  // monthly_report has no client targeting
+  const supportsTargeting = form.type !== 'monthly_report'
 
   return (
     <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={onClose}>
@@ -59,6 +79,55 @@ function RuleModal({ rule, onSave, onClose }: {
             <input type="number" min={0} value={form.delayDays} onChange={e => f('delayDays', parseInt(e.target.value) || 0)}
               className="w-full bg-[#f3f3f3] rounded-lg px-3 py-2.5 text-sm border-none focus:outline-none focus:ring-2 focus:ring-black/10" />
           </div>
+
+          {/* Client targeting */}
+          {supportsTargeting && (
+            <div>
+              <label className="text-xs font-semibold text-zinc-500 uppercase tracking-wider block mb-2">Target Clients</label>
+              <div className="flex gap-2 mb-3">
+                <button type="button" onClick={() => setTargetMode('all')}
+                  className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-colors ${targetMode === 'all' ? 'bg-black text-white' : 'bg-[#f3f3f3] text-zinc-500 hover:text-black'}`}>
+                  All matching clients
+                </button>
+                <button type="button" onClick={() => setTargetMode('specific')}
+                  className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-colors ${targetMode === 'specific' ? 'bg-black text-white' : 'bg-[#f3f3f3] text-zinc-500 hover:text-black'}`}>
+                  Specific clients
+                </button>
+              </div>
+              {targetMode === 'specific' && (
+                <div className="border border-zinc-200 rounded-xl overflow-hidden max-h-48 overflow-y-auto">
+                  {clients.length === 0 ? (
+                    <p className="text-xs text-zinc-400 p-4 text-center">No clients yet</p>
+                  ) : clients.map(c => (
+                    <label key={c.id} className="flex items-center gap-3 px-4 py-2.5 hover:bg-zinc-50 cursor-pointer border-b border-zinc-50 last:border-0">
+                      <input
+                        type="checkbox"
+                        checked={selectedClientIds.includes(c.id)}
+                        onChange={() => toggleClient(c.id)}
+                        className="rounded border-zinc-300 text-black focus:ring-black/20"
+                      />
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="h-6 w-6 rounded-full bg-zinc-900 flex items-center justify-center text-white text-[9px] font-bold flex-shrink-0">
+                          {c.firstName[0]}{c.lastName[0]}
+                        </div>
+                        <span className="text-sm font-medium truncate">{c.firstName} {c.lastName}</span>
+                        {c.organization && <span className="text-xs text-zinc-400 truncate">— {c.organization}</span>}
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              )}
+              {targetMode === 'specific' && selectedClientIds.length > 0 && (
+                <p className="text-xs text-zinc-500 mt-1.5">
+                  {selectedClientIds.length} client{selectedClientIds.length !== 1 ? 's' : ''} selected
+                </p>
+              )}
+              {targetMode === 'specific' && selectedClientIds.length === 0 && (
+                <p className="text-xs text-red-400 mt-1.5">Select at least one client, or switch to "All matching clients"</p>
+              )}
+            </div>
+          )}
+
           <div>
             <label className="text-xs font-semibold text-zinc-500 uppercase tracking-wider block mb-1.5">Email Subject <span className="normal-case text-zinc-400 font-normal">(optional — uses default if blank)</span></label>
             <input value={form.subject} onChange={e => f('subject', e.target.value)}
@@ -71,6 +140,36 @@ function RuleModal({ rule, onSave, onClose }: {
               className="w-full bg-[#f3f3f3] rounded-lg px-3 py-2.5 text-sm border-none focus:outline-none focus:ring-2 focus:ring-black/10 resize-none"
               placeholder="Leave blank for default message..." />
           </div>
+          {/* Dedupe toggle */}
+          {supportsTargeting && (
+            <div className="border border-zinc-100 rounded-xl p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-semibold">Skip recent recipients</p>
+                  <p className="text-xs text-zinc-400 mt-0.5">Don't send if they already received this email recently</p>
+                </div>
+                <div onClick={() => setDedupeEnabled(v => !v)}
+                  className={`w-10 h-6 rounded-full cursor-pointer transition-colors relative flex-shrink-0 ${dedupeEnabled ? 'bg-black' : 'bg-zinc-200'}`}>
+                  <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${dedupeEnabled ? 'translate-x-5' : 'translate-x-1'}`} />
+                </div>
+              </div>
+              {dedupeEnabled && (
+                <div className="flex items-center gap-3 pt-1">
+                  <label className="text-xs font-semibold text-zinc-500 uppercase tracking-wider whitespace-nowrap">Skip if sent within</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={365}
+                    value={dedupeDays}
+                    onChange={e => setDedupeDays(Math.max(1, parseInt(e.target.value) || 1))}
+                    className="w-20 bg-[#f3f3f3] rounded-lg px-3 py-2 text-sm border-none focus:outline-none focus:ring-2 focus:ring-black/10 text-center font-semibold"
+                  />
+                  <span className="text-xs text-zinc-500">days</span>
+                </div>
+              )}
+            </div>
+          )}
+
           <label className="flex items-center gap-3 cursor-pointer">
             <div onClick={() => f('enabled', !form.enabled)}
               className={`w-10 h-6 rounded-full transition-colors relative ${form.enabled ? 'bg-black' : 'bg-zinc-200'}`}>
@@ -81,10 +180,19 @@ function RuleModal({ rule, onSave, onClose }: {
         </div>
         <div className="px-6 pb-6 flex justify-end gap-3">
           <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-semibold text-zinc-600 hover:text-black">Cancel</button>
-          <button type="button" disabled={!form.name.trim() || saving} onClick={async () => {
-            setSaving(true)
-            try { await onSave(form) } finally { setSaving(false) }
-          }}
+          <button type="button"
+            disabled={!form.name.trim() || saving || (supportsTargeting && targetMode === 'specific' && selectedClientIds.length === 0)}
+            onClick={async () => {
+              setSaving(true)
+              try {
+                await onSave({
+                  ...form,
+                  targetClientIds: supportsTargeting && targetMode === 'specific' ? selectedClientIds : null,
+                  dedupeEnabled,
+                  dedupeDays,
+                })
+              } finally { setSaving(false) }
+            }}
             className="px-5 py-2 bg-black text-white text-sm font-semibold rounded-lg hover:bg-zinc-800 disabled:opacity-50 transition-colors">
             {saving ? 'Saving...' : 'Save'}
           </button>
@@ -128,7 +236,13 @@ function RuleCard({ rule, onEdit, onToggle, onRun, onDelete }: {
           </div>
           <div className="min-w-0">
             <p className="font-semibold text-black text-sm">{rule.name}</p>
-            <p className="text-xs text-zinc-400 mt-0.5">{typeInfo?.label} · {rule.delayDays}d delay</p>
+            <p className="text-xs text-zinc-400 mt-0.5">
+              {typeInfo?.label} · {rule.delayDays}d delay
+              {rule.targetClientIds && rule.targetClientIds.length > 0
+                ? ` · ${rule.targetClientIds.length} client${rule.targetClientIds.length !== 1 ? 's' : ''} targeted`
+                : ' · All matching clients'}
+              {rule.dedupeEnabled ? ` · No repeat within ${rule.dedupeDays}d` : ''}
+            </p>
             {rule.lastRunAt && <p className="text-xs text-zinc-400 mt-0.5">Last run: {fmtDate(rule.lastRunAt)}</p>}
             {rule.runCount > 0 && <p className="text-xs text-zinc-400">Run {rule.runCount}× total</p>}
           </div>

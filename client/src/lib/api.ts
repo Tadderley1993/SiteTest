@@ -24,6 +24,7 @@ export interface SubmissionData {
   phone: string
   clientType: string
   services: string[]
+  painPoints?: string[]
   description: string
   teamSize: string
   budget: string
@@ -75,13 +76,15 @@ export interface ProjectScope {
 
 export interface KanbanTask {
   id: number
-  clientId: number
+  clientId?: number | null
+  clientName?: string | null
   title: string
   description?: string
   column: string
   priority: string
   dueDate?: string
   order: number
+  taskOwner: string
   createdAt: string
   updatedAt: string
 }
@@ -103,6 +106,7 @@ export interface Client {
   submissionId?: number
   projectScope?: ProjectScope
   tasks: KanbanTask[]
+  journeyPhase?: string
   createdAt: string
   updatedAt: string
 }
@@ -122,6 +126,19 @@ export interface ClientFormData {
   notes?: string
   submissionId?: number
 }
+
+export const JOURNEY_PHASES = [
+  { id: 'discovery',       label: 'Discovery' },
+  { id: 'planning',        label: 'Planning' },
+  { id: 'design_1',        label: 'Phase 1 Design' },
+  { id: 'design_2',        label: 'Phase 2 Design' },
+  { id: 'development',     label: 'Development' },
+  { id: 'review',          label: 'Client Review' },
+  { id: 'final_approval',  label: 'Final Approval' },
+  { id: 'handoff',         label: 'Handoff' },
+] as const
+
+export type JourneyPhaseId = typeof JOURNEY_PHASES[number]['id']
 
 // API functions
 export async function createSubmission(data: SubmissionData): Promise<Submission> {
@@ -169,6 +186,11 @@ export async function deleteClient(id: number): Promise<void> {
   await api.delete(`/admin/clients/${id}`)
 }
 
+export async function updateJourneyPhase(clientId: number, journeyPhase: string): Promise<{ journeyPhase: string }> {
+  const res = await api.put(`/admin/clients/${clientId}/journey`, { journeyPhase })
+  return res.data
+}
+
 export async function updateProjectScope(clientId: number, data: Partial<ProjectScope>): Promise<ProjectScope> {
   const response = await api.put(`/admin/clients/${clientId}/scope`, data)
   return response.data
@@ -186,6 +208,26 @@ export async function updateTask(clientId: number, taskId: number, data: Partial
 
 export async function deleteTask(clientId: number, taskId: number): Promise<void> {
   await api.delete(`/admin/clients/${clientId}/tasks/${taskId}`)
+}
+
+// Global task functions (production board — no clientId required)
+export async function getAllTasks(params?: { owner?: string; clientId?: number; column?: string }): Promise<KanbanTask[]> {
+  const response = await api.get('/admin/tasks', { params })
+  return response.data
+}
+
+export async function createAdminTask(data: Partial<KanbanTask>): Promise<KanbanTask> {
+  const response = await api.post('/admin/tasks', data)
+  return response.data
+}
+
+export async function updateAnyTask(taskId: number, data: Partial<KanbanTask>): Promise<KanbanTask> {
+  const response = await api.put(`/admin/tasks/${taskId}`, data)
+  return response.data
+}
+
+export async function deleteAnyTask(taskId: number): Promise<void> {
+  await api.delete(`/admin/tasks/${taskId}`)
 }
 
 // Standing types
@@ -319,6 +361,16 @@ export async function deleteDocument(clientId: number, docId: number): Promise<v
 
 export function getDocumentDownloadUrl(docId: number): string {
   return `/api/admin/download/${docId}`
+}
+
+export async function downloadDocument(docId: number, fileName: string): Promise<void> {
+  const res = await api.get(`/admin/download/${docId}`, { responseType: 'blob' })
+  const url = URL.createObjectURL(res.data)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = fileName
+  a.click()
+  setTimeout(() => URL.revokeObjectURL(url), 10000)
 }
 
 // Proposal types
@@ -681,6 +733,9 @@ export interface AutomationRule {
   delayDays: number
   subject?: string
   body?: string
+  targetClientIds?: number[] | null
+  dedupeEnabled?: boolean
+  dedupeDays?: number
   lastRunAt?: string
   runCount: number
   createdAt: string
@@ -718,6 +773,122 @@ export async function deleteAutomation(id: number): Promise<void> {
 
 export async function runAutomation(id: number): Promise<{ results: { status: string; message: string; sentTo?: string }[] }> {
   const res = await api.post(`/admin/automations/${id}/run`)
+  return res.data
+}
+
+// ── Email Templates ──────────────────────────────────────────────
+export interface EmailTemplate {
+  id: number
+  name: string
+  category: string
+  subject: string
+  htmlContent: string
+  cssContent: string
+  createdAt: string
+  updatedAt: string
+}
+
+export async function getEmailTemplates(): Promise<EmailTemplate[]> {
+  const res = await api.get('/admin/email-templates')
+  return res.data
+}
+
+export async function getEmailTemplate(id: number): Promise<EmailTemplate> {
+  const res = await api.get(`/admin/email-templates/${id}`)
+  return res.data
+}
+
+export async function createEmailTemplate(data: Omit<EmailTemplate, 'id' | 'createdAt' | 'updatedAt'>): Promise<EmailTemplate> {
+  const res = await api.post('/admin/email-templates', data)
+  return res.data
+}
+
+export async function updateEmailTemplate(id: number, data: Partial<Omit<EmailTemplate, 'id' | 'createdAt' | 'updatedAt'>>): Promise<EmailTemplate> {
+  const res = await api.put(`/admin/email-templates/${id}`, data)
+  return res.data
+}
+
+export async function deleteEmailTemplate(id: number): Promise<void> {
+  await api.delete(`/admin/email-templates/${id}`)
+}
+
+export async function sendEmailTemplate(id: number, to: string, variables: Record<string, string>): Promise<void> {
+  await api.post(`/admin/email-templates/${id}/send`, { to, variables })
+}
+
+export async function updateAdminAccount(data: { currentPassword: string; newUsername?: string; newPassword?: string }): Promise<{ message: string; username: string }> {
+  const res = await api.put('/auth/account', data)
+  return res.data
+}
+
+// ── Notifications ─────────────────────────────────────────────────────────────
+
+export interface AdminNotification {
+  id: number
+  type: string
+  title: string
+  body: string
+  read: boolean
+  createdAt: string
+}
+
+export async function getNotifications(): Promise<AdminNotification[]> {
+  const res = await api.get('/admin/notifications')
+  return res.data
+}
+
+export async function getUnreadNotificationCount(): Promise<number> {
+  const res = await api.get('/admin/notifications/unread-count')
+  return res.data.count
+}
+
+export async function markNotificationRead(id: number): Promise<void> {
+  await api.patch(`/admin/notifications/${id}/read`)
+}
+
+export async function markAllNotificationsRead(): Promise<void> {
+  await api.patch('/admin/notifications/read-all')
+}
+
+export async function clearReadNotifications(): Promise<void> {
+  await api.delete('/admin/notifications/clear')
+}
+
+// ── Messages ──────────────────────────────────────────────────────────────────
+
+export interface AdminMessage {
+  id: number
+  clientId: number
+  fromAdmin: boolean
+  body: string
+  read: boolean
+  createdAt: string
+}
+
+export interface ClientThread {
+  clientId: number
+  firstName: string
+  lastName: string
+  email: string
+  organization: string | null
+  lastBody: string
+  lastFromAdmin: boolean
+  lastAt: string
+  unreadCount: number
+}
+
+export async function getAllMessageThreads(): Promise<ClientThread[]> {
+  const res = await api.get('/admin/messages')
+  return res.data
+}
+
+export async function getClientMessages(clientId: number): Promise<AdminMessage[]> {
+  const res = await api.get(`/admin/messages/${clientId}`)
+  return res.data
+}
+
+export async function sendAdminMessage(clientId: number, body: string): Promise<AdminMessage> {
+  const res = await api.post(`/admin/messages/${clientId}`, { body })
   return res.data
 }
 

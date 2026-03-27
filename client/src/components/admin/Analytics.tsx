@@ -24,6 +24,7 @@ interface OverviewData {
 
 interface TimePoint { date: string; sessions: number; users: number; pageviews: number }
 interface TrafficSource { channel: string; sessions: number; users: number }
+interface ReferrerData { source: string; medium: string; sessions: number; users: number }
 interface PageData { path: string; title: string; pageviews: number; users: number; avgDuration: number; bounceRate: number; engagementRate: number }
 interface DeviceData { device: string; sessions: number; users: number }
 interface GeoData { country: string; sessions: number; users: number }
@@ -168,6 +169,7 @@ export default function Analytics() {
   const [overview, setOverview] = useState<OverviewData | null>(null)
   const [timeseries, setTimeseries] = useState<TimePoint[]>([])
   const [traffic, setTraffic] = useState<TrafficSource[]>([])
+  const [referrers, setReferrers] = useState<ReferrerData[]>([])
   const [pages, setPages] = useState<PageData[]>([])
   const [devices, setDevices] = useState<DeviceData[]>([])
   const [geo, setGeo] = useState<GeoData[]>([])
@@ -197,14 +199,16 @@ export default function Analytics() {
     setError('')
     try {
       if (tab === 'overview') {
-        const [ov, ts, tr] = await Promise.all([
+        const [ov, ts, tr, ref] = await Promise.all([
           api.get(`/admin/analytics/overview?period=${period}`),
           api.get(`/admin/analytics/timeseries?period=${period}`),
           api.get(`/admin/analytics/traffic?period=${period}`),
+          api.get(`/admin/analytics/referrers?period=${period}&limit=20`),
         ])
         setOverview(ov.data)
         setTimeseries(ts.data)
         setTraffic(tr.data)
+        setReferrers(ref.data)
       } else if (tab === 'audience') {
         const [dev, g, aud] = await Promise.all([
           api.get(`/admin/analytics/devices?period=${period}`),
@@ -534,17 +538,38 @@ export default function Analytics() {
 
               {/* Traffic sources */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {/* Pie — keyed by source so it reflects referrer breakdown */}
                 <ChartCard title="Traffic Sources">
-                  <ResponsiveContainer width="100%" height={200}>
-                    <PieChart>
-                      <Pie data={traffic} dataKey="sessions" nameKey="channel" cx="50%" cy="50%" outerRadius={80} innerRadius={50} paddingAngle={2}>
-                        {traffic.map((t, i) => (
-                          <Cell key={t.channel} fill={CHANNEL_COLORS[t.channel] ?? PIE_FALLBACK[i % PIE_FALLBACK.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip {...tooltipStyle} />
-                    </PieChart>
-                  </ResponsiveContainer>
+                  {referrers.length > 0 ? (
+                    <ResponsiveContainer width="100%" height={200}>
+                      <PieChart>
+                        <Pie
+                          data={referrers.slice(0, 8)}
+                          dataKey="sessions"
+                          nameKey="source"
+                          cx="50%" cy="50%"
+                          outerRadius={80} innerRadius={50}
+                          paddingAngle={2}
+                        >
+                          {referrers.slice(0, 8).map((r, i) => (
+                            <Cell key={r.source} fill={PIE_FALLBACK[i % PIE_FALLBACK.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip {...tooltipStyle} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <ResponsiveContainer width="100%" height={200}>
+                      <PieChart>
+                        <Pie data={traffic} dataKey="sessions" nameKey="channel" cx="50%" cy="50%" outerRadius={80} innerRadius={50} paddingAngle={2}>
+                          {traffic.map((t, i) => (
+                            <Cell key={t.channel} fill={CHANNEL_COLORS[t.channel] ?? PIE_FALLBACK[i % PIE_FALLBACK.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip {...tooltipStyle} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  )}
                 </ChartCard>
 
                 <ChartCard title="Channel Breakdown">
@@ -567,6 +592,63 @@ export default function Analytics() {
                         </div>
                       )
                     })}
+
+                    {/* Referrer breakdown below channel bars */}
+                    {referrers.length > 0 && (
+                      <div className="pt-3 mt-1 border-t border-zinc-200">
+                        <p className="text-[10px] font-semibold text-zinc-400 uppercase tracking-widest mb-2.5">Top Referring Sources</p>
+                        <div className="space-y-1.5">
+                          {referrers.slice(0, 10).map((r, i) => {
+                            const totalRef = referrers.reduce((s, x) => s + x.sessions, 0)
+                            const p = parseFloat(pct(r.sessions, totalRef))
+                            const color = PIE_FALLBACK[i % PIE_FALLBACK.length]
+                            const isDirect = r.source === '(direct)' || r.source === 'direct'
+                            const isNotSet = r.source === '(not set)'
+                            return (
+                              <div key={`${r.source}-${r.medium}`} className="flex items-center gap-2.5">
+                                {/* Source favicon or icon */}
+                                <div className="w-5 h-5 rounded flex-shrink-0 flex items-center justify-center"
+                                  style={{ background: `${color}22`, border: `1px solid ${color}44` }}>
+                                  {isDirect ? (
+                                    <Globe className="w-3 h-3" style={{ color }} />
+                                  ) : (
+                                    <img
+                                      src={`https://www.google.com/s2/favicons?domain=${r.source}&sz=16`}
+                                      alt=""
+                                      className="w-3 h-3 rounded-sm"
+                                      onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
+                                    />
+                                  )}
+                                </div>
+
+                                {/* Source name + medium */}
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-xs text-black font-medium truncate">
+                                      {isDirect ? 'Direct' : isNotSet ? 'Unknown' : r.source}
+                                    </span>
+                                    {r.medium && r.medium !== '(none)' && r.medium !== '(not set)' && (
+                                      <span className="text-[10px] text-zinc-400 bg-zinc-100 px-1.5 py-0.5 rounded-full flex-shrink-0">
+                                        {r.medium}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="h-1 bg-zinc-200 rounded-full mt-1 overflow-hidden">
+                                    <div className="h-full rounded-full" style={{ width: `${p}%`, background: color }} />
+                                  </div>
+                                </div>
+
+                                {/* Sessions + % */}
+                                <div className="text-right flex-shrink-0">
+                                  <div className="text-xs font-semibold text-black tabular-nums">{r.sessions.toLocaleString()}</div>
+                                  <div className="text-[10px] text-zinc-400">{p.toFixed(1)}%</div>
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </ChartCard>
               </div>

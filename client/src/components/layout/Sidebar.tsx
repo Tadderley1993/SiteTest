@@ -138,7 +138,7 @@ export default function Sidebar() {
         <Link to="/" onClick={handleLogoClick} className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2.5">
           <img
             src="/dbt_slate.png"
-            alt="Designs By TA"
+            alt="Designs By Terrence Adderley"
             style={{ height: 28, width: 'auto', filter: 'brightness(0) invert(1)' }}
           />
           <span className="text-[13px] font-semibold text-white tracking-tight leading-tight whitespace-nowrap">
@@ -186,7 +186,7 @@ export default function Sidebar() {
               >
                 <img
                   src="/dbt_slate.png"
-                  alt="Designs By TA"
+                  alt="Designs By Terrence Adderley"
                   style={{ height: 30, width: 'auto' }}
                 />
                 <span className="text-[13px] font-semibold text-black tracking-tight leading-tight">
@@ -243,7 +243,7 @@ export default function Sidebar() {
           <Link to="/" onClick={handleLogoClick} className="flex items-center gap-2.5">
             <img
               src="/dbt_slate.png"
-              alt="Designs By TA"
+              alt="Designs By Terrence Adderley"
               style={{ height: 28, width: 'auto', filter: 'brightness(0) invert(1)' }}
             />
             <span className="text-[12px] font-semibold text-white tracking-tight leading-tight whitespace-nowrap">

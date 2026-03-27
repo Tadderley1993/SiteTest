@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { PrismaClient } from '@prisma/client'
+import { createNotification } from '../lib/notify.js'
 
 const router = Router()
 const prisma = new PrismaClient()
@@ -44,6 +45,11 @@ router.post('/', async (req, res) => {
       },
     })
 
+    await createNotification(
+      'submission',
+      'New submission received',
+      `${firstName} ${lastName} submitted a project request (${clientType})`,
+    )
     res.status(201).json(submission)
   } catch (error) {
     console.error('Error creating submission:', error)

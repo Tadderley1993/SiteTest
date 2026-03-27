@@ -205,7 +205,7 @@ export default function SignProposal() {
       <div className="bg-[#0d1117] py-6 px-6">
         <div className="max-w-3xl mx-auto flex items-center justify-between">
           <div>
-            <img src="/logo.png" alt="Designs By TA" className="h-8 w-auto brightness-0 invert" />
+            <img src="/logo.png" alt="Designs By Terrence Adderley" className="h-8 w-auto brightness-0 invert" />
             <div className="text-xs text-gray-400 mt-0.5">designsbyta.com</div>
           </div>
           {proposal && (
@@ -250,7 +250,7 @@ export default function SignProposal() {
               This proposal was signed by <strong>{proposal?.clientName}</strong> on {signedAt}.
             </p>
             <p className="text-gray-400 text-sm mt-2">
-              A copy has been recorded. Designs By TA will be in touch shortly.
+              A copy has been recorded. Designs By Terrence Adderley will be in touch shortly.
             </p>
           </motion.div>
         )}
@@ -405,7 +405,7 @@ export default function SignProposal() {
 
       {/* Footer */}
       <div className="text-center pb-10 text-xs text-gray-400">
-        Powered by <span className="font-bold">Designs By TA</span> · designsbyta.com
+        Powered by <span className="font-bold">Designs By Terrence Adderley</span> · designsbyta.com
       </div>
     </div>
   )

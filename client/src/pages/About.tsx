@@ -13,12 +13,12 @@ const VALUES = [
   {
     n: '01',
     title: 'Precision',
-    desc: 'Every pixel, every word, every line of code is intentional. Good design is in the details — and I obsess over them so you don\'t have to.',
+    desc: 'Every pixel, every word, every line of code is intentional. Good design is in the details, and I obsess over them so you don\'t have to.',
   },
   {
     n: '02',
     title: 'Partnership',
-    desc: 'Your business goals are my brief. I don\'t hand off mockups and disappear — I stay in the trenches until the work is done and performing.',
+    desc: 'Your business goals are my brief. I don\'t hand off mockups and disappear. I stay in the trenches until the work is done and performing.',
   },
   {
     n: '03',
@@ -40,7 +40,7 @@ export default function About() {
   return (
     <PageWrapper
       title="About Terrence Adderley — Boston Web Designer & Developer"
-      description="Meet Terrence Adderley, the designer and developer behind Designs By TA. Built by obsession, driven by results — Boston-based freelance web design studio."
+      description="Meet Terrence Adderley, the designer and developer behind Designs By Terrence Adderley. Built by obsession, driven by results — Boston-based freelance web design studio."
       canonical="https://designsbyta.com/about"
     >
 
@@ -57,7 +57,7 @@ export default function About() {
               Built by Obsession. Driven by Results.
             </h1>
             <p className="text-[17px] text-[#474747] leading-relaxed max-w-xl">
-              Terrence Adderley is a designer, developer, and strategist based in Boston, MA — building websites that work as hard as the businesses they represent.
+              Terrence Adderley is a designer, developer, and strategist based in Boston, MA, building websites that work as hard as the businesses they represent.
             </p>
           </motion.div>
         </div>
@@ -84,9 +84,9 @@ export default function About() {
             </div>
             <div className="flex flex-col gap-5">
               {[
-                "I didn't fall into web design — I was pulled toward it. The craft of building something that both looks right and functions perfectly has been a lifelong obsession.",
+                "I didn't fall into web design. I was pulled toward it. The craft of building something that both looks right and functions perfectly has been a lifelong obsession.",
                 "What started as a passion for aesthetics became an obsession with outcomes. Clean code isn't enough if the design doesn't convert. Great design isn't enough if the site loads in 4 seconds. SEO isn't enough if the copy doesn't land.",
-                "Designs By TA is the product of that synthesis — a studio that combines design craft, engineering rigor, and growth strategy under one roof. I keep the team small intentionally. You work with me — not a junior contractor managed by someone who's never seen your project.",
+                "Designs By Terrence Adderley is the product of that synthesis, a studio that combines design craft, engineering rigor, and growth strategy under one roof. I keep the team small intentionally. You work with me, not a junior contractor managed by someone who's never seen your project.",
                 "Based in Boston, MA. Serving clients everywhere.",
               ].map((para, i) => (
                 <motion.p
@@ -103,8 +103,6 @@ export default function About() {
               ))}
               <div className="mt-4 inline-flex items-center gap-3 border border-[#e5e5e5] bg-white px-5 py-3">
                 <span className="text-[13px] font-bold text-black">Boston, MA</span>
-                <span className="w-px h-4 bg-[#e5e5e5]" />
-                <span className="text-[13px] text-[#777]">Available Worldwide</span>
               </div>
             </div>
           </div>

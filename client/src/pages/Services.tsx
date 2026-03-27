@@ -15,14 +15,14 @@ const SERVICES = [
     n: '02',
     icon: 'web',
     title: 'Web Design',
-    desc: 'Every page designed with intent — layouts that guide attention, UI that converts, and aesthetics that build trust with your audience from the first scroll.',
+    desc: 'Every page designed with intent: layouts that guide attention, UI that converts, and aesthetics that build trust with your audience from the first scroll.',
     includes: ['Custom UI design', 'Responsive layouts', 'User experience (UX)', 'Figma design files', 'Prototype & user testing'],
   },
   {
     n: '03',
     icon: 'code',
     title: 'Web Development',
-    desc: 'Production-grade code that performs. Built with React, Next.js, or Webflow — always fast, accessible, and SEO-ready out of the box.',
+    desc: 'Production-grade code that performs. Built with React, Next.js, or Webflow, always fast, accessible, and SEO-ready out of the box.',
     includes: ['React / Next.js builds', 'Webflow development', 'CMS integration', 'Performance optimization', 'Cross-browser testing'],
   },
   {
@@ -85,7 +85,7 @@ export default function Services() {
               Everything You Need. Nothing You Don't.
             </h1>
             <p className="text-[17px] text-[#474747] leading-relaxed max-w-xl">
-              A focused set of services designed to move your business forward — from brand foundation to technical execution to long-term growth.
+              A focused set of services designed to move your business forward, from brand foundation to technical execution to long-term growth.
             </p>
           </motion.div>
         </div>
@@ -136,7 +136,7 @@ export default function Services() {
               You work with me. Not a junior. Not a team you've never met.
             </h2>
             <p className="text-[15px] text-white/60 leading-relaxed">
-              Every project is handled personally — strategy, design, code, and launch. That means faster decisions, higher quality, and a working relationship built on trust.
+              Every project is handled personally: strategy, design, code, and launch. That means faster decisions, higher quality, and a working relationship built on trust.
             </p>
           </div>
           <div className="flex flex-col">

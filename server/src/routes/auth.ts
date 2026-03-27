@@ -1,11 +1,13 @@
 import { Router } from 'express'
 import { z } from 'zod'
+import bcrypt from 'bcryptjs'
 import { authService } from '../services/auth.service.js'
 import { authMiddleware, AuthRequest } from '../middleware/auth.js'
 import { validate } from '../middleware/validate.js'
 import { asyncHandler } from '../middleware/errorHandler.js'
 import { authRateLimit } from '../middleware/rateLimit.js'
 import { LoginSchema, RefreshSchema } from '../lib/schemas.js'
+import { prisma } from '../lib/prisma.js'
 
 const router = Router()
 
@@ -74,6 +76,44 @@ router.get(
   asyncHandler(async (req: AuthRequest, res) => {
     const sessions = await authService.listSessions(req.adminId!)
     res.json(sessions)
+  }),
+)
+
+// ── PUT /api/auth/account — change username / password ──────
+router.put(
+  '/account',
+  authMiddleware,
+  asyncHandler(async (req: AuthRequest, res) => {
+    const { currentPassword, newUsername, newPassword } = req.body as {
+      currentPassword: string
+      newUsername?: string
+      newPassword?: string
+    }
+
+    if (!currentPassword) return res.status(400).json({ error: 'Current password is required' })
+    if (!newUsername && !newPassword) return res.status(400).json({ error: 'Provide a new username or password' })
+
+    const admin = await prisma.admin.findUnique({ where: { id: req.adminId! } })
+    if (!admin) return res.status(404).json({ error: 'Admin not found' })
+
+    const valid = await bcrypt.compare(currentPassword, admin.passwordHash)
+    if (!valid) return res.status(401).json({ error: 'Current password is incorrect' })
+
+    const updates: { username?: string; passwordHash?: string } = {}
+    if (newUsername && newUsername !== admin.username) {
+      const taken = await prisma.admin.findUnique({ where: { username: newUsername } })
+      if (taken) return res.status(409).json({ error: 'That username is already taken' })
+      updates.username = newUsername
+    }
+    if (newPassword) {
+      if (newPassword.length < 8) return res.status(400).json({ error: 'New password must be at least 8 characters' })
+      updates.passwordHash = await bcrypt.hash(newPassword, 12)
+    }
+
+    if (Object.keys(updates).length === 0) return res.json({ message: 'No changes made' })
+
+    await prisma.admin.update({ where: { id: req.adminId! }, data: updates })
+    res.json({ message: 'Account updated successfully', username: updates.username ?? admin.username })
   }),
 )
 

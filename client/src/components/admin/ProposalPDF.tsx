@@ -120,13 +120,13 @@ export default function ProposalPDF({ proposal }: Props) {
   const taxAmount = (proposal.subtotal - discount) * (proposal.taxRate / 100)
 
   return (
-    <Document title={`${proposal.proposalNumber} — ${proposal.title}`} author="Designs By TA" creator="Designs By TA">
+    <Document title={`${proposal.proposalNumber} — ${proposal.title}`} author="Designs By Terrence Adderley" creator="Designs By Terrence Adderley">
       <Page size="A4" style={styles.page}>
         {/* ── HEADER ── */}
         <View style={styles.header}>
           <View style={styles.headerTop}>
             <View>
-              <Text style={styles.agencyName}>DESIGNS BY TA</Text>
+              <Text style={styles.agencyName}>DESIGNS BY TERRENCE ADDERLEY</Text>
               <Text style={styles.agencyTagline}>designsbyta.com</Text>
             </View>
             <View>
@@ -289,7 +289,7 @@ export default function ProposalPDF({ proposal }: Props) {
           <Text style={styles.footerText}>
             {proposal.proposalNumber} · Prepared for {proposal.clientName} · {proposal.date}
           </Text>
-          <Text style={styles.footerAccent}>DESIGNS BY TA</Text>
+          <Text style={styles.footerAccent}>DESIGNS BY TERRENCE ADDERLEY</Text>
         </View>
       </Page>
 
@@ -320,11 +320,12 @@ export default function ProposalPDF({ proposal }: Props) {
 
         {/* ── AGENCY block ── */}
         <View style={{ position: 'absolute', top: 90, left: 320, width: 240 }}>
-          <Text style={styles.signatureLabel}>Authorized by Designs By TA</Text>
+          <Text style={styles.signatureLabel}>Authorized by Designs By Terrence Adderley</Text>
           <Text style={styles.signatureHandwriting}>Terrence Adderley</Text>
           <View style={styles.signatureLine} />
           <Text style={styles.signatureLabel}>Terrence Adderley</Text>
-          <Text style={[styles.signatureLabel, { marginTop: 2 }]}>Designs By TA</Text>
+          <Text style={[styles.signatureLabel, { marginTop: 2 }]}>Designs By Terrence Adderley</Text>
+          <Text style={[styles.signatureLabel, { marginTop: 2 }]}>Terrence Adderley Jr Enterprise LLC</Text>
         </View>
 
       </Page>

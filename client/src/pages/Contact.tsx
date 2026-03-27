@@ -25,7 +25,7 @@ interface FormState {
   email: string
   phone: string
   businessName: string
-  projectType: string
+  projectTypes: string[]
   budget: string
   timeline: string
   message: string
@@ -33,10 +33,14 @@ interface FormState {
 
 const initial: FormState = {
   firstName: '', lastName: '', email: '', phone: '',
-  businessName: '', projectType: '', budget: '', timeline: '', message: '',
+  businessName: '', projectTypes: [], budget: '', timeline: '', message: '',
 }
 
 type Errors = Partial<Record<keyof FormState, string>>
+
+function toggleItem(arr: string[], val: string): string[] {
+  return arr.includes(val) ? arr.filter(v => v !== val) : [...arr, val]
+}
 
 function Field({
   label, id, error, children,
@@ -74,7 +78,7 @@ export default function Contact() {
     else if (!EMAIL_REGEX.test(form.email)) e.email = 'Enter a valid email address'
     if (!form.phone.trim()) e.phone = 'Required'
     else if (form.phone.replace(/\D/g, '').length < 10) e.phone = 'Enter a valid phone number'
-    if (!form.projectType) e.projectType = 'Please select a service'
+    if (form.projectTypes.length === 0) e.projectTypes = 'Select at least one service'
     if (!form.budget) e.budget = 'Please select a budget range'
     if (!form.message.trim()) e.message = 'Tell me about your project'
     setErrors(e)
@@ -93,7 +97,7 @@ export default function Contact() {
         email: form.email,
         phone: form.phone,
         clientType: form.businessName || 'Not provided',
-        services: [form.projectType],
+        services: form.projectTypes,
         description: [
           form.message,
           form.timeline ? `Timeline: ${form.timeline}` : '',
@@ -211,15 +215,26 @@ export default function Contact() {
                       id="phone"
                       type="tel"
                       value={form.phone}
-                      onChange={e => set('phone', e.target.value)}
+                      onChange={e => {
+                        const digits = e.target.value.replace(/\D/g, '').slice(0, 10)
+                        let formatted = digits
+                        if (digits.length >= 7) {
+                          formatted = `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`
+                        } else if (digits.length >= 4) {
+                          formatted = `(${digits.slice(0, 3)}) ${digits.slice(3)}`
+                        } else if (digits.length >= 1) {
+                          formatted = `(${digits}`
+                        }
+                        set('phone', formatted)
+                      }}
                       placeholder="(617) 555-0100"
                       className={inputClass('phone')}
                     />
                   </Field>
                 </div>
 
-                {/* Business Name + Project Type */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-5">
+                {/* Business Name */}
+                <div className="mb-5">
                   <Field label="Business Name" id="businessName" error={errors.businessName}>
                     <input
                       id="businessName"
@@ -230,19 +245,35 @@ export default function Contact() {
                       className={inputClass('businessName')}
                     />
                   </Field>
-                  <Field label="Service Needed" id="projectType" error={errors.projectType}>
-                    <select
-                      id="projectType"
-                      value={form.projectType}
-                      onChange={e => set('projectType', e.target.value)}
-                      className={`${inputClass('projectType')} cursor-pointer`}
-                    >
-                      <option value="">Select a service</option>
-                      {PROJECT_TYPES.map(t => (
-                        <option key={t} value={t}>{t}</option>
-                      ))}
-                    </select>
-                  </Field>
+                </div>
+
+                {/* Services — multi-select chips */}
+                <div className="mb-5">
+                  <label className="text-[12px] font-semibold tracking-[0.08em] uppercase text-[#474747] block mb-2">
+                    Services Needed
+                    <span className="ml-1.5 text-[#999] font-normal normal-case tracking-normal">(select all that apply)</span>
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {PROJECT_TYPES.map(t => {
+                      const isSelected = form.projectTypes.includes(t)
+                      return (
+                        <button
+                          key={t}
+                          type="button"
+                          onClick={(e) => { e.preventDefault(); setForm(p => ({ ...p, projectTypes: toggleItem(p.projectTypes, t) })); if (errors.projectTypes) setErrors(p => ({ ...p, projectTypes: undefined })) }}
+                          className={`px-4 py-2 text-[12px] font-semibold tracking-[0.04em] border transition-all duration-150 ${
+                            isSelected
+                              ? 'bg-black text-white border-black'
+                              : 'bg-white text-[#474747] border-[#e5e5e5] hover:border-black hover:text-black'
+                          }`}
+                        >
+                          {isSelected && <span className="mr-1.5">✓</span>}
+                          {t}
+                        </button>
+                      )
+                    })}
+                  </div>
+                  {errors.projectTypes && <p className="text-[12px] text-red-600 mt-1.5">{errors.projectTypes}</p>}
                 </div>
 
                 {/* Budget + Timeline */}
@@ -306,12 +337,12 @@ export default function Contact() {
             <div className="bg-white p-7">
               <p className="text-[11px] font-semibold tracking-[0.15em] uppercase text-[#777] mb-5">Direct Contact</p>
               <a
-                href="mailto:hello@designsbyta.com"
+                href="mailto:terrenceadderley@designsbyta.com"
                 className="text-[15px] font-bold text-black hover:text-[#474747] transition-colors block mb-2"
               >
-                hello@designsbyta.com
+                terrenceadderley@designsbyta.com
               </a>
-              <p className="text-[13px] text-[#777]">Boston, MA · Available Worldwide</p>
+              <p className="text-[13px] text-[#777]">Boston, MA</p>
             </div>
 
             {/* What happens next */}

@@ -1,12 +1,19 @@
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { PDFDownloadLink, BlobProvider } from '@react-pdf/renderer'
 import {
   ArrowLeft, Plus, Trash2, Save, Send, Download, Eye, EyeOff,
-  ChevronDown, ChevronUp, X, Users, Search, PenLine,
+  ChevronDown, ChevronUp, X, Users, Search, PenLine, FileCode,
 } from 'lucide-react'
-import { createProposal, updateProposal, sendProposalEmail, getClients, Proposal, LineItem, Client } from '../../lib/api'
+import { createProposal, updateProposal, sendProposalEmail, getClients, getEmailTemplates, Proposal, LineItem, Client, EmailTemplate } from '../../lib/api'
 import ProposalPDF from './ProposalPDF'
+import {
+  buildProposalTokenMap,
+  renderTemplateDocument,
+  downloadTemplateAsPdf,
+  htmlToPdfBlob,
+  blobToBase64,
+} from '../../lib/templateRenderer'
 
 const CURRENCIES = ['USD', 'EUR', 'GBP', 'CAD', 'AUD']
 const CURRENCY_SYMBOLS: Record<string, string> = { USD: '$', EUR: '€', GBP: '£', CAD: 'CA$', AUD: 'A$' }
@@ -142,9 +149,10 @@ interface SendModalProps {
   proposal: Proposal
   onClose: () => void
   onSent: () => void
+  renderedHtml?: string   // if set, use html2pdf instead of react-pdf
 }
 
-function SendModal({ proposal, onClose, onSent }: SendModalProps) {
+function SendModal({ proposal, onClose, onSent, renderedHtml }: SendModalProps) {
   const [to, setTo] = useState(proposal.clientEmail)
   const [subject, setSubject] = useState(`Proposal: ${proposal.title}`)
   const [message, setMessage] = useState(
@@ -153,6 +161,23 @@ function SendModal({ proposal, onClose, onSent }: SendModalProps) {
   const [sending, setSending] = useState(false)
   const [error, setError] = useState('')
   const [sent, setSent] = useState(false)
+
+  const handleSendWithHtmlTemplate = async () => {
+    if (!renderedHtml) return
+    setSending(true)
+    setError('')
+    try {
+      const blob = await htmlToPdfBlob(renderedHtml, `${(proposal as { proposalNumber?: string }).proposalNumber ?? 'proposal'}.pdf`)
+      const b64 = await blobToBase64(blob)
+      await sendProposalEmail(proposal.id, { to, subject, message, pdfBase64: b64 })
+      setSent(true)
+    } catch (e: unknown) {
+      const ae = e as { response?: { data?: { error?: string } }; message?: string }
+      setError(ae?.response?.data?.error ?? ae?.message ?? 'Failed to send')
+    } finally {
+      setSending(false)
+    }
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
@@ -187,6 +212,12 @@ function SendModal({ proposal, onClose, onSent }: SendModalProps) {
                 <p className="text-xs opacity-80">{error}</p>
               </div>
             )}
+            {renderedHtml && (
+              <div className="flex items-center gap-2 px-3 py-2 bg-violet-500/10 border border-violet-400/20 rounded-lg text-xs text-violet-700">
+                <FileCode className="w-3.5 h-3.5 flex-shrink-0" />
+                Using your custom HTML template as the PDF attachment
+              </div>
+            )}
             <div>
               <label className="block text-xs text-zinc-500 mb-1">To</label>
               <input value={to} onChange={e => setTo(e.target.value)}
@@ -208,38 +239,50 @@ function SendModal({ proposal, onClose, onSent }: SendModalProps) {
                 className="flex-1 px-4 py-2 border border-zinc-200 text-zinc-500 text-sm rounded-lg hover:text-black hover:border-zinc-400 transition-colors">
                 Cancel
               </button>
-              <BlobProvider document={<ProposalPDF proposal={proposal} />}>
-                {({ blob, loading }) => (
-                  <button
-                    type="button"
-                    disabled={sending || loading || !blob}
-                    onClick={async () => {
-                      if (!blob) return
-                      setSending(true)
-                      setError('')
-                      try {
-                        const reader = new FileReader()
-                        const b64 = await new Promise<string>((resolve, reject) => {
-                          reader.onload = () => resolve((reader.result as string).split(',')[1])
-                          reader.onerror = reject
-                          reader.readAsDataURL(blob)
-                        })
-                        await sendProposalEmail(proposal.id, { to, subject, message, pdfBase64: b64 })
-                        setSent(true)
-                      } catch (e: unknown) {
-                        const ae = e as { response?: { data?: { error?: string } }; message?: string }
-                        setError(ae?.response?.data?.error ?? ae?.message ?? 'Failed to send')
-                      } finally {
-                        setSending(false)
-                      }
-                    }}
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-black text-background text-sm font-semibold rounded-lg hover:bg-zinc-800 transition-colors disabled:opacity-50"
-                  >
-                    <Send className="w-4 h-4" />
-                    {loading ? 'Preparing PDF...' : sending ? 'Sending...' : 'Send'}
-                  </button>
-                )}
-              </BlobProvider>
+              {renderedHtml ? (
+                <button
+                  type="button"
+                  disabled={sending}
+                  onClick={handleSendWithHtmlTemplate}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-black text-background text-sm font-semibold rounded-lg hover:bg-zinc-800 transition-colors disabled:opacity-50"
+                >
+                  <Send className="w-4 h-4" />
+                  {sending ? 'Generating & Sending...' : 'Send'}
+                </button>
+              ) : (
+                <BlobProvider document={<ProposalPDF proposal={proposal} />}>
+                  {({ blob, loading }) => (
+                    <button
+                      type="button"
+                      disabled={sending || loading || !blob}
+                      onClick={async () => {
+                        if (!blob) return
+                        setSending(true)
+                        setError('')
+                        try {
+                          const reader = new FileReader()
+                          const b64 = await new Promise<string>((resolve, reject) => {
+                            reader.onload = () => resolve((reader.result as string).split(',')[1])
+                            reader.onerror = reject
+                            reader.readAsDataURL(blob)
+                          })
+                          await sendProposalEmail(proposal.id, { to, subject, message, pdfBase64: b64 })
+                          setSent(true)
+                        } catch (e: unknown) {
+                          const ae = e as { response?: { data?: { error?: string } }; message?: string }
+                          setError(ae?.response?.data?.error ?? ae?.message ?? 'Failed to send')
+                        } finally {
+                          setSending(false)
+                        }
+                      }}
+                      className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-black text-background text-sm font-semibold rounded-lg hover:bg-zinc-800 transition-colors disabled:opacity-50"
+                    >
+                      <Send className="w-4 h-4" />
+                      {loading ? 'Preparing PDF...' : sending ? 'Sending...' : 'Send'}
+                    </button>
+                  )}
+                </BlobProvider>
+              )}
             </div>
           </div>
         )}
@@ -273,6 +316,9 @@ export default function ProposalBuilder({ initial, onBack, onSaved }: Props) {
   })
 
   const [clients, setClients] = useState<Client[]>([])
+  const [proposalTemplates, setProposalTemplates] = useState<EmailTemplate[]>([])
+  const [selectedTemplateId, setSelectedTemplateId] = useState<number | null>(null)
+  const [downloadingPdf, setDownloadingPdf] = useState(false)
   const [saving, setSaving] = useState(false)
   const [savedProposal, setSavedProposal] = useState<Proposal | null>(initial ?? null)
   const [showPreview, setShowPreview] = useState(false)
@@ -284,6 +330,9 @@ export default function ProposalBuilder({ initial, onBack, onSaved }: Props) {
 
   useEffect(() => {
     getClients().then(setClients).catch(() => {})
+    getEmailTemplates()
+      .then(all => setProposalTemplates(all.filter(t => t.category === 'proposal_doc')))
+      .catch(() => {})
   }, [])
 
   const set = (key: keyof Proposal, value: unknown) => setForm(f => ({ ...f, [key]: value }))
@@ -333,6 +382,20 @@ export default function ProposalBuilder({ initial, onBack, onSaved }: Props) {
     total,
   } as Proposal
 
+  const selectedTemplate = proposalTemplates.find(t => t.id === selectedTemplateId) ?? null
+
+  // Pre-render the template HTML with live token values (memoised for preview)
+  const renderedHtml = useMemo(() => {
+    if (!selectedTemplate) return null
+    const tokens = buildProposalTokenMap(
+      previewProposal,
+      lineItems,
+      savedProposal ? `${window.location.origin}/sign/${(savedProposal as { signingToken?: string }).signingToken ?? ''}` : undefined,
+    )
+    return renderTemplateDocument(selectedTemplate.htmlContent, selectedTemplate.cssContent ?? '', tokens)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedTemplate, form, lineItems, savedProposal])
+
   const handleSave = useCallback(async () => {
     if (!form.title || !form.clientName || !form.clientEmail) {
       setSaveError('Title, client name, and client email are required.')
@@ -381,7 +444,29 @@ export default function ProposalBuilder({ initial, onBack, onSaved }: Props) {
             {showPreview ? 'Hide' : 'Preview'}
           </button>
 
-          {savedProposal && (
+          {savedProposal && selectedTemplate && renderedHtml ? (
+            <button
+              type="button"
+              disabled={downloadingPdf}
+              onClick={async () => {
+                setDownloadingPdf(true)
+                try {
+                  await downloadTemplateAsPdf(
+                    selectedTemplate.htmlContent,
+                    selectedTemplate.cssContent ?? '',
+                    buildProposalTokenMap(previewProposal, lineItems),
+                    `${savedProposal.proposalNumber}-proposal.pdf`,
+                  )
+                } finally {
+                  setDownloadingPdf(false)
+                }
+              }}
+              className="flex items-center gap-1.5 px-3 py-2 border border-zinc-200 text-zinc-500 text-sm rounded-lg hover:text-black hover:border-zinc-400 transition-colors disabled:opacity-50"
+            >
+              <Download className="w-4 h-4" />
+              {downloadingPdf ? 'Generating...' : 'PDF'}
+            </button>
+          ) : savedProposal ? (
             <PDFDownloadLink
               document={<ProposalPDF proposal={previewProposal} />}
               fileName={`${savedProposal.proposalNumber}-proposal.pdf`}
@@ -390,7 +475,7 @@ export default function ProposalBuilder({ initial, onBack, onSaved }: Props) {
               <Download className="w-4 h-4" />
               PDF
             </PDFDownloadLink>
-          )}
+          ) : null}
 
           {savedProposal && (
             <button type="button" onClick={() => setShowSendModal(true)}
@@ -440,6 +525,32 @@ export default function ProposalBuilder({ initial, onBack, onSaved }: Props) {
               </Field>
               <Field label="Valid Until">
                 <input type="date" value={form.validUntil ?? ''} onChange={e => set('validUntil', e.target.value)} className={inputCls} />
+              </Field>
+            </div>
+
+            {/* Template picker */}
+            <div className="pt-3 border-t border-zinc-200">
+              <Field label="Document Template (optional)">
+                <div className="flex items-center gap-2">
+                  <select
+                    value={selectedTemplateId ?? ''}
+                    onChange={e => setSelectedTemplateId(e.target.value ? Number(e.target.value) : null)}
+                    className={inputCls}
+                  >
+                    <option value="">Default PDF layout</option>
+                    {proposalTemplates.map(t => (
+                      <option key={t.id} value={t.id}>{t.name}</option>
+                    ))}
+                  </select>
+                  {selectedTemplate && (
+                    <span className="flex items-center gap-1 text-xs text-violet-700 bg-violet-50 border border-violet-200 px-2 py-1.5 rounded-lg whitespace-nowrap">
+                      <FileCode className="w-3 h-3" /> HTML template active
+                    </span>
+                  )}
+                </div>
+                {proposalTemplates.length === 0 && (
+                  <p className="text-xs text-zinc-400 mt-1">No proposal templates saved yet — create one in Templates → Proposals.</p>
+                )}
               </Field>
             </div>
           </Section>
@@ -654,27 +765,38 @@ export default function ProposalBuilder({ initial, onBack, onSaved }: Props) {
                       style={{ fontFamily: 'Georgia, serif', fontSize: '1.1rem' }}
                     />
                   </div>
-                  <p className="text-xs text-zinc-500/50 mt-1.5">Terrence Adderley · Designs By TA</p>
+                  <p className="text-xs text-zinc-500/50 mt-1.5">Terrence Adderley · Designs By Terrence Adderley</p>
                 </div>
               </div>
             </div>
           </Section>
         </div>
 
-        {/* ── PDF PREVIEW ── */}
+        {/* ── PREVIEW ── */}
         {showPreview && (
           <div className="sticky top-0 h-screen">
-            <BlobProvider document={<ProposalPDF proposal={previewProposal} />}>
-              {({ url, loading }) => (
-                <div className="h-full rounded-xl overflow-hidden border border-zinc-200">
-                  {loading
-                    ? <div className="h-full flex items-center justify-center text-zinc-500 text-sm">Generating preview...</div>
-                    : url
-                      ? <iframe src={url} className="w-full h-full" title="PDF Preview" />
-                      : <div className="h-full flex items-center justify-center text-zinc-500 text-sm">Preview unavailable</div>}
-                </div>
+            <div className="h-full rounded-xl overflow-hidden border border-zinc-200">
+              {selectedTemplate && renderedHtml ? (
+                /* HTML template preview */
+                <iframe
+                  srcDoc={renderedHtml}
+                  sandbox="allow-same-origin"
+                  className="w-full h-full"
+                  title="Template Preview"
+                />
+              ) : (
+                /* Default react-pdf preview */
+                <BlobProvider document={<ProposalPDF proposal={previewProposal} />}>
+                  {({ url, loading }) => (
+                    loading
+                      ? <div className="h-full flex items-center justify-center text-zinc-500 text-sm">Generating preview...</div>
+                      : url
+                        ? <iframe src={url} className="w-full h-full" title="PDF Preview" />
+                        : <div className="h-full flex items-center justify-center text-zinc-500 text-sm">Preview unavailable</div>
+                  )}
+                </BlobProvider>
               )}
-            </BlobProvider>
+            </div>
           </div>
         )}
       </div>
@@ -684,6 +806,7 @@ export default function ProposalBuilder({ initial, onBack, onSaved }: Props) {
           proposal={{ ...previewProposal, id: savedProposal.id, proposalNumber: savedProposal.proposalNumber }}
           onClose={() => setShowSendModal(false)}
           onSent={() => { setShowSendModal(false); set('status', 'sent') }}
+          renderedHtml={renderedHtml ?? undefined}
         />
       )}
     </div>

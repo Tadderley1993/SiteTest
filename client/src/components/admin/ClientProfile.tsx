@@ -1,13 +1,17 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import {
   ArrowLeft, Save, Globe, User, Edit3,
   Instagram, Twitter, Linkedin, Facebook, Briefcase,
-  KanbanSquare, Trash2, AlertCircle, DollarSign
+  KanbanSquare, Trash2, AlertCircle, DollarSign, Mail,
+  MessageCircle, Send, Eye, EyeOff,
 } from 'lucide-react'
 import api, {
   Client, KanbanTask, ProjectScope,
-  getClient, updateClient, updateProjectScope, deleteClient, ClientFormData
+  getClient, updateClient, updateProjectScope, deleteClient, ClientFormData,
+  EmailTemplate, getEmailTemplates, sendEmailTemplate,
+  updateJourneyPhase, JOURNEY_PHASES,
+  AdminMessage, getClientMessages, sendAdminMessage,
 } from '../../lib/api'
 import KanbanBoard from './KanbanBoard'
 import StandingSection from './StandingSection'
@@ -19,7 +23,7 @@ interface Props {
   onDelete: () => void
 }
 
-type Section = 'profile' | 'scope' | 'kanban' | 'standing'
+type Section = 'profile' | 'scope' | 'kanban' | 'standing' | 'message' | 'chat'
 
 export default function ClientProfile({ clientId, onBack, onDelete }: Props) {
   const [client, setClient] = useState<Client | null>(null)
@@ -45,6 +49,27 @@ export default function ClientProfile({ clientId, onBack, onDelete }: Props) {
   const [portalPassword, setPortalPassword] = useState('')
   const [portalSaving, setPortalSaving] = useState(false)
   const [portalMsg, setPortalMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+
+  // Journey phase state
+  const [journeyPhase, setJourneyPhase] = useState<string>('discovery')
+  const [journeySaving, setJourneySaving] = useState(false)
+  const [journeyMsg, setJourneyMsg] = useState('')
+
+  // Message / email template state
+  const [emailTemplates, setEmailTemplates] = useState<EmailTemplate[]>([])
+  const [templatesLoaded, setTemplatesLoaded] = useState(false)
+  const [selectedTemplateId, setSelectedTemplateId] = useState<number | ''>('')
+  const [msgVarValues, setMsgVarValues] = useState<Record<string, string>>({})
+  const [msgSending, setMsgSending] = useState(false)
+  const [msgResult, setMsgResult] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+
+  // DM chat state
+  const [chatMessages, setChatMessages] = useState<AdminMessage[]>([])
+  const [chatInput, setChatInput] = useState('')
+  const [chatSending, setChatSending] = useState(false)
+  const [chatLoaded, setChatLoaded] = useState(false)
+  const [showPortalPassword, setShowPortalPassword] = useState(false)
+  const chatBottomRef = useRef<HTMLDivElement>(null)
 
   const handleSetPortalPassword = async () => {
     if (!client) return
@@ -79,6 +104,7 @@ export default function ClientProfile({ clientId, onBack, onDelete }: Props) {
           facebook: data.facebook ?? '', notes: data.notes ?? '',
         })
         setScopeForm(data.projectScope ?? {})
+        setJourneyPhase(data.journeyPhase ?? 'discovery')
       } catch {
         setError('Failed to load client')
       } finally {
@@ -116,6 +142,22 @@ export default function ClientProfile({ clientId, onBack, onDelete }: Props) {
     }
   }
 
+  const handleJourneyPhaseChange = async (phase: string) => {
+    if (!client) return
+    setJourneyPhase(phase)
+    setJourneySaving(true)
+    setJourneyMsg('')
+    try {
+      await updateJourneyPhase(client.id, phase)
+      setJourneyMsg('Saved')
+      setTimeout(() => setJourneyMsg(''), 2000)
+    } catch {
+      setJourneyMsg('Failed to save')
+    } finally {
+      setJourneySaving(false)
+    }
+  }
+
   const handleDeleteClient = async () => {
     if (!client) return
     try {
@@ -128,6 +170,79 @@ export default function ClientProfile({ clientId, onBack, onDelete }: Props) {
 
   const handleTasksChange = (tasks: KanbanTask[]) => {
     setClient(prev => prev ? { ...prev, tasks } : prev)
+  }
+
+  // When switching to message tab, load templates once
+  const handleOpenMessage = async () => {
+    setActiveSection('message')
+    setMsgResult(null)
+    if (!templatesLoaded) {
+      const tpls = await getEmailTemplates()
+      setEmailTemplates(tpls)
+      setTemplatesLoaded(true)
+    }
+  }
+
+  // When switching to chat tab, load messages
+  const handleOpenChat = async () => {
+    setActiveSection('chat')
+    if (!chatLoaded) {
+      const msgs = await getClientMessages(clientId)
+      setChatMessages(msgs)
+      setChatLoaded(true)
+    }
+    setTimeout(() => chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100)
+  }
+
+  const handleSendChat = async () => {
+    if (!chatInput.trim() || chatSending) return
+    setChatSending(true)
+    try {
+      const msg = await sendAdminMessage(clientId, chatInput.trim())
+      setChatMessages(prev => [...prev, msg])
+      setChatInput('')
+      setTimeout(() => chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50)
+    } finally {
+      setChatSending(false)
+    }
+  }
+
+  // When a template is chosen, auto-fill client variables
+  const handleTemplateSelect = (id: number | '') => {
+    setSelectedTemplateId(id)
+    setMsgResult(null)
+    if (!id || !client) { setMsgVarValues({}); return }
+    const tpl = emailTemplates.find(t => t.id === id)
+    if (!tpl) return
+    const combined = tpl.htmlContent + (tpl.cssContent ?? '')
+    const vars = [...new Set([...combined.matchAll(/\{\{(\w+)\}\}/g)].map(m => m[1]))]
+    const clientMap: Record<string, string> = {
+      clientName:   `${client.firstName} ${client.lastName}`,
+      firstName:    client.firstName,
+      lastName:     client.lastName,
+      email:        client.email,
+      phone:        client.phone ?? '',
+      organization: client.organization ?? '',
+      company:      client.organization ?? '',
+    }
+    const prefilled: Record<string, string> = {}
+    vars.forEach(v => { prefilled[v] = clientMap[v] ?? '' })
+    setMsgVarValues(prefilled)
+  }
+
+  const handleSendMessage = async () => {
+    if (!client || !selectedTemplateId) return
+    setMsgSending(true)
+    setMsgResult(null)
+    try {
+      await sendEmailTemplate(Number(selectedTemplateId), client.email, msgVarValues)
+      setMsgResult({ type: 'success', text: `Email sent to ${client.email}` })
+    } catch (e: unknown) {
+      const msg = (e as { response?: { data?: { error?: string } } })?.response?.data?.error
+      setMsgResult({ type: 'error', text: msg ?? 'Failed to send email' })
+    } finally {
+      setMsgSending(false)
+    }
   }
 
   const pField = (key: keyof ClientFormData, label: string, type = 'text') => (
@@ -255,9 +370,30 @@ export default function ClientProfile({ clientId, onBack, onDelete }: Props) {
       {showPortalForm && (
         <div className="flex items-start gap-3 p-4 bg-black/5 border border-accent/20 rounded-xl">
           <div className="flex-1 space-y-3">
-            <p className="text-sm font-medium text-black">
-              Set portal password for <strong>{client?.firstName} {client?.lastName}</strong>
-            </p>
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-medium text-black">
+                Set portal password for <strong>{client?.firstName} {client?.lastName}</strong>
+              </p>
+              {(client as Client & { portalPasswordPlain?: string })?.portalPasswordPlain ? (
+                <div className="flex items-center gap-2 text-xs text-zinc-500">
+                  <span>Current:</span>
+                  <span className="font-mono bg-zinc-200 px-2 py-0.5 rounded">
+                    {showPortalPassword
+                      ? (client as Client & { portalPasswordPlain?: string }).portalPasswordPlain
+                      : '••••••••'}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setShowPortalPassword(p => !p)}
+                    className="text-zinc-400 hover:text-black transition-colors"
+                  >
+                    {showPortalPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
+              ) : (
+                <span className="text-xs text-zinc-400 italic">Password not yet created</span>
+              )}
+            </div>
             <div className="flex gap-2">
               <input
                 type="password"
@@ -311,6 +447,28 @@ export default function ClientProfile({ clientId, onBack, onDelete }: Props) {
         {navItem('scope', 'Project Scope', <Briefcase className="w-4 h-4" />)}
         {navItem('standing', 'Standing', <DollarSign className="w-4 h-4" />)}
         {navItem('kanban', 'Task Board', <KanbanSquare className="w-4 h-4" />)}
+        <button
+          onClick={handleOpenMessage}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            activeSection === 'message'
+              ? 'bg-zinc-100 text-black border border-accent/20'
+              : 'text-zinc-500 hover:text-black hover:bg-[#f3f3f3]'
+          }`}
+        >
+          <Mail className="w-4 h-4" />
+          Email
+        </button>
+        <button
+          onClick={handleOpenChat}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            activeSection === 'chat'
+              ? 'bg-zinc-100 text-black border border-accent/20'
+              : 'text-zinc-500 hover:text-black hover:bg-[#f3f3f3]'
+          }`}
+        >
+          <MessageCircle className="w-4 h-4" />
+          Chat
+        </button>
       </div>
 
       {/* ── PROFILE SECTION ── */}
@@ -401,6 +559,57 @@ export default function ClientProfile({ clientId, onBack, onDelete }: Props) {
                 {client.notes || <span className="text-zinc-500">No notes yet.</span>}
               </p>
             )}
+          </div>
+
+          {/* ── PROJECT JOURNEY ── */}
+          <div className="bg-[#f3f3f3] border border-zinc-200 rounded-xl p-6">
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="font-semibold text-black flex items-center gap-2">
+                <span className="material-symbols-outlined text-[18px]">route</span>
+                Project Journey
+              </h3>
+              <div className="flex items-center gap-2">
+                {journeySaving && <span className="text-[11px] text-zinc-400">Saving…</span>}
+                {journeyMsg && !journeySaving && (
+                  <span className={`text-[11px] font-medium ${journeyMsg === 'Saved' ? 'text-green-600' : 'text-red-500'}`}>
+                    {journeyMsg}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Phase stepper */}
+            <div className="flex flex-col gap-2">
+              {JOURNEY_PHASES.map((phase, i) => {
+                const currentIdx = JOURNEY_PHASES.findIndex(p => p.id === journeyPhase)
+                const isDone = i < currentIdx
+                const isCurrent = phase.id === journeyPhase
+                return (
+                  <button
+                    key={phase.id}
+                    type="button"
+                    onClick={() => handleJourneyPhaseChange(phase.id)}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-lg border text-left transition-all ${
+                      isCurrent
+                        ? 'bg-black text-white border-black'
+                        : isDone
+                        ? 'bg-zinc-100 border-zinc-200 text-zinc-400 line-through'
+                        : 'bg-white border-zinc-200 text-zinc-700 hover:border-black hover:bg-zinc-50'
+                    }`}
+                  >
+                    <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-black flex-shrink-0 ${
+                      isCurrent ? 'bg-white text-black' : isDone ? 'bg-zinc-300 text-zinc-500' : 'bg-zinc-100 text-zinc-400'
+                    }`}>
+                      {isDone ? '✓' : i + 1}
+                    </span>
+                    <span className="text-sm font-medium">{phase.label}</span>
+                    {isCurrent && (
+                      <span className="ml-auto text-[10px] font-bold uppercase tracking-widest opacity-60">Current</span>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
           </div>
         </motion.div>
       )}
@@ -503,6 +712,173 @@ export default function ClientProfile({ clientId, onBack, onDelete }: Props) {
             tasks={client.tasks}
             onTasksChange={handleTasksChange}
           />
+        </motion.div>
+      )}
+
+      {/* ── MESSAGE SECTION ── */}
+      {activeSection === 'message' && (
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
+          <div className="bg-[#f3f3f3] border border-zinc-200 rounded-xl p-6">
+            <h3 className="font-semibold text-black flex items-center gap-2 mb-5">
+              <Mail className="w-4 h-4 text-black" /> Send Email to {client.firstName} {client.lastName}
+            </h3>
+
+            {/* Template selector */}
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs text-zinc-500 mb-1.5">Email Template</label>
+                {!templatesLoaded ? (
+                  <p className="text-sm text-zinc-400">Loading templates…</p>
+                ) : emailTemplates.length === 0 ? (
+                  <p className="text-sm text-zinc-400">No email templates found. Create one in <strong>Email Templates</strong>.</p>
+                ) : (
+                  <select
+                    value={selectedTemplateId}
+                    onChange={e => handleTemplateSelect(e.target.value === '' ? '' : Number(e.target.value))}
+                    className="w-full bg-white border border-zinc-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
+                  >
+                    <option value="">— Select a template —</option>
+                    {emailTemplates.map(t => (
+                      <option key={t.id} value={t.id}>
+                        [{t.category.charAt(0).toUpperCase() + t.category.slice(1)}] {t.name}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+
+              {/* Recipient (read-only) */}
+              {selectedTemplateId !== '' && (
+                <div>
+                  <label className="block text-xs text-zinc-500 mb-1.5">Sending To</label>
+                  <p className="text-sm text-black py-2 border-b border-zinc-100">{client.email}</p>
+                </div>
+              )}
+
+              {/* Subject preview */}
+              {selectedTemplateId !== '' && (() => {
+                const tpl = emailTemplates.find(t => t.id === selectedTemplateId)
+                if (!tpl) return null
+                const preview = tpl.subject.replace(/\{\{(\w+)\}\}/g, (_, k) => msgVarValues[k] ?? `{{${k}}}`)
+                return (
+                  <div>
+                    <label className="block text-xs text-zinc-500 mb-1.5">Subject Preview</label>
+                    <p className="text-sm text-black py-2 border-b border-zinc-100 italic">{preview}</p>
+                  </div>
+                )
+              })()}
+
+              {/* Variable fields */}
+              {selectedTemplateId !== '' && Object.keys(msgVarValues).length > 0 && (
+                <div>
+                  <label className="block text-xs text-zinc-500 mb-3">Personalize Message</label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {Object.entries(msgVarValues).map(([key, val]) => (
+                      <div key={key}>
+                        <label className="block text-[11px] font-semibold text-zinc-500 uppercase tracking-wider mb-1">
+                          {key.replace(/([A-Z])/g, ' $1').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()).trim()}
+                        </label>
+                        <input
+                          type="text"
+                          value={val}
+                          onChange={e => setMsgVarValues(prev => ({ ...prev, [key]: e.target.value }))}
+                          placeholder={`{{${key}}}`}
+                          className="w-full bg-white border border-zinc-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Send button */}
+              {selectedTemplateId !== '' && (
+                <div className="flex items-center gap-4 pt-2">
+                  <button
+                    type="button"
+                    onClick={handleSendMessage}
+                    disabled={msgSending}
+                    className="flex items-center gap-2 px-5 py-2 bg-black text-white rounded-lg text-sm font-semibold hover:bg-zinc-800 disabled:opacity-50 transition-colors"
+                  >
+                    {msgSending && <span className="material-symbols-outlined text-[16px] animate-spin">progress_activity</span>}
+                    <Mail className="w-4 h-4" />
+                    {msgSending ? 'Sending…' : 'Send Email'}
+                  </button>
+                  {msgResult && (
+                    <p className={`text-sm font-medium ${msgResult.type === 'success' ? 'text-green-600' : 'text-red-500'}`}>
+                      {msgResult.text}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </motion.div>
+      )}
+
+      {/* ── CHAT SECTION ── */}
+      {activeSection === 'chat' && (
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+          <div className="bg-[#f3f3f3] border border-zinc-200 rounded-xl overflow-hidden flex flex-col" style={{ height: '520px' }}>
+            {/* Header */}
+            <div className="px-5 py-3 border-b border-zinc-200 bg-white flex items-center gap-2">
+              <MessageCircle className="w-4 h-4 text-black" />
+              <h3 className="font-semibold text-black text-sm">Direct Message — {client.firstName} {client.lastName}</h3>
+            </div>
+
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
+              {chatMessages.length === 0 ? (
+                <div className="h-full flex items-center justify-center text-sm text-zinc-400">
+                  No messages yet. Start the conversation.
+                </div>
+              ) : (
+                chatMessages.map(msg => (
+                  <div
+                    key={msg.id}
+                    className={`flex flex-col gap-0.5 ${msg.fromAdmin ? 'items-end' : 'items-start'}`}
+                  >
+                    <span className="text-[10px] font-medium text-zinc-400 px-1">
+                      {msg.fromAdmin ? 'You' : `${client.firstName} ${client.lastName}`}
+                    </span>
+                    <div
+                      className={`max-w-[75%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
+                        msg.fromAdmin
+                          ? 'bg-black text-white rounded-br-sm'
+                          : 'bg-white border border-zinc-200 text-black rounded-bl-sm'
+                      }`}
+                    >
+                      <p>{msg.body}</p>
+                      <p className={`text-[10px] mt-1 ${msg.fromAdmin ? 'text-white/50' : 'text-zinc-400'}`}>
+                        {new Date(msg.createdAt).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    </div>
+                  </div>
+                ))
+              )}
+              <div ref={chatBottomRef} />
+            </div>
+
+            {/* Input */}
+            <div className="px-4 py-3 border-t border-zinc-200 bg-white flex gap-2">
+              <input
+                type="text"
+                value={chatInput}
+                onChange={e => setChatInput(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendChat() } }}
+                placeholder={`Message ${client.firstName}…`}
+                className="flex-1 bg-[#f3f3f3] border border-zinc-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/10 transition-colors"
+              />
+              <button
+                type="button"
+                onClick={handleSendChat}
+                disabled={chatSending || !chatInput.trim()}
+                className="px-3 py-2 bg-black text-white rounded-lg hover:bg-zinc-800 disabled:opacity-40 transition-colors"
+              >
+                <Send className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
         </motion.div>
       )}
     </motion.div>

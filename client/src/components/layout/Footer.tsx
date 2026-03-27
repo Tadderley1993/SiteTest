@@ -27,9 +27,15 @@ export default function Footer() {
             <p className="text-[11px] font-bold tracking-[0.2em] uppercase mb-5">
               TERRENCE ADDERLEY
             </p>
-            <p className="text-[14px] text-white/50 leading-relaxed max-w-[240px]">
+            <p className="text-[14px] text-white/50 leading-relaxed max-w-[240px] mb-4">
               Freelance web designer and developer in Boston, MA. Building websites that work as hard as you do.
             </p>
+            <a
+              href="mailto:terrenceadderley@designsbyta.com"
+              className="text-[13px] text-white/40 hover:text-white transition-colors"
+            >
+              terrenceadderley@designsbyta.com
+            </a>
           </div>
 
           {/* Pages */}
@@ -72,7 +78,7 @@ export default function Footer() {
             © {new Date().getFullYear()} Terrence Adderley. All rights reserved.
           </p>
           <p className="text-[12px] text-white/30">
-            Boston, MA · Available Worldwide
+            Boston, MA
           </p>
         </div>
       </div>

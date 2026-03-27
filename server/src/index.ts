@@ -21,6 +21,10 @@ import { clientPortalRouter } from './routes/client-portal.js'
 import { dealsRouter } from './routes/deals.js'
 import { filesRouter } from './routes/files.js'
 import { automationsRouter } from './routes/automations.js'
+import { emailTemplatesRouter } from './routes/emailTemplates.js'
+import { tasksRouter } from './routes/tasks.js'
+import { notificationsRouter } from './routes/notifications.js'
+import { messagesRouter } from './routes/messages.js'
 import { generalRateLimit, submissionRateLimit } from './middleware/rateLimit.js'
 import { errorHandler } from './middleware/errorHandler.js'
 import { logger } from './lib/logger.js'
@@ -73,6 +77,10 @@ app.use('/api/admin/invoices', invoicesRouter)
 app.use('/api/admin/deals', dealsRouter)
 app.use('/api/admin/files', filesRouter)
 app.use('/api/admin/automations', automationsRouter)
+app.use('/api/admin/email-templates', emailTemplatesRouter)
+app.use('/api/admin/tasks', tasksRouter)
+app.use('/api/admin/notifications', notificationsRouter)
+app.use('/api/admin/messages', messagesRouter)
 app.use('/api/sign', signingRouter)
 app.use('/api/admin/image-gen', imageGenRouter)
 app.use('/api/client-auth', clientAuthRouter)
@@ -82,6 +90,7 @@ app.use('/api/portal', clientPortalRouter)
 app.get('/api/health', (_, res) => {
   res.json({ status: 'ok' })
 })
+
 
 // Centralized error handler (must be last)
 app.use(errorHandler)
