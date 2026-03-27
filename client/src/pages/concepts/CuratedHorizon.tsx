@@ -19,7 +19,7 @@ const STONE = '#f5f5f0'  // footer bg
 const IMG_HERO       = 'https://lh3.googleusercontent.com/aida-public/AB6AXuBsiNnIk16BNIdxAYrbQXMAeKMq_WeXAtPe6DM082Mkksw79QMoYwH93EMAb09-3jXgjtRuLdeQiHd-Qs3MMG-xpIRioJwpKjqDTtmfDgQqN4S8U7tdivyvT1HD-Eunv0Zk9R3_XpmK1HQR1n4hxVRaMLH63jSWtEV5y11L58-BemdSt9FModqO-hd-hnY2R4tnuFBIFvhmrTkIcumvNmEpkrSL88RPWM6XacHKsWmSd0jxt40P1ZEqs77BrySfHFPpi8pBpOr6CwXR'
 const IMG_HEDGE      = 'https://lh3.googleusercontent.com/aida-public/AB6AXuAPAqo3q38djiwehNgnpX1v6eAcBOO67zYkvDspXakubCP8a8KsUTwjB2_tIj41pSk_r4QR0Q0BAfIjeApmwlMfj0-pLlfIDwABhiPLr5m5Ke5UzneL-jAv634sWr8vOnh5g8RUZMK5Azjg-FglyFkVSdybxZskYCPNLg-GkbdIGyUpvREBHb0JEJwDIk0yGyLXYccignBDFBSgnWPrexeZ_13ZNzTkmtwxpCprS5lGHqqKLT6O075q_mkAmiZgAFfggDaMnHN62H6X'
 const IMG_LAWN       = 'https://lh3.googleusercontent.com/aida-public/AB6AXuABjgkw6n5bvEJyyVO0-RE4dCfLusbsuhV2oVq8beBwTYSN0c4b8jyx2GFrsGD88a3spWtThzxsygdks183Y0CnxFBSuiHwRDTrYIeQV0iZkdio_3xgJh05FLNugLuE0rMbk-mRe8iDi3FybcNh5kmxdt7O1GTvqk3hDsYvQ7DJzlQPPIufcDS32V_TUrxgHn6PUMw0zJk05MLIUuAHje5UVrVEqvIv6NAAPxnw-8_wpoqNpNMGorDvg5Cjn_OvKMxBue_kUuzi48Jp'
-const IMG_PATH       = 'https://lh3.googleusercontent.com/aida-public/AB6AXuCUJcin9cyidQIux7kZHZUKt86Rqu0_uko6sHTD1XwEKWA6yaBOh3y-ethSfKWRF1AJfQZSGfwwTEyCzQ2Y2ZR0DiTWF4QSFlqTq58Vi4IHvDJ-TbQSLikULxZZ9f9bHMVI9GXTExqB4pkQvUuJC0b5fSjREaQyJ0fHRG7SNM-FBMv5GcQT1Rmbo2IEpHvFgnLQIr5ELwveiCpA2IWW_VucdVDWDzffUePUovsp8pVJy2qeM7pjxSV1pYwQSHxSymjZS7iRx3wxZ44a'
+
 const IMG_CTA_BG     = 'https://lh3.googleusercontent.com/aida-public/AB6AXuAWMVQJoQtam78Dyon9rkz5osBsnYJbb9dApYb358oV6BFrdYacCqY3FtOq8eHAI_hP7v9qaowwsaYQ1jBsbbMK6ro62tQrD6xj3x6Wgx9qCfobgDSAEOfP6zuSVonzy_2HXcvTmTdjEP7YpJfyyUkBP3fNdaFDggjmQgWjmmBNBy6icYVSrQCtI08iBmdL8reP8zkiVZBf9zcXqBd9w9pXFtrqzexl4Vk0AhOfwU43Q6YbDeDRNsg1NOBh8deDhW9vQHBRGx7H9hkx'
 const IMG_SVC_LAWN   = 'https://lh3.googleusercontent.com/aida-public/AB6AXuDBw_yQIlbnNDSXDSJCFF4F_taMvw35oRuZiLXw8MEz5qC35Kz7ifZ-d8s-DC7f5V3y29S2vVdslofe747h0LbLiBi6b5RyAn6pUBFxWGm4TB1aFtop2wr1GEC0dhz9JDrdozkyAkWgJaFRGTYTfSpyhDQtaWIeYYsbiki7sBmB8DG7jF1vAfhxUgXGh7oPlvpiDvcm2qrNLwxDh4qWB9BlVVau3Cjn_OvKMxBue_kUuzi48Jp'
 const IMG_SVC_LAND   = 'https://lh3.googleusercontent.com/aida-public/AB6AXuC4LdOIhc1MOUWh0KsK3tAc3okQXRiTejPg18MEwBgnICxT5sL6g4sHtE4Saw7SddUnrQ5bihIJpoVe-EO87S-L0-SW6G_aI2rKazydfjmYuw_nqInU9N2LDxuRGyagSOLI-BDBEYCGnGbHuL248r95rYKYPBrHt9_mTJGceH6Y5LUm7iGXc0HTjlOrdiF3cHzlLF6SBULWernqHudMuucfvxhrArz_dVNZ9BjYGM812Cec71SE-7B4okcm_aagJJ4YzpQ3LWCL_jk8'
@@ -441,7 +441,7 @@ function HomePage({ go }: { go: (p: Page) => void }) {
 
       {/* 4. VISUAL SHOWCASE */}
       <section style={{ background: '#ffffff', padding: '0' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '8fr 4fr', height: 700 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', height: 700 }}>
           {/* Left big image */}
           <div style={{ position: 'relative', overflow: 'hidden' }}>
             <img src={IMG_HEDGE} alt="Avery Heights Estate" className="ch-gs" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
@@ -450,14 +450,9 @@ function HomePage({ go }: { go: (p: Page) => void }) {
               <p className="ch-serif" style={{ fontWeight: 300, fontSize: 22, color: '#ffffff', fontStyle: 'italic' }}>Avery Heights Estate</p>
             </div>
           </div>
-          {/* Right column */}
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <div style={{ flex: 1, overflow: 'hidden' }}>
-              <img src={IMG_LAWN} alt="Lawn detail" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-            </div>
-            <div style={{ flex: 1, overflow: 'hidden' }}>
-              <img src={IMG_PATH} alt="Garden path" className="ch-gs" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-            </div>
+          {/* Right image */}
+          <div style={{ overflow: 'hidden' }}>
+            <img src={IMG_LAWN} alt="Lawn detail" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
           </div>
         </div>
       </section>
