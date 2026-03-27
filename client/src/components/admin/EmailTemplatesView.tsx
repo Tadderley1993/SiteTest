@@ -449,6 +449,31 @@ function humanLabel(varName: string): string {
     .trim()
 }
 
+// ── Agency defaults ───────────────────────────────────────────────────────────
+
+const AGENCY_DEFAULTS: Record<string, string> = {
+  agencyName:    'Designs By Terrence Adderley',
+  agencyEmail:   'terrenceadderley@designsbyta.com',
+  agencyWebsite: 'https://www.designsbyta.com',
+  ctaUrl:        'https://www.designsbyta.com/contact',
+}
+
+function applyAgencyDefaults(vars: string[], current: Record<string, string>): Record<string, string> {
+  const updated = { ...current }
+  vars.forEach(v => {
+    if (AGENCY_DEFAULTS[v] && !updated[v]) updated[v] = AGENCY_DEFAULTS[v]
+  })
+  return updated
+}
+
+function removeAgencyDefaults(vars: string[], current: Record<string, string>): Record<string, string> {
+  const updated = { ...current }
+  vars.forEach(v => {
+    if (AGENCY_DEFAULTS[v] && updated[v] === AGENCY_DEFAULTS[v]) delete updated[v]
+  })
+  return updated
+}
+
 // ── Preview builder ───────────────────────────────────────────────────────────
 
 function buildPreviewDoc(html: string, css: string, vars: Record<string, string>): string {
@@ -554,7 +579,8 @@ function AiPromptBox({ docType }: { docType: DocType }) {
 function SendModal({ template, onClose }: { template: EmailTemplate; onClose: () => void }) {
   const vars = extractVars(template.htmlContent, template.cssContent ?? '')
   const [to, setTo] = useState('')
-  const [varValues, setVarValues] = useState<Record<string, string>>({})
+  const [varValues, setVarValues] = useState<Record<string, string>>(() => applyAgencyDefaults(vars, {}))
+  const [agencyAutoFill, setAgencyAutoFill] = useState(true)
   const [sending, setSending] = useState(false)
   const [sent, setSent] = useState(false)
   const [err, setErr] = useState('')
@@ -605,7 +631,25 @@ function SendModal({ template, onClose }: { template: EmailTemplate; onClose: ()
               </div>
               {vars.length > 0 && (
                 <div>
-                  <p className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider mb-3">Personalize</p>
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">Personalize</p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const next = !agencyAutoFill
+                        setAgencyAutoFill(next)
+                        setVarValues(prev => next ? applyAgencyDefaults(vars, prev) : removeAgencyDefaults(vars, prev))
+                      }}
+                      className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-colors ${
+                        agencyAutoFill
+                          ? 'bg-black text-white border-black'
+                          : 'bg-white text-zinc-500 border-zinc-200 hover:border-zinc-400'
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-[13px]">business</span>
+                      Agency Auto-fill {agencyAutoFill ? 'On' : 'Off'}
+                    </button>
+                  </div>
                   <VariableFields vars={vars} values={varValues} onChange={(k, v) => setVarValues(prev => ({ ...prev, [k]: v }))} />
                 </div>
               )}
@@ -661,6 +705,14 @@ export default function EmailTemplatesView() {
   // Variables
   const vars = useMemo(() => extractVars(html, css), [html, css])
   const [varValues, setVarValues] = useState<Record<string, string>>({})
+  const [agencyAutoFill, setAgencyAutoFill] = useState(true)
+
+  // Apply agency defaults whenever vars change and auto-fill is on
+  useEffect(() => {
+    if (agencyAutoFill) {
+      setVarValues(prev => applyAgencyDefaults(vars, prev))
+    }
+  }, [vars, agencyAutoFill])
 
   // Preview + send
   const [previewTab, setPreviewTab] = useState<'editor' | 'preview'>('editor')
@@ -699,7 +751,8 @@ export default function EmailTemplatesView() {
     setSubject(t.subject)
     setHtml(t.htmlContent)
     setCss(t.cssContent ?? '')
-    setVarValues({})
+    const templateVars = extractVars(t.htmlContent, t.cssContent ?? '')
+    setVarValues(agencyAutoFill ? applyAgencyDefaults(templateVars, {}) : {})
     setPreviewTab('editor')
     setCodeTab('html')
     setSaveMsg('')
@@ -1036,6 +1089,22 @@ export default function EmailTemplatesView() {
                       <span className="ml-auto text-[10px] bg-zinc-100 text-zinc-500 px-2 py-0.5 rounded-full font-semibold">
                         {vars.length} found
                       </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const next = !agencyAutoFill
+                          setAgencyAutoFill(next)
+                          setVarValues(prev => next ? applyAgencyDefaults(vars, prev) : removeAgencyDefaults(vars, prev))
+                        }}
+                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-colors ${
+                          agencyAutoFill
+                            ? 'bg-black text-white border-black'
+                            : 'bg-white text-zinc-500 border-zinc-200 hover:border-zinc-400'
+                        }`}
+                      >
+                        <span className="material-symbols-outlined text-[13px]">business</span>
+                        Agency Auto-fill {agencyAutoFill ? 'On' : 'Off'}
+                      </button>
                     </div>
                     <VariableFields
                       vars={vars}
