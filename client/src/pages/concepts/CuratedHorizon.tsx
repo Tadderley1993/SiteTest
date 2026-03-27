@@ -28,7 +28,7 @@ const IMG_SVC_IRRIG  = 'https://lh3.googleusercontent.com/aida-public/AB6AXuCPm0
 const IMG_GND1       = 'https://lh3.googleusercontent.com/aida-public/AB6AXuBX_L3S2RWhsaB76vWpzEhfm0upX_TX6hNQNpMy90MejeWeZ8JqbDoQzK9FiMnLjfr6bxrOWmSlhCiWXrDfF4eP9se6FhM4SiN9kdzWeYO_TtG7NDPHO2H-a1O_Q1W2wV8WnkiuTqcQX8KA_KA_eyclYVQdPdXKsQlXFb9oSDkwkVj5PuCzI8tfVV3cQ04HQcMOsjhNqfxWmIfM3AajH8GdEacLQ9kPmAIwE8Gd7ekgqze-MeV0KbLC65N83yYxu8Ssx2R7lko-ZoTW'
 const IMG_GND2       = 'https://lh3.googleusercontent.com/aida-public/AB6AXuB_4inPUkVRQ1gxzsyaoh6m3dWluPYzjksAKmUY8eprOHHSVcb6j4ZSOEUuOIXptvAVKt9axoZHAb2-XNt-Bs1FbKBuL6EDNAo2T2QFCGum3gJO2v2I_m-f482Me9-lFH_civhNmRAD__JWjzrr5HBl5hrfvITa5JUkBjOfkyv8if_FRAPFTAd0k_GYfJReXH3XW23qwaZrRvuSzI8ylr-ob2WjnEYXPRUlZl97ggI8TaE2i-PBzR2vNmjbwEKX4NNHPbBqHFucxd1V'
 const IMG_GND3       = 'https://lh3.googleusercontent.com/aida-public/AB6AXuDwDm7iZNnakomwF3FvyoUJuSjmUKyT8CuyZHgpSLvDxoLbDT4BGzkO2MET5Nuy-dKBdCQIHEx5vICe1hqO1ngillDs-REyJIKikFt43yw3G8Upph4WnN-Uk7yfSmg0zgOPW5DjIJS7i_88A9wO09gni2HBQdB8diO4whEwm7oSHAKF0v9C0ANroEEfMo0iLf7OrRyAkcAQmqwir3gmmhua9Y6xUZLyogBBZg1RVxpiT1Gqxo41ReeU0ZlfV2ChrK02MQC4nfNCJU_S'
-const IMG_PORT1      = 'https://lh3.googleusercontent.com/aida-public/AB6AXuCpJe08itHdb_CWAqvFMIkNfeGV2PQZ-UDhaT80OPWZL7CA_sp_EcUWXqUmfc1URlzdewLgj03JVjOryqsVLoujFf1PrkZ2ilxdHB9qesH9D1rGvhBmBorvDSLUpuMK9PZrgjXoHEblwbXXZdL2Nd_Q5zcZEhdNCpAal5c0uwiiLF_ckrCHzicjf0SRxvlIhDIV3PM946WmD1hPbA7I1yq7EiWHJCZ0oDt-xzlnSGkFNMbp8vtGghlOX_FDr4TyKRW1l3yp8MZCAF4h'
+const IMG_PORT1      = '/imgs/ch-windmere.jpg'
 const IMG_PORT2A     = 'https://lh3.googleusercontent.com/aida-public/AB6AXuCH5VAavgRUehqgqs2pyAPrfxNLz7Bnd-SDVgy23rXrWsH9Ujc3xwcG78tgH2f9kFtWdXYE0ItwTxgxl6n1ZhkJXrBEC1JPUF8tsS6sOU95yq16iAniKJLotqKVY3JqiY3_OUXIVuQ8axpjq22AsT21BqXc8EfXx_RUOMhkMnKgBpWqfSyf-HCHr6wcI_ckAwM4dMHdlBZbuB9YsbAlRRnAoSDHjPrV2MWcr5hJnHyNFysaOmqDtXvpD3QR9CTyPVuCcGKHqKd4cpgj'
 const IMG_PORT2B     = 'https://lh3.googleusercontent.com/aida-public/AB6AXuCaGsx9ryLXokv8rlW_hu28Ufir7YibIfkGMl_TN8iX4Ti-8H2zwNa_9n64vuwUFXdLUng9Vqn01vWrFFgAEQh9tUu0noEAs3aUaXHlOaGK9yhe8JL69UejkOhf3soKR9Bn7mJXBtNuwv3H_u1z-7MRoiyYU7cnaZsfYTW92fNwHVlC5mWXNYkFO3NgoudEF0-74RmRtdtXEd3Fmy4yFsiJKOX6TOFtTTn7kE6KdYCbnHA--lZ6adku-Vv1KVSTcUnUqKj9rg1k38KX'
 const IMG_PORT4      = 'https://lh3.googleusercontent.com/aida-public/AB6AXuBvF3xfKFVvBUSs_uTzWgFQXNmlayILTKkmyMsHrtwlZad4jVH2WZ6FvlqMlrdqWhXsIftXZdRHEgW7snfKoP0KRq8oB6Zpwg36ZFbu6at8ld-vHxtM5JlorxWUv-VhBL3lFNf8HIJFV08Jx1tydfT9HLCoM_WwapNuiGpcZiJe1WcN3q6QJAljT'
@@ -746,7 +746,7 @@ function PortfolioPage({ go }: { go: (p: Page) => void }) {
       <section style={{ background: '#ffffff', padding: '64px 48px' }}>
         <div style={{ maxWidth: 1280, margin: '0 auto', display: 'grid', gridTemplateColumns: '8fr 4fr', gap: 48, alignItems: 'start' }}>
           <div style={{ overflow: 'hidden' }}>
-            <img src={IMG_PORT1} alt="Windmere Estate" className="ch-gs" style={{ width: '100%', aspectRatio: '4/3', objectFit: 'cover', display: 'block' }} />
+            <img src={IMG_PORT1} alt="Windmere Estate" style={{ width: '100%', aspectRatio: '4/3', objectFit: 'cover', display: 'block' }} />
           </div>
           <div style={{ paddingTop: 16 }}>
             <p style={{ fontSize: 10, letterSpacing: '0.2em', textTransform: 'uppercase', color: S, fontWeight: 600, marginBottom: 12 }}>Project 01</p>
