@@ -1,12 +1,12 @@
 import { Router } from 'express'
 import { PrismaClient } from '@prisma/client'
-import { requireAuth } from '../middleware/auth.js'
+import { authMiddleware } from '../middleware/auth.js'
 
 const router = Router()
 const prisma = new PrismaClient()
 
 // GET /admin/calendar/events?start=ISO&end=ISO
-router.get('/events', requireAuth, async (req, res) => {
+router.get('/events', authMiddleware, async (req, res) => {
   try {
     const { start, end } = req.query
     let where = ''
@@ -36,7 +36,7 @@ router.get('/events', requireAuth, async (req, res) => {
 })
 
 // GET /admin/calendar/upcoming?range=day|week|month
-router.get('/upcoming', requireAuth, async (req, res) => {
+router.get('/upcoming', authMiddleware, async (req, res) => {
   try {
     const range = (req.query.range as string) || 'week'
     const now = new Date()
@@ -65,7 +65,7 @@ router.get('/upcoming', requireAuth, async (req, res) => {
 })
 
 // GET /admin/calendar/clients - all clients with active project status for dropdown
-router.get('/clients', requireAuth, async (req, res) => {
+router.get('/clients', authMiddleware, async (req, res) => {
   try {
     const clients = await prisma.$queryRawUnsafe<unknown[]>(`
       SELECT c.id, c."firstName", c."lastName", c.email, c.organization,
@@ -82,7 +82,7 @@ router.get('/clients', requireAuth, async (req, res) => {
 })
 
 // POST /admin/calendar/events
-router.post('/events', requireAuth, async (req, res) => {
+router.post('/events', authMiddleware, async (req, res) => {
   try {
     const { title, description, startAt, endAt, allDay, eventType, clientId, color } = req.body
     if (!title || !startAt) return res.status(400).json({ error: 'Title and start date are required' })
@@ -100,7 +100,7 @@ router.post('/events', requireAuth, async (req, res) => {
 })
 
 // PUT /admin/calendar/events/:id
-router.put('/events/:id', requireAuth, async (req, res) => {
+router.put('/events/:id', authMiddleware, async (req, res) => {
   try {
     const { title, description, startAt, endAt, allDay, eventType, clientId, color } = req.body
     const rows = await prisma.$queryRawUnsafe<unknown[]>(`
@@ -121,7 +121,7 @@ router.put('/events/:id', requireAuth, async (req, res) => {
 })
 
 // DELETE /admin/calendar/events/:id
-router.delete('/events/:id', requireAuth, async (req, res) => {
+router.delete('/events/:id', authMiddleware, async (req, res) => {
   try {
     await prisma.$executeRawUnsafe(`DELETE FROM "CalendarEvent" WHERE id=$1`, Number(req.params.id))
     res.json({ ok: true })
