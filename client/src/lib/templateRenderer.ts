@@ -224,6 +224,24 @@ export function renderTemplateDocument(
 </html>`
 }
 
+// ── html2pdf.js CDN loader ─────────────────────────────────────────────────────
+
+type Html2PdfFn = () => { set: (o: unknown) => { from: (el: HTMLElement) => { outputPdf: (t: string) => Promise<Blob>; save: () => Promise<void> } }; from: (el: HTMLElement) => { outputPdf: (t: string) => Promise<Blob>; save: () => Promise<void> } }
+
+async function loadHtml2Pdf(): Promise<Html2PdfFn> {
+  if ((window as unknown as Record<string, unknown>).html2pdf) {
+    return (window as unknown as Record<string, Html2PdfFn>).html2pdf
+  }
+  await new Promise<void>((resolve, reject) => {
+    const script = document.createElement('script')
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js'
+    script.onload = () => resolve()
+    script.onerror = reject
+    document.head.appendChild(script)
+  })
+  return (window as unknown as Record<string, Html2PdfFn>).html2pdf
+}
+
 // ── PDF Generation ────────────────────────────────────────────────────────────
 
 /**
@@ -234,8 +252,7 @@ export async function htmlToPdfBlob(
   fullHtml: string,
   filename = 'document.pdf',
 ): Promise<Blob> {
-  // Dynamically import so it doesn't bloat the initial bundle
-  const html2pdf = (await import('html2pdf.js')).default
+  const html2pdf = await loadHtml2Pdf()
 
   // Create an off-screen container for html2pdf to render into
   const container = document.createElement('div')
@@ -282,7 +299,7 @@ export async function downloadTemplateAsPdf(
   filename: string,
 ): Promise<void> {
   const fullHtml = renderTemplateDocument(htmlContent, cssContent, tokens)
-  const html2pdf = (await import('html2pdf.js')).default
+  const html2pdf = await loadHtml2Pdf()
 
   const container = document.createElement('div')
   container.style.cssText = 'position:fixed;left:-9999px;top:-9999px;width:210mm;'

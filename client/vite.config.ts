@@ -10,11 +10,11 @@ export default defineConfig({
     },
   },
   optimizeDeps: {
-    include: ['@react-pdf/renderer', 'html2pdf.js'],
+    include: ['@react-pdf/renderer'],
   },
   build: {
-    commonjsOptions: {
-      include: [/html2pdf\.js/, /node_modules/],
+    rollupOptions: {
+      external: ['html2pdf.js'],
     },
   },
   server: {
