@@ -158,6 +158,7 @@ export default function FAQSection() {
                           {cta && (
                             <Link
                               to={cta.to}
+                              reloadDocument={cta.to === '/services'}
                               className="inline-flex items-center gap-1.5 mt-4 text-[12px] font-semibold tracking-[0.06em] uppercase text-black border-b border-black pb-px hover:text-[#474747] hover:border-[#474747] transition-colors"
                             >
                               {cta.label}
