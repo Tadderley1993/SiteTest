@@ -303,7 +303,9 @@ function InvoiceBuilder({
   // Auto-generate invoice number + ensure clients loaded
   useEffect(() => {
     if (!initial) {
-      api.post('/admin/invoices/generate-number').then(r => setInvoiceNumber(r.data.invoiceNumber)).catch(() => {})
+      api.post('/admin/invoices/generate-number')
+        .then(r => setInvoiceNumber(r.data.invoiceNumber))
+        .catch(() => setInvoiceNumber(`INV-${String(Date.now()).slice(-4)}`))
     }
     // If parent didn't pass clients (e.g. invoices fetch failed), load them directly
     if (clients.length === 0) {
@@ -475,10 +477,14 @@ function InvoiceBuilder({
               </div>
               <div>
                 <label className="block text-xs text-zinc-500 mb-1.5 uppercase tracking-wider font-body">Invoice Number</label>
-                <div className="w-full flex items-center gap-2 bg-zinc-100 border border-zinc-200 rounded-lg px-3 py-2.5 text-sm text-zinc-500 font-body cursor-default select-none">
-                  <span className="material-symbols-outlined text-[14px] text-zinc-400">lock</span>
-                  <span className="text-black font-medium">{invoiceNumber || '—'}</span>
-                  <span className="ml-auto text-[10px] text-zinc-400 uppercase tracking-wider">Auto</span>
+                <div className="relative">
+                  <input
+                    value={invoiceNumber}
+                    onChange={e => setInvoiceNumber(e.target.value)}
+                    placeholder="Auto-generating…"
+                    className="w-full bg-[#f3f3f3] border border-zinc-200 rounded-lg px-3 py-2.5 pr-14 text-sm text-black focus:outline-none focus:border-black/20 font-body"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-zinc-400 uppercase tracking-wider pointer-events-none">Auto</span>
                 </div>
               </div>
             </div>
