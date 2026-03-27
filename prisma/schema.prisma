@@ -334,6 +334,16 @@ model Notification {
   createdAt DateTime @default(now())
 }
 
+model SentEmailLog {
+  id           Int      @id @default(autoincrement())
+  toEmail      String
+  subject      String
+  templateId   Int?
+  templateName String?
+  status       String   @default("sent")
+  createdAt    DateTime @default(now())
+}
+
 model Message {
   id        Int      @id @default(autoincrement())
   clientId  Int
@@ -354,6 +364,7 @@ model CalendarEvent {
   eventType   String    @default("reminder")
   clientId    Int?
   color       String    @default("#18181b")
+  reminders   String    @default("[]")
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 }

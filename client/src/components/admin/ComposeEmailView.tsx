@@ -1,12 +1,14 @@
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import {
   getClients,
   getSubmissions,
   getEmailTemplates,
   sendEmailTemplate,
+  getSentEmailLogs,
   Client,
   Submission,
   EmailTemplate,
+  SentEmailLog,
 } from '../../lib/api'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -436,6 +438,32 @@ function ManualTab({
 // ── Main Component ────────────────────────────────────────────────────────────
 
 export default function ComposeEmailView() {
+  // Top-level tab
+  const [mainTab, setMainTab] = useState<'compose' | 'sent'>('compose')
+
+  // Sent log
+  const [sentLogs, setSentLogs] = useState<SentEmailLog[]>([])
+  const [sentLoading, setSentLoading] = useState(false)
+  const [sentSearch, setSentSearch] = useState('')
+
+  const loadSentLogs = useCallback(async () => {
+    setSentLoading(true)
+    try { setSentLogs(await getSentEmailLogs()) } catch { /* ignore */ }
+    finally { setSentLoading(false) }
+  }, [])
+
+  useEffect(() => { if (mainTab === 'sent') loadSentLogs() }, [mainTab, loadSentLogs])
+
+  const filteredLogs = useMemo(() => {
+    const q = sentSearch.toLowerCase()
+    if (!q) return sentLogs
+    return sentLogs.filter(l =>
+      l.toEmail.toLowerCase().includes(q) ||
+      l.subject.toLowerCase().includes(q) ||
+      (l.templateName ?? '').toLowerCase().includes(q)
+    )
+  }, [sentLogs, sentSearch])
+
   // Data
   const [clients, setClients] = useState<Client[]>([])
   const [submissions, setSubmissions] = useState<Submission[]>([])
@@ -651,17 +679,136 @@ export default function ComposeEmailView() {
   return (
     <div className="flex flex-col -m-8 min-h-screen bg-[#f9f9f9]">
       {/* ── Page header ── */}
-      <div className="px-8 pt-8 pb-5 border-b border-zinc-200/60 bg-[#f9f9f9]">
+      <div className="px-8 pt-8 pb-0 border-b border-zinc-200/60 bg-[#f9f9f9]">
         <nav className="flex items-center gap-2 mb-1 text-[10px] font-bold uppercase tracking-widest text-zinc-400">
           <span>Agency OS</span>
           <span>/</span>
           <span className="text-black">Compose</span>
         </nav>
-        <h1 className="text-4xl font-bold tracking-tighter">Compose Email</h1>
+        <div className="flex items-end justify-between">
+          <h1 className="text-4xl font-bold tracking-tighter pb-5">Compose Email</h1>
+          <div className="flex items-center gap-1 pb-0">
+            {([
+              { id: 'compose', label: 'Compose', icon: 'edit' },
+              { id: 'sent',    label: 'Sent',    icon: 'outbox' },
+            ] as { id: 'compose' | 'sent'; label: string; icon: string }[]).map(tab => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setMainTab(tab.id)}
+                className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-semibold border-b-2 transition-colors ${
+                  mainTab === tab.id
+                    ? 'border-black text-black'
+                    : 'border-transparent text-zinc-400 hover:text-zinc-600'
+                }`}
+              >
+                <span className="material-symbols-outlined text-[16px]">{tab.icon}</span>
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
+      {/* ── Sent tab ── */}
+      {mainTab === 'sent' && (
+        <div className="flex-1 p-8">
+          <div className="bg-white rounded-xl border border-zinc-200 shadow-sm overflow-hidden">
+            {/* Header */}
+            <div className="px-6 py-4 border-b border-zinc-100 flex items-center justify-between gap-4">
+              <h2 className="text-sm font-bold text-black flex items-center gap-2">
+                <span className="material-symbols-outlined text-[18px] text-zinc-400">outbox</span>
+                Sent Mail
+                {sentLogs.length > 0 && (
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-zinc-100 text-zinc-500">
+                    {sentLogs.length}
+                  </span>
+                )}
+              </h2>
+              <div className="flex items-center gap-3">
+                <div className="relative">
+                  <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-[16px] text-zinc-400">search</span>
+                  <input
+                    type="text"
+                    value={sentSearch}
+                    onChange={e => setSentSearch(e.target.value)}
+                    placeholder="Search sent…"
+                    className="bg-zinc-50 border border-zinc-200 rounded-lg pl-8 pr-3 py-1.5 text-sm focus:outline-none focus:border-black/20 w-52"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={loadSentLogs}
+                  className="flex items-center gap-1.5 text-xs font-semibold text-zinc-500 hover:text-black transition-colors"
+                >
+                  <span className="material-symbols-outlined text-[16px]">refresh</span>
+                  Refresh
+                </button>
+              </div>
+            </div>
+
+            {/* Table */}
+            {sentLoading ? (
+              <div className="py-16 text-center text-zinc-400 text-sm">Loading…</div>
+            ) : filteredLogs.length === 0 ? (
+              <div className="py-16 text-center">
+                <span className="material-symbols-outlined text-4xl text-zinc-200 block mb-3">outbox</span>
+                <p className="text-sm text-zinc-400">{sentSearch ? 'No results match your search' : 'No emails sent yet'}</p>
+              </div>
+            ) : (
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-zinc-50 border-b border-zinc-100">
+                    <th className="text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400 px-6 py-3">To</th>
+                    <th className="text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400 px-4 py-3">Subject</th>
+                    <th className="text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400 px-4 py-3">Template</th>
+                    <th className="text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400 px-4 py-3">Sent</th>
+                    <th className="text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400 px-4 py-3">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredLogs.map((log, i) => (
+                    <tr key={log.id} className={`border-t border-zinc-50 ${i % 2 === 1 ? 'bg-zinc-50/40' : ''}`}>
+                      <td className="px-6 py-3">
+                        <div className="flex items-center gap-2">
+                          <div className="w-7 h-7 rounded-full bg-zinc-100 flex items-center justify-center flex-shrink-0">
+                            <span className="material-symbols-outlined text-[14px] text-zinc-500">person</span>
+                          </div>
+                          <span className="text-xs font-medium text-black">{log.toEmail}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-xs text-zinc-600 max-w-[220px] truncate">{log.subject || '—'}</td>
+                      <td className="px-4 py-3">
+                        {log.templateName ? (
+                          <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-600">
+                            {log.templateName}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-zinc-400">—</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-xs text-zinc-400 whitespace-nowrap">
+                        {new Date(log.createdAt).toLocaleString('en-US', {
+                          month: 'short', day: 'numeric',
+                          hour: 'numeric', minute: '2-digit',
+                        })}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-green-50 text-green-600 capitalize">
+                          {log.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* ── Success state ── */}
-      {sendSuccess && (
+      {mainTab === 'compose' && sendSuccess && (
         <div className="flex-1 flex items-center justify-center p-8">
           <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-10 max-w-md w-full text-center">
             <span className="material-symbols-outlined text-5xl text-green-500 mb-4 block">
@@ -684,7 +831,7 @@ export default function ComposeEmailView() {
       )}
 
       {/* ── Main two-col layout ── */}
-      {!sendSuccess && (
+      {mainTab === 'compose' && !sendSuccess && (
         <div className="flex flex-1 min-h-0 overflow-hidden" style={{ height: 'calc(100vh - 176px)' }}>
           {/* ── Left panel: Template + Variables ── */}
           <div className="flex-1 overflow-y-auto p-8 space-y-5 border-r border-zinc-200/60">

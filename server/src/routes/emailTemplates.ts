@@ -109,7 +109,22 @@ router.post('/:id/send', asyncHandler(async (req, res) => {
 
   await transporter.sendMail({ from: from ?? undefined, to, subject, html })
   logger.info(`Email template ${id} sent to ${to}`)
+
+  // Log to sent mail history
+  await prisma.$executeRawUnsafe(
+    `INSERT INTO "SentEmailLog" ("toEmail", subject, "templateId", "templateName", status, "createdAt") VALUES ($1, $2, $3, $4, 'sent', NOW())`,
+    to, subject, template.id, template.name
+  ).catch(() => { /* non-fatal */ })
+
   res.json({ success: true })
+}))
+
+// GET /api/admin/email-templates/sent — sent mail log
+router.get('/sent', asyncHandler(async (_req, res) => {
+  const rows = await prisma.$queryRawUnsafe(
+    `SELECT id, "toEmail", subject, "templateId", "templateName", status, "createdAt" FROM "SentEmailLog" ORDER BY "createdAt" DESC LIMIT 200`
+  )
+  res.json(rows)
 }))
 
 export { router as emailTemplatesRouter }

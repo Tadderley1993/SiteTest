@@ -816,6 +816,21 @@ export async function sendEmailTemplate(id: number, to: string, variables: Recor
   await api.post(`/admin/email-templates/${id}/send`, { to, variables })
 }
 
+export interface SentEmailLog {
+  id: number
+  toEmail: string
+  subject: string
+  templateId: number | null
+  templateName: string | null
+  status: string
+  createdAt: string
+}
+
+export async function getSentEmailLogs(): Promise<SentEmailLog[]> {
+  const res = await api.get('/admin/email-templates/sent')
+  return res.data
+}
+
 export async function updateAdminAccount(data: { currentPassword: string; newUsername?: string; newPassword?: string }): Promise<{ message: string; username: string }> {
   const res = await api.put('/auth/account', data)
   return res.data
@@ -904,6 +919,7 @@ export interface CalendarEvent {
   eventType: string
   clientId: number | null
   color: string
+  reminders: string   // JSON string e.g. "[15,60]" — minutes before event
   createdAt: string
   updatedAt: string
   // joined
@@ -950,6 +966,10 @@ export async function updateCalendarEvent(id: number, data: Partial<CalendarEven
 
 export async function deleteCalendarEvent(id: number): Promise<void> {
   await api.delete(`/admin/calendar/events/${id}`)
+}
+
+export async function createNotification(type: string, title: string, body: string): Promise<void> {
+  await api.post('/admin/notifications', { type, title, body })
 }
 
 export default api
