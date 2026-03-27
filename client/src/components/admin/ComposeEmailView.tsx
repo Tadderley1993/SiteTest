@@ -633,11 +633,12 @@ export default function ComposeEmailView() {
     let done = 0
 
     for (const r of recipientArray) {
-      // Build per-recipient variables
+      // Start from shared vars (agency defaults, custom message, etc.)
+      // then always override with this recipient's own details
       const perRecipient: Record<string, string> = { ...varValues }
       const autoFills = buildAutoFillFromRecipient(r)
       Object.entries(autoFills).forEach(([k, v]) => {
-        if (!perRecipient[k]) perRecipient[k] = v
+        perRecipient[k] = v  // always override — each recipient gets their own name/email
       })
 
       try {
