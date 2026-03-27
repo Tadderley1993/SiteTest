@@ -154,7 +154,7 @@ router.post('/:id/run', authMiddleware, asyncHandler(async (req, res) => {
     const cutoff = new Date(Date.now() - rule.delayDays * 24 * 60 * 60 * 1000)
 
     if (rule.type === 'proposal_followup') {
-      const where: Parameters<typeof prisma.proposal.findMany>[0]['where'] = {
+      const where: NonNullable<Parameters<typeof prisma.proposal.findMany>[0]>['where'] = {
         status: 'sent',
         sentAt: { lte: cutoff },
         ...(targetIds ? { clientId: { in: targetIds } } : {}),
@@ -176,7 +176,7 @@ router.post('/:id/run', authMiddleware, asyncHandler(async (req, res) => {
     }
 
     else if (rule.type === 'welcome_email') {
-      const where: Parameters<typeof prisma.client.findMany>[0]['where'] = {
+      const where: NonNullable<Parameters<typeof prisma.client.findMany>[0]>['where'] = {
         createdAt: { gte: cutoff },
         ...(targetIds ? { id: { in: targetIds } } : {}),
       }
@@ -199,7 +199,7 @@ router.post('/:id/run', authMiddleware, asyncHandler(async (req, res) => {
 
     else if (rule.type === 'invoice_reminder') {
       const soon = new Date(Date.now() + rule.delayDays * 24 * 60 * 60 * 1000)
-      const where: Parameters<typeof prisma.invoice.findMany>[0]['where'] = {
+      const where: NonNullable<Parameters<typeof prisma.invoice.findMany>[0]>['where'] = {
         status: { in: ['sent', 'overdue'] },
         ...(targetIds ? { clientId: { in: targetIds } } : {}),
       }
@@ -222,7 +222,7 @@ router.post('/:id/run', authMiddleware, asyncHandler(async (req, res) => {
 
     else if (rule.type === 'payment_reminder') {
       const today = new Date().toISOString().split('T')[0]
-      const where: Parameters<typeof prisma.paymentEntry.findMany>[0]['where'] = {
+      const where: NonNullable<Parameters<typeof prisma.paymentEntry.findMany>[0]>['where'] = {
         status: 'pending',
         dueDate: { lte: today },
         ...(targetIds ? { clientId: { in: targetIds } } : {}),

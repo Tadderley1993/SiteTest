@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { z } from 'zod'
+import { z, ZodError } from 'zod'
 import nodemailer from 'nodemailer'
 import { prisma } from '../lib/prisma.js'
 import { authMiddleware } from '../middleware/auth.js'
@@ -12,10 +12,14 @@ router.use(authMiddleware)
 const TemplateSchema = z.object({
   name:        z.string().min(1),
   category:    z.string().min(1),
-  subject:     z.string().min(1),
+  subject:     z.string().default(''),
   htmlContent: z.string().min(1),
   cssContent:  z.string().optional().default(''),
 })
+
+function zodError(err: ZodError): string {
+  return err.issues.map(e => `${String(e.path.join('.') || 'field')}: ${e.message}`).join(', ')
+}
 
 async function getTransporter() {
   const settings = await prisma.adminSettings.findFirst()
@@ -53,7 +57,13 @@ router.get('/:id', asyncHandler(async (req, res) => {
 
 // POST /api/admin/email-templates
 router.post('/', asyncHandler(async (req, res) => {
-  const data = TemplateSchema.parse(req.body)
+  let data: z.infer<typeof TemplateSchema>
+  try {
+    data = TemplateSchema.parse(req.body)
+  } catch (err) {
+    if (err instanceof ZodError) return res.status(400).json({ error: zodError(err) })
+    throw err
+  }
   const template = await prisma.emailTemplate.create({ data })
   res.status(201).json(template)
 }))
@@ -61,7 +71,13 @@ router.post('/', asyncHandler(async (req, res) => {
 // PUT /api/admin/email-templates/:id
 router.put('/:id', asyncHandler(async (req, res) => {
   const id = parseInt(req.params.id)
-  const data = TemplateSchema.partial().parse(req.body)
+  let data: Partial<z.infer<typeof TemplateSchema>>
+  try {
+    data = TemplateSchema.partial().parse(req.body)
+  } catch (err) {
+    if (err instanceof ZodError) return res.status(400).json({ error: zodError(err) })
+    throw err
+  }
   const template = await prisma.emailTemplate.update({ where: { id }, data })
   res.json(template)
 }))

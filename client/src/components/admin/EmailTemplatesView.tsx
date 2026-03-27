@@ -1048,8 +1048,9 @@ export default function EmailTemplatesView() {
         setSelected(updated)
         setSaveMsg('Saved.')
       }
-    } catch {
-      setSaveMsg('Failed to save.')
+    } catch (e: unknown) {
+      const msg = (e as { response?: { data?: { error?: string } } })?.response?.data?.error
+      setSaveMsg(msg ? `Error: ${msg}` : 'Failed to save — check your connection and try again.')
     } finally {
       setSaving(false)
     }
