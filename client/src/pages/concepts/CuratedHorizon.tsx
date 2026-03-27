@@ -32,7 +32,7 @@ const IMG_PORT1      = '/imgs/ch-windmere.jpg'
 const IMG_PORT2A     = 'https://lh3.googleusercontent.com/aida-public/AB6AXuCH5VAavgRUehqgqs2pyAPrfxNLz7Bnd-SDVgy23rXrWsH9Ujc3xwcG78tgH2f9kFtWdXYE0ItwTxgxl6n1ZhkJXrBEC1JPUF8tsS6sOU95yq16iAniKJLotqKVY3JqiY3_OUXIVuQ8axpjq22AsT21BqXc8EfXx_RUOMhkMnKgBpWqfSyf-HCHr6wcI_ckAwM4dMHdlBZbuB9YsbAlRRnAoSDHjPrV2MWcr5hJnHyNFysaOmqDtXvpD3QR9CTyPVuCcGKHqKd4cpgj'
 const IMG_PORT2B     = 'https://lh3.googleusercontent.com/aida-public/AB6AXuCaGsx9ryLXokv8rlW_hu28Ufir7YibIfkGMl_TN8iX4Ti-8H2zwNa_9n64vuwUFXdLUng9Vqn01vWrFFgAEQh9tUu0noEAs3aUaXHlOaGK9yhe8JL69UejkOhf3soKR9Bn7mJXBtNuwv3H_u1z-7MRoiyYU7cnaZsfYTW92fNwHVlC5mWXNYkFO3NgoudEF0-74RmRtdtXEd3Fmy4yFsiJKOX6TOFtTTn7kE6KdYCbnHA--lZ6adku-Vv1KVSTcUnUqKj9rg1k38KX'
 const IMG_PORT4      = 'https://lh3.googleusercontent.com/aida-public/AB6AXuBvF3xfKFVvBUSs_uTzWgFQXNmlayILTKkmyMsHrtwlZad4jVH2WZ6FvlqMlrdqWhXsIftXZdRHEgW7snfKoP0KRq8oB6Zpwg36ZFbu6at8ld-vHxtM5JlorxWUv-VhBL3lFNf8HIJFV08Jx1tydfT9HLCoM_WwapNuiGpcZiJe1WcN3q6QJAljT'
-const IMG_ABOUT_EST  = 'https://lh3.googleusercontent.com/aida-public/AB6AXuDx5xm1-Uk6wVTjS4AopfH37zkzRZqh6g-gKuVVAdVjtmj0Pt6fSRSSttXjpIIsg3Z3-bgDhclNU7ppDPWFZMtqyOyEI7mfDdiAhiMJ0sXTHGf4fQVWNhlvb4n2ngY1ZHleMl8wZ40eHqLdbSHzQG-rIf2Q4UnSg-v3W7bc4fw5cCLAKI0k39adLfz7mGTE5lW99KnuBKepA6MkIfFPI1t37ihtwcTSu94u8bFLwaU4notE573gKefk2o7L_jLXg8dxcbwqq1FHrS0W'
+const IMG_ABOUT_EST  = '/imgs/ch-heritage.jpg'
 const IMG_ABOUT_TEAM = 'https://lh3.googleusercontent.com/aida-public/AB6AXuA9_7Bht9dTwtXyX-YbOw77sjIbv_cnDxzQiWcp6fY7hKTSPSouxgXl5waSFJUIqgezMpNx1Ky6mxdo-Sr7mIyOZrPW5M6FOJk_yCl8hNhZPKqASxjZ0hL57SX_aT8bH-pbaXeXMcPbcLXvNeFwApk8K1mt-8jC2qr9mvbH2Xf5erD3aK7phv2NuL2jVT5r9QHDUJSUwW9ZSy9TOXCvOIyMZuA4OyjDMTqMrgOTA8PFg5GXdAND-6WVP8iNl_zHAqPQi8IGaGbB13kI'
 const IMG_CONTACT    = 'https://lh3.googleusercontent.com/aida-public/AB6AXuAQu-wVsqFaZEEu-WP_owXkvLK1rfrmVF_pUkuhU-PsqW1nFjkZhwxQnfL0LlxgDW727q4Q_xoZHgbGiAM9C2Yg7ropMjQP_0yk_KjaxfGvH69W8d3VwgTrSm3uIG-O7QjzDiY2xwvUioAO_HZMEHAXjhxsqs86Id6_awexq9qZ277srG-w-NP_1Av0S4gjiGaTjbs58URW6d3qN-4AWZF4kiY6BRsnTNwgMqA40jqe57G9hDf5-oSaPeM3yFx1SfoqWyS3jQVQ52IB'
 const IMG_TOPIARY    = 'https://lh3.googleusercontent.com/aida-public/AB6AXuB93nJPlArWEGokIGuFM_tEA5OXXzoqFUtPhyKhlfS5MW6VD_8S2wYa4YQHWUfXfuFYP8qPS8dPyoZKVPNLb0HD4yxWOSrznSpACxdOSt_NMUMi_16pS0rtexX2j4T1wZk5yHltlM3bswc_2LNo4wNPiHgOdDmJ1ytWGzAMyMjaaY88cTmuJrylCJp_P65QCaHXEHqdSvwfwrG16bpvH1jidnnj5gpO__Vw-NeQigBjmbGPkCvG-C39xlL3Itbj3XeuzHVGwZ7ND1VO'
@@ -854,7 +854,7 @@ function AboutPage({ go }: { go: (p: Page) => void }) {
       <section style={{ background: '#ffffff', padding: '80px 48px' }}>
         <div style={{ maxWidth: 1280, margin: '0 auto', display: 'grid', gridTemplateColumns: '7fr 5fr', gap: 64, alignItems: 'center' }}>
           <div style={{ overflow: 'hidden' }}>
-            <img src={IMG_ABOUT_EST} alt="Estate Heritage" className="ch-gs" style={{ width: '100%', aspectRatio: '4/3', objectFit: 'cover', display: 'block' }} />
+            <img src={IMG_ABOUT_EST} alt="Estate Heritage" style={{ width: '100%', aspectRatio: '4/3', objectFit: 'cover', display: 'block' }} />
           </div>
           <div>
             <p style={{ fontSize: 10, letterSpacing: '0.2em', textTransform: 'uppercase', color: S, fontWeight: 600, marginBottom: 16 }}>Our Heritage</p>
