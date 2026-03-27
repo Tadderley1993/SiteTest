@@ -10,7 +10,12 @@ export default defineConfig({
     },
   },
   optimizeDeps: {
-    include: ['@react-pdf/renderer'],
+    include: ['@react-pdf/renderer', 'html2pdf.js'],
+  },
+  build: {
+    commonjsOptions: {
+      include: [/html2pdf\.js/, /node_modules/],
+    },
   },
   server: {
     port: 5173,
