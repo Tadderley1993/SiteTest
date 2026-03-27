@@ -46,6 +46,7 @@ Style requirements:
 - Max width 650px, centered, mobile responsive
 - Brand colors: dark (#08090A), gold accent (#C6A84B), text (#F5F0E8) — or a light/neutral variant
 - Use Google Fonts or system fonts only
+- CRITICAL: Do NOT use icon fonts (Material Icons, Font Awesome, etc.) — email clients like Gmail block external fonts and the icon name will render as raw text (e.g. "rocket_launch"). Use emoji (🚀 ✅ 📧 💼) or inline SVG for any icons.
 
 Choose one category and build accordingly:
   welcome     – Warm welcome for a new client
@@ -81,6 +82,7 @@ Style requirements:
 - Use system fonts (Georgia, Arial, or similar — no external requests)
 - Include visual section dividers, clear hierarchy, professional typography
 - Should look great both on screen and when printed/saved as PDF
+- CRITICAL: Do NOT use icon fonts (Material Icons, Font Awesome, etc.) — they will not render in email or PDF. Use emoji or inline SVG for any icons.
 
 Sections to include (in order):
   1. Header — agency logo area (text-based: "DTA / Designs By Terrence Adderley"), proposal title, proposal number, date
@@ -142,6 +144,7 @@ Style requirements:
 - Use system fonts (Arial, Helvetica, or similar)
 - Print-friendly — looks great as a PDF
 - Include a clear visual hierarchy: header, client info, line items table, totals, payment CTA
+- CRITICAL: Do NOT use icon fonts (Material Icons, Font Awesome, etc.) — they will not render in email or PDF. Use emoji or inline SVG for any icons.
 
 Sections to include (in order):
   1. Header — agency name "DTA / Designs By Terrence Adderley", large "INVOICE" label, invoice number, issue date, due date
