@@ -343,3 +343,17 @@ model Message {
   read      Boolean  @default(false)
   createdAt DateTime @default(now())
 }
+
+model CalendarEvent {
+  id          Int       @id @default(autoincrement())
+  title       String
+  description String?
+  startAt     DateTime
+  endAt       DateTime?
+  allDay      Boolean   @default(false)
+  eventType   String    @default("reminder")
+  clientId    Int?
+  color       String    @default("#18181b")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}

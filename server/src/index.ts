@@ -25,6 +25,7 @@ import { emailTemplatesRouter } from './routes/emailTemplates.js'
 import { tasksRouter } from './routes/tasks.js'
 import { notificationsRouter } from './routes/notifications.js'
 import { messagesRouter } from './routes/messages.js'
+import { calendarRouter } from './routes/calendar.js'
 import { generalRateLimit, submissionRateLimit } from './middleware/rateLimit.js'
 import { errorHandler } from './middleware/errorHandler.js'
 import { logger } from './lib/logger.js'
@@ -81,6 +82,7 @@ app.use('/api/admin/email-templates', emailTemplatesRouter)
 app.use('/api/admin/tasks', tasksRouter)
 app.use('/api/admin/notifications', notificationsRouter)
 app.use('/api/admin/messages', messagesRouter)
+app.use('/api/admin/calendar', calendarRouter)
 app.use('/api/sign', signingRouter)
 app.use('/api/admin/image-gen', imageGenRouter)
 app.use('/api/client-auth', clientAuthRouter)

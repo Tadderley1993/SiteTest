@@ -892,4 +892,64 @@ export async function sendAdminMessage(clientId: number, body: string): Promise<
   return res.data
 }
 
+// ── Calendar ───────────────────────────────────────────────────────────────────
+
+export interface CalendarEvent {
+  id: number
+  title: string
+  description: string | null
+  startAt: string
+  endAt: string | null
+  allDay: boolean
+  eventType: string
+  clientId: number | null
+  color: string
+  createdAt: string
+  updatedAt: string
+  // joined
+  firstName?: string | null
+  lastName?: string | null
+  email?: string | null
+  organization?: string | null
+  projectStatus?: string | null
+}
+
+export interface CalendarClient {
+  id: number
+  firstName: string
+  lastName: string
+  email: string
+  organization: string | null
+  projectStatus: string | null
+}
+
+export async function getCalendarEvents(start: string, end: string): Promise<CalendarEvent[]> {
+  const res = await api.get('/admin/calendar/events', { params: { start, end } })
+  return res.data
+}
+
+export async function getUpcomingEvents(range: 'day' | 'week' | 'month'): Promise<CalendarEvent[]> {
+  const res = await api.get('/admin/calendar/upcoming', { params: { range } })
+  return res.data
+}
+
+export async function getCalendarClients(): Promise<CalendarClient[]> {
+  const res = await api.get('/admin/calendar/clients')
+  return res.data
+}
+
+export async function createCalendarEvent(data: Partial<CalendarEvent>): Promise<CalendarEvent> {
+  const res = await api.post('/admin/calendar/events', data)
+  return res.data
+}
+
+export async function updateCalendarEvent(id: number, data: Partial<CalendarEvent>): Promise<CalendarEvent> {
+  const res = await api.put(`/admin/calendar/events/${id}`, data)
+  return res.data
+}
+
+export async function deleteCalendarEvent(id: number): Promise<void> {
+  await api.delete(`/admin/calendar/events/${id}`)
+}
+
 export default api

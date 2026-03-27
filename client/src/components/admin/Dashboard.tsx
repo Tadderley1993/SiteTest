@@ -20,6 +20,7 @@ import ProjectsView from './ProjectsView'
 import EmailTemplatesView from './EmailTemplatesView'
 import NotificationsPanel from './NotificationsPanel'
 import MessagesView from './MessagesView'
+import CalendarView from './CalendarView'
 
 interface Props {
   onLogout: () => void
@@ -40,6 +41,7 @@ type View =
   | 'automations'
   | 'email-templates'
   | 'messages'
+  | 'calendar'
 
 interface NavItem {
   id: View
@@ -61,6 +63,7 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'automations',      label: 'Automations',      icon: 'auto_awesome' },
   { id: 'email-templates',  label: 'Templates',        icon: 'description' },
   { id: 'messages',         label: 'Messages',         icon: 'chat_bubble' },
+  { id: 'calendar',         label: 'Calendar',         icon: 'calendar_month' },
   { id: 'settings',         label: 'Settings',         icon: 'settings' },
 ]
 
@@ -363,6 +366,13 @@ export default function Dashboard({ onLogout }: Props) {
           {view === 'messages' && (
             <motion.div key="messages" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
               <MessagesView />
+            </motion.div>
+          )}
+
+          {/* ── CALENDAR VIEW ── */}
+          {view === 'calendar' && (
+            <motion.div key="calendar" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
+              <CalendarView />
             </motion.div>
           )}
 
