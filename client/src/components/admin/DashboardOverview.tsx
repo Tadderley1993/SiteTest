@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { getClients, getSubmissions, Client, Submission } from '../../lib/api'
+import { getClients, getSubmissions, getCalendarEvents, Client, Submission, CalendarEvent } from '../../lib/api'
 
 function formatDate(d: string) {
   return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
@@ -30,16 +30,45 @@ function KpiCard({ icon, label, value, badge, badgeColor }: KpiCardProps) {
   )
 }
 
-export default function DashboardOverview() {
+const EVENT_TYPE_ICON: Record<string, string> = {
+  reminder: 'notifications',
+  event:    'event',
+  call:     'call',
+  followup: 'reply',
+  meeting:  'group',
+  deadline: 'flag',
+}
+
+function formatEventTime(iso: string, allDay: boolean): string {
+  if (allDay) return 'All day'
+  return new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+}
+
+interface Props {
+  onNavigateToCalendar?: () => void
+}
+
+export default function DashboardOverview({ onNavigateToCalendar }: Props) {
   const [clients, setClients] = useState<Client[]>([])
   const [submissions, setSubmissions] = useState<Submission[]>([])
+  const [todayEvents, setTodayEvents] = useState<CalendarEvent[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    Promise.all([getClients(), getSubmissions()])
-      .then(([cls, subs]) => {
+    const todayStart = new Date()
+    todayStart.setHours(0, 0, 0, 0)
+    const todayEnd = new Date()
+    todayEnd.setHours(23, 59, 59, 999)
+
+    Promise.all([
+      getClients(),
+      getSubmissions(),
+      getCalendarEvents(todayStart.toISOString(), todayEnd.toISOString()),
+    ])
+      .then(([cls, subs, evts]) => {
         setClients(cls)
         setSubmissions(subs)
+        setTodayEvents(evts)
       })
       .catch(() => {})
       .finally(() => setIsLoading(false))
@@ -189,6 +218,75 @@ export default function DashboardOverview() {
               ) : (
                 <div className="p-6 flex-1 flex items-center justify-center text-zinc-400 text-sm">
                   No clients yet
+                </div>
+              )}
+            </div>
+
+            {/* Today's Events — full width */}
+            <div className="col-span-3 bg-white rounded-xl ring-1 ring-black/[0.05] overflow-hidden">
+              <div className="px-6 py-4 border-b border-zinc-100 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[18px] text-zinc-400">today</span>
+                  <h2 className="text-sm font-bold text-black">Today's Events</h2>
+                  {todayEvents.length > 0 && (
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-black text-white leading-none">
+                      {todayEvents.length}
+                    </span>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={onNavigateToCalendar}
+                  className="text-xs text-zinc-400 hover:text-black transition-colors flex items-center gap-1"
+                >
+                  <span>View Calendar</span>
+                  <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
+                </button>
+              </div>
+              {todayEvents.length === 0 ? (
+                <div className="px-6 py-10 text-center text-zinc-400 text-sm">
+                  No events scheduled for today
+                </div>
+              ) : (
+                <div className="divide-y divide-zinc-50">
+                  {todayEvents.map(evt => (
+                    <div key={evt.id} className="flex items-center gap-4 px-6 py-3 hover:bg-zinc-50/60 transition-colors">
+                      {/* Color dot */}
+                      <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: evt.color }} />
+
+                      {/* Time */}
+                      <span className="text-xs font-semibold text-zinc-400 w-16 flex-shrink-0">
+                        {formatEventTime(evt.startAt, evt.allDay)}
+                      </span>
+
+                      {/* Type icon */}
+                      <div className="flex-shrink-0 w-7 h-7 rounded-lg bg-zinc-100 flex items-center justify-center">
+                        <span className="material-symbols-outlined text-[14px] text-zinc-500">
+                          {EVENT_TYPE_ICON[evt.eventType] ?? 'event'}
+                        </span>
+                      </div>
+
+                      {/* Title + description */}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-black truncate">{evt.title}</p>
+                        {evt.description && (
+                          <p className="text-xs text-zinc-400 truncate">{evt.description}</p>
+                        )}
+                      </div>
+
+                      {/* Client tag */}
+                      {evt.firstName && (
+                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-500 flex-shrink-0">
+                          {evt.firstName} {evt.lastName}
+                        </span>
+                      )}
+
+                      {/* Event type badge */}
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-500 capitalize flex-shrink-0">
+                        {evt.eventType}
+                      </span>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>

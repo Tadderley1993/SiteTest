@@ -21,6 +21,8 @@ import EmailTemplatesView from './EmailTemplatesView'
 import NotificationsPanel from './NotificationsPanel'
 import MessagesView from './MessagesView'
 import CalendarView from './CalendarView'
+import ReminderToast from './ReminderToast'
+import { useCalendarReminders } from '../../hooks/useCalendarReminders'
 
 interface Props {
   onLogout: () => void
@@ -91,6 +93,7 @@ export default function Dashboard({ onLogout }: Props) {
   const [selectedClientId, setSelectedClientId] = useState<number | null>(null)
   const [editingProposal, setEditingProposal] = useState<Proposal | 'new' | null>(null)
   const [badges, setBadges] = useState<Partial<Record<View, number>>>({})
+  const { toasts: reminderToasts, dismiss: dismissReminder } = useCalendarReminders()
 
   useEffect(() => {
     const fetchData = async () => {
@@ -224,6 +227,9 @@ export default function Dashboard({ onLogout }: Props) {
         </div>
       </header>
 
+      {/* Reminder toasts — fixed overlay, bottom-right */}
+      <ReminderToast toasts={reminderToasts} onDismiss={dismissReminder} />
+
       {/* Main content */}
       <main className="ml-64 pt-16 min-h-screen bg-[#f9f9f9]">
         <div className="p-8 max-w-7xl mx-auto">
@@ -231,7 +237,7 @@ export default function Dashboard({ onLogout }: Props) {
           {/* ── DASHBOARD OVERVIEW ── */}
           {view === 'dashboard' && (
             <motion.div key="dashboard" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
-              <DashboardOverview />
+              <DashboardOverview onNavigateToCalendar={() => handleNavClick('calendar')} />
             </motion.div>
           )}
 

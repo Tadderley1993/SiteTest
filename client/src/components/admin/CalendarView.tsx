@@ -89,6 +89,17 @@ const TYPE_ICON: Record<string, string> = {
 
 const EVENT_TYPES = ['reminder', 'event', 'call', 'followup', 'meeting', 'deadline']
 
+const REMINDER_OPTIONS: { label: string; value: number }[] = [
+  { label: '5 min',  value: 5 },
+  { label: '15 min', value: 15 },
+  { label: '30 min', value: 30 },
+  { label: '1 hr',   value: 60 },
+  { label: '2 hrs',  value: 120 },
+  { label: '1 day',  value: 1440 },
+  { label: '2 days', value: 2880 },
+  { label: '1 week', value: 10080 },
+]
+
 const PRESET_COLORS = [
   { label: 'Black',  value: '#18181b' },
   { label: 'Zinc',   value: '#52525b' },
@@ -113,6 +124,7 @@ interface FormState {
   eventType: string
   clientId: number | null
   color: string
+  reminders: number[]   // minutes before event
 }
 
 function defaultForm(day?: Date | null): FormState {
@@ -128,6 +140,7 @@ function defaultForm(day?: Date | null): FormState {
     eventType: 'reminder',
     clientId: null,
     color: '#18181b',
+    reminders: [],
   }
 }
 
@@ -149,6 +162,7 @@ function formToPayload(form: FormState) {
     eventType: form.eventType,
     clientId: form.clientId,
     color: form.color,
+    reminders: JSON.stringify(form.reminders),
   }
 }
 
@@ -354,6 +368,7 @@ function EventModal({ open, editing, clients, selectedDay, onClose, onSaved }: E
         eventType: editing.eventType,
         clientId: editing.clientId,
         color: editing.color,
+        reminders: (() => { try { return JSON.parse(editing.reminders ?? '[]') } catch { return [] } })(),
       })
     } else {
       setForm(defaultForm(selectedDay))
@@ -556,6 +571,43 @@ function EventModal({ open, editing, clients, selectedDay, onClose, onSaved }: E
                 />
               ))}
             </div>
+          </div>
+
+          {/* Reminders */}
+          <div>
+            <label className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-1.5">
+              Reminders
+            </label>
+            <div className="flex flex-wrap gap-1.5">
+              {REMINDER_OPTIONS.map(opt => {
+                const active = form.reminders.includes(opt.value)
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => set('reminders', active
+                      ? form.reminders.filter(r => r !== opt.value)
+                      : [...form.reminders, opt.value]
+                    )}
+                    className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold transition-colors ${
+                      active
+                        ? 'bg-black text-white'
+                        : 'bg-zinc-100 text-zinc-500 hover:bg-zinc-200'
+                    }`}
+                  >
+                    {active && <span className="material-symbols-outlined text-[12px]">notifications</span>}
+                    {opt.label}
+                  </button>
+                )
+              })}
+            </div>
+            {form.reminders.length > 0 && (
+              <p className="text-[11px] text-zinc-400 mt-1.5">
+                You'll be notified {form.reminders.sort((a,b) => b-a).map(r =>
+                  REMINDER_OPTIONS.find(o => o.value === r)?.label
+                ).join(', ')} before this event.
+              </p>
+            )}
           </div>
 
           {/* Client */}
