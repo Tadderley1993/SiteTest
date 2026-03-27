@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import PageWrapper from '../components/layout/PageWrapper'
 import Footer from '../components/layout/Footer'
+import FAQSection from '../components/layout/FAQSection'
 
 const SERVICES = [
   {
@@ -149,6 +150,9 @@ export default function Services() {
           </div>
         </div>
       </section>
+
+      {/* ── FAQ ──────────────────────────────────────────────────── */}
+      <FAQSection />
 
       {/* ── CTA ──────────────────────────────────────────────────── */}
       <section className="bg-[#f3f3f4] py-20 md:py-28 px-6 lg:px-8 border-b border-[#e5e5e5]">
