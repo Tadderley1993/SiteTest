@@ -120,7 +120,9 @@ export default function Settings() {
       const data = await getPayPalInvoices()
       setInvoices(data.items ?? [])
     } catch (e) {
-      setInvoicesError(e instanceof Error ? e.message : 'Failed to load invoices')
+      const msg = (e as { response?: { data?: { error?: string } } })?.response?.data?.error
+        ?? (e instanceof Error ? e.message : 'Failed to load invoices')
+      setInvoicesError(msg)
     } finally {
       setInvoicesLoading(false)
     }
@@ -136,7 +138,9 @@ export default function Settings() {
       )
       setTransactions(data.transaction_details ?? [])
     } catch (e) {
-      setTxError(e instanceof Error ? e.message : 'Failed to load transactions')
+      const msg = (e as { response?: { data?: { error?: string } } })?.response?.data?.error
+        ?? (e instanceof Error ? e.message : 'Failed to load transactions')
+      setTxError(msg)
     } finally {
       setTxLoading(false)
     }
