@@ -28,9 +28,29 @@ import { calendarRouter } from './routes/calendar.js'
 import { generalRateLimit, submissionRateLimit } from './middleware/rateLimit.js'
 import { errorHandler } from './middleware/errorHandler.js'
 import { logger } from './lib/logger.js'
+import { prisma } from './lib/prisma.js'
 
 dotenv.config({ path: '../.env' })
 dotenv.config() // fallback for Railway (reads .env in cwd)
+
+// Run any missing column migrations on startup (safe — IF NOT EXISTS is a no-op)
+async function runMigrations() {
+  try {
+    await prisma.$executeRawUnsafe(`
+      ALTER TABLE "Invoice"
+        ADD COLUMN IF NOT EXISTS "paypalInvoiceId"  TEXT,
+        ADD COLUMN IF NOT EXISTS "paypalInvoiceUrl" TEXT,
+        ADD COLUMN IF NOT EXISTS "paypalStatus"     TEXT
+    `)
+    await prisma.$executeRawUnsafe(`
+      ALTER TABLE "Submission"
+        ADD COLUMN IF NOT EXISTS "deletedAt" TIMESTAMPTZ
+    `)
+    logger.info('DB migrations OK')
+  } catch (err) {
+    console.error('DB migration error:', err)
+  }
+}
 
 const app = express()
 app.set('trust proxy', 1)
@@ -104,6 +124,8 @@ app.get('/api/health', (_, res) => {
 // Centralized error handler (must be last)
 app.use(errorHandler)
 
-app.listen(PORT, () => {
-  logger.info(`Server running on http://localhost:${PORT}`)
+runMigrations().then(() => {
+  app.listen(PORT, () => {
+    logger.info(`Server running on http://localhost:${PORT}`)
+  })
 })
