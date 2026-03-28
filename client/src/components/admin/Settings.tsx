@@ -25,8 +25,12 @@ const INVOICE_STATUS_COLORS: Record<string, string> = {
 }
 
 function fmtCurrency(amount: { currency_code: string; value: string } | undefined) {
-  if (!amount) return '—'
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: amount.currency_code }).format(parseFloat(amount.value))
+  if (!amount?.currency_code || !amount?.value) return '—'
+  try {
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: amount.currency_code }).format(parseFloat(amount.value))
+  } catch {
+    return `${amount.currency_code} ${amount.value}`
+  }
 }
 
 type Tab = 'paypal' | 'invoices' | 'transactions' | 'email' | 'account'
@@ -502,8 +506,7 @@ export default function Settings() {
                 const amountDue = (payments?.paid_amount as Record<string, string> | undefined)
                 const status = inv.status as string
                 const colorCls = INVOICE_STATUS_COLORS[status] ?? INVOICE_STATUS_COLORS.DRAFT
-                const amount = inv.amount as Record<string, unknown> | undefined
-                const amountValue = (amount?.value as { currency_code: string; value: string }) || undefined
+                const amountValue = inv.amount as { currency_code: string; value: string } | undefined
 
                 return (
                   <div key={id} className="bg-white border border-zinc-200 rounded-xl p-5 flex items-center gap-4">
