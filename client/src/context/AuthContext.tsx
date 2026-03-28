@@ -27,7 +27,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const stored = localStorage.getItem(REFRESH_KEY)
     if (!stored) { setIsRestoring(false); return }
 
-    api.post('/auth/refresh', { refreshToken: stored })
+    api.post<{ accessToken: string; refreshToken?: string }>('/auth/refresh', { refreshToken: stored })
       .then(res => {
         setToken(res.data.accessToken)
         setAuthToken(res.data.accessToken)
