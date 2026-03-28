@@ -3,12 +3,15 @@ import {
   getClients,
   getSubmissions,
   getEmailTemplates,
+  getDeals,
   sendEmailTemplate,
   getSentEmailLogs,
+  getSentEmailLog,
   Client,
   Submission,
   EmailTemplate,
   SentEmailLog,
+  Deal,
 } from '../../lib/api'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -26,6 +29,15 @@ interface Recipient {
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+
+function applyVars(template: string, vars: Record<string, string>): string {
+  return template.replace(/\{\{(\w+)\}\}/g, (_, key) => vars[key] ?? `{{${key}}}`)
+}
+
+function buildPreviewHtml(template: { htmlContent: string; cssContent?: string | null }, vars: Record<string, string>): string {
+  const css = template.cssContent ?? ''
+  return applyVars(`<style>${css}</style>${template.htmlContent}`, vars)
+}
 
 function extractVars(html: string, css: string): string[] {
   const combined = html + (css ?? '')
@@ -74,16 +86,6 @@ function buildAutoFillFromRecipient(recipient: Recipient): Record<string, string
   }
 
   return fills
-}
-
-function getStatusBadgeClass(status: string): string {
-  switch (status?.toLowerCase()) {
-    case 'active': return 'bg-green-100 text-green-700'
-    case 'completed': return 'bg-blue-100 text-blue-700'
-    case 'paused': return 'bg-amber-100 text-amber-700'
-    case 'cancelled': return 'bg-red-100 text-red-700'
-    default: return 'bg-zinc-100 text-zinc-500'
-  }
 }
 
 // ── Sub-components ────────────────────────────────────────────────────────────
@@ -183,7 +185,7 @@ function ActiveClientsTab({
 }) {
   const [search, setSearch] = useState('')
   const activeClients = useMemo(
-    () => clients.filter(c => c.projectScope?.status === 'active'),
+    () => clients.filter(c => (c.projectScope?.status ?? 'active') === 'active'),
     [clients],
   )
   const filtered = useMemo(
@@ -236,68 +238,74 @@ function ActiveClientsTab({
   )
 }
 
-// ── CRM Tab ───────────────────────────────────────────────────────────────────
+// ── CRM Tab (Deals pipeline) ──────────────────────────────────────────────────
+
+const DEAL_STAGE_COLORS: Record<string, string> = {
+  lead:          'bg-zinc-100 text-zinc-600',
+  qualified:     'bg-blue-100 text-blue-700',
+  proposal_sent: 'bg-violet-100 text-violet-700',
+  won:           'bg-green-100 text-green-700',
+  lost:          'bg-red-100 text-red-600',
+}
 
 function CrmTab({
-  clients,
+  deals,
   selected,
   onToggle,
 }: {
-  clients: Client[]
+  deals: Deal[]
   selected: Set<string>
   onToggle: (r: Recipient) => void
 }) {
   const [search, setSearch] = useState('')
+  // Only show deals that have a contact email
+  const withEmail = useMemo(() => deals.filter(d => !!d.contactEmail), [deals])
   const filtered = useMemo(
     () =>
-      clients.filter(
-        c =>
+      withEmail.filter(
+        d =>
           !search ||
-          `${c.firstName} ${c.lastName} ${c.email} ${c.organization ?? ''}`
+          `${d.contactName ?? ''} ${d.contactEmail ?? ''} ${d.company ?? ''} ${d.title}`
             .toLowerCase()
             .includes(search.toLowerCase()),
       ),
-    [clients, search],
+    [withEmail, search],
   )
 
   return (
     <div className="flex flex-col h-full">
       <div className="p-3 border-b border-zinc-100">
-        <SearchInput value={search} onChange={setSearch} placeholder="Search all clients…" />
+        <SearchInput value={search} onChange={setSearch} placeholder="Search pipeline…" />
       </div>
       {filtered.length === 0 ? (
         <div className="flex-1 flex items-center justify-center text-zinc-400 text-sm">
-          {clients.length === 0 ? 'No clients yet' : 'No matches'}
+          {withEmail.length === 0 ? 'No CRM contacts with email' : 'No matches'}
         </div>
       ) : (
         <div className="flex-1 overflow-y-auto">
-          {filtered.map(c => {
-            const key = `client-${c.id}`
-            const status = c.projectScope?.status
+          {filtered.map(d => {
+            const key = `deal-${d.id}`
+            const name = d.contactName || d.title
             const r: Recipient = {
               key,
-              name: `${c.firstName} ${c.lastName}`,
-              email: c.email,
+              name,
+              email: d.contactEmail!,
               source: 'client',
-              phone: c.phone,
-              organization: c.organization,
-              status,
+              phone: d.contactPhone,
+              organization: d.company,
+              status: d.stage,
             }
             return (
               <CheckRow
                 key={key}
                 checked={selected.has(key)}
                 onToggle={() => onToggle(r)}
-                primary={`${c.firstName} ${c.lastName}`}
-                secondary={c.email}
+                primary={name}
+                secondary={`${d.contactEmail}${d.company ? ` · ${d.company}` : ''}`}
                 badge={
-                  status ? (
-                    <span
-                      className={`text-[10px] font-semibold px-2 py-0.5 rounded-full capitalize ${getStatusBadgeClass(status)}`}
-                    >
-                      {status}
-                    </span>
-                  ) : undefined
+                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full capitalize ${DEAL_STAGE_COLORS[d.stage] ?? 'bg-zinc-100 text-zinc-600'}`}>
+                    {d.stage.replace('_', ' ')}
+                  </span>
                 }
               />
             )
@@ -445,6 +453,8 @@ export default function ComposeEmailView() {
   const [sentLogs, setSentLogs] = useState<SentEmailLog[]>([])
   const [sentLoading, setSentLoading] = useState(false)
   const [sentSearch, setSentSearch] = useState('')
+  const [previewLog, setPreviewLog] = useState<SentEmailLog | null>(null)
+  const [previewLoading, setPreviewLoading] = useState(false)
 
   const loadSentLogs = useCallback(async () => {
     setSentLoading(true)
@@ -453,6 +463,24 @@ export default function ComposeEmailView() {
   }, [])
 
   useEffect(() => { if (mainTab === 'sent') loadSentLogs() }, [mainTab, loadSentLogs])
+
+  const openPreview = async (log: SentEmailLog) => {
+    // If body already cached on the list item, use it; otherwise fetch
+    if (log.body != null) {
+      setPreviewLog(log)
+      return
+    }
+    setPreviewLoading(true)
+    setPreviewLog({ ...log, body: null }) // open modal immediately (loading state)
+    try {
+      const full = await getSentEmailLog(log.id)
+      setPreviewLog(full)
+    } catch {
+      setPreviewLog(prev => prev ? { ...prev, body: null } : null)
+    } finally {
+      setPreviewLoading(false)
+    }
+  }
 
   const filteredLogs = useMemo(() => {
     const q = sentSearch.toLowerCase()
@@ -466,6 +494,7 @@ export default function ComposeEmailView() {
 
   // Data
   const [clients, setClients] = useState<Client[]>([])
+  const [deals, setDeals] = useState<Deal[]>([])
   const [submissions, setSubmissions] = useState<Submission[]>([])
   const [templates, setTemplates] = useState<EmailTemplate[]>([])
   const [loadingData, setLoadingData] = useState(true)
@@ -479,6 +508,9 @@ export default function ComposeEmailView() {
   const [subject, setSubject] = useState('')
   const [varValues, setVarValues] = useState<Record<string, string>>({})
 
+  // Preview
+  const [showPreview, setShowPreview] = useState(false)
+
   // Send state
   const [sending, setSending] = useState(false)
   const [sendProgress, setSendProgress] = useState<{ done: number; total: number } | null>(null)
@@ -490,12 +522,14 @@ export default function ComposeEmailView() {
   useEffect(() => {
     const load = async () => {
       try {
-        const [cls, subs, tmps] = await Promise.all([
+        const [cls, dlss, subs, tmps] = await Promise.all([
           getClients(),
+          getDeals(),
           getSubmissions(),
           getEmailTemplates(),
         ])
         setClients(cls)
+        setDeals(dlss)
         setSubmissions(subs)
         // Filter out doc templates
         setTemplates(
@@ -585,7 +619,7 @@ export default function ComposeEmailView() {
   )
 
   const crmCount = useMemo(
-    () => [...selectedRecipients.values()].filter(r => r.source === 'client').length,
+    () => [...selectedRecipients.keys()].filter(k => k.startsWith('deal-')).length,
     [selectedRecipients],
   )
 
@@ -769,7 +803,11 @@ export default function ComposeEmailView() {
                 </thead>
                 <tbody>
                   {filteredLogs.map((log, i) => (
-                    <tr key={log.id} className={`border-t border-zinc-50 ${i % 2 === 1 ? 'bg-zinc-50/40' : ''}`}>
+                    <tr
+                      key={log.id}
+                      onClick={() => openPreview(log)}
+                      className={`border-t border-zinc-50 cursor-pointer transition-colors hover:bg-zinc-100/70 ${i % 2 === 1 ? 'bg-zinc-50/40' : ''}`}
+                    >
                       <td className="px-6 py-3">
                         <div className="flex items-center gap-2">
                           <div className="w-7 h-7 rounded-full bg-zinc-100 flex items-center justify-center flex-shrink-0">
@@ -975,27 +1013,39 @@ export default function ComposeEmailView() {
                 </div>
               )}
 
-              <button
-                type="button"
-                onClick={handleSend}
-                disabled={sending}
-                className="w-full flex items-center justify-center gap-2 bg-black text-white py-3 rounded-xl text-sm font-bold hover:bg-zinc-800 transition-colors disabled:opacity-50"
-              >
-                {sending ? (
-                  <>
-                    <span className="material-symbols-outlined text-[18px] animate-spin">
-                      progress_activity
-                    </span>
-                    Sending…
-                  </>
-                ) : (
-                  <>
-                    <span className="material-symbols-outlined text-[18px]">send</span>
-                    Send to {selectedRecipients.size} Recipient
-                    {selectedRecipients.size !== 1 ? 's' : ''}
-                  </>
+              <div className="flex gap-2">
+                {selectedTemplate && (
+                  <button
+                    type="button"
+                    onClick={() => setShowPreview(true)}
+                    className="flex items-center justify-center gap-1.5 px-4 py-3 rounded-xl border border-zinc-200 text-sm font-bold text-zinc-600 hover:bg-zinc-50 hover:text-black transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">visibility</span>
+                    Preview
+                  </button>
                 )}
-              </button>
+                <button
+                  type="button"
+                  onClick={handleSend}
+                  disabled={sending}
+                  className="flex-1 flex items-center justify-center gap-2 bg-black text-white py-3 rounded-xl text-sm font-bold hover:bg-zinc-800 transition-colors disabled:opacity-50"
+                >
+                  {sending ? (
+                    <>
+                      <span className="material-symbols-outlined text-[18px] animate-spin">
+                        progress_activity
+                      </span>
+                      Sending…
+                    </>
+                  ) : (
+                    <>
+                      <span className="material-symbols-outlined text-[18px]">send</span>
+                      Send to {selectedRecipients.size} Recipient
+                      {selectedRecipients.size !== 1 ? 's' : ''}
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
 
@@ -1042,7 +1092,7 @@ export default function ComposeEmailView() {
               )}
               {recipientTab === 'crm' && (
                 <CrmTab
-                  clients={clients}
+                  deals={deals}
                   selected={new Set(selectedRecipients.keys())}
                   onToggle={toggleRecipient}
                 />
@@ -1089,6 +1139,159 @@ export default function ComposeEmailView() {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Compose preview modal ── */}
+      {showPreview && selectedTemplate && (
+        <div
+          className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
+          onClick={() => setShowPreview(false)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl flex flex-col overflow-hidden"
+            style={{ maxHeight: '90vh' }}
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="px-6 py-4 border-b border-zinc-100 flex items-start justify-between gap-4 flex-shrink-0">
+              <div className="min-w-0">
+                <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-0.5">Preview</p>
+                <h2 className="text-base font-bold text-black truncate">
+                  {applyVars(subject || selectedTemplate.subject || '(no subject)', varValues)}
+                </h2>
+                <div className="flex items-center gap-3 mt-1.5 flex-wrap">
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-500">
+                    {selectedTemplate.name}
+                  </span>
+                  {selectedRecipients.size > 0 && (
+                    <span className="flex items-center gap-1 text-xs text-zinc-400">
+                      <span className="material-symbols-outlined text-[13px]">group</span>
+                      {selectedRecipients.size} recipient{selectedRecipients.size !== 1 ? 's' : ''}
+                    </span>
+                  )}
+                  <span className="text-xs text-amber-600 flex items-center gap-1">
+                    <span className="material-symbols-outlined text-[13px]">info</span>
+                    Variables shown with first recipient's data
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowPreview(false)}
+                className="flex-shrink-0 text-zinc-400 hover:text-black transition-colors mt-0.5"
+              >
+                <span className="material-symbols-outlined text-[22px]">close</span>
+              </button>
+            </div>
+
+            {/* Rendered email */}
+            <div className="flex-1 overflow-hidden">
+              <iframe
+                srcDoc={buildPreviewHtml(selectedTemplate, (() => {
+                  // Use first recipient's auto-fills merged with current var values
+                  const first = [...selectedRecipients.values()][0]
+                  if (!first) return varValues
+                  const merged = { ...varValues }
+                  Object.entries(buildAutoFillFromRecipient(first)).forEach(([k, v]) => { merged[k] = v })
+                  return merged
+                })())}
+                title="Email preview"
+                sandbox="allow-same-origin"
+                className="w-full h-full border-0"
+                style={{ minHeight: '480px' }}
+              />
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 py-3 border-t border-zinc-100 flex items-center justify-between flex-shrink-0">
+              <p className="text-xs text-zinc-400">
+                This is a preview — variables filled with {selectedRecipients.size > 0 ? 'first recipient\'s' : 'current'} values
+              </p>
+              <button
+                type="button"
+                onClick={() => { setShowPreview(false); handleSend() }}
+                disabled={sending}
+                className="flex items-center gap-1.5 px-4 py-2 bg-black text-white text-sm font-bold rounded-lg hover:bg-zinc-800 transition-colors disabled:opacity-50"
+              >
+                <span className="material-symbols-outlined text-[16px]">send</span>
+                Send Now
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Sent email preview modal ── */}
+      {previewLog && (
+        <div
+          className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
+          onClick={() => setPreviewLog(null)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl flex flex-col overflow-hidden"
+            style={{ maxHeight: '90vh' }}
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="px-6 py-4 border-b border-zinc-100 flex items-start justify-between gap-4 flex-shrink-0">
+              <div className="min-w-0">
+                <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-0.5">Sent Email</p>
+                <h2 className="text-base font-bold text-black truncate">{previewLog.subject || '(no subject)'}</h2>
+                <div className="flex items-center gap-3 mt-1.5 flex-wrap">
+                  <span className="flex items-center gap-1 text-xs text-zinc-500">
+                    <span className="material-symbols-outlined text-[13px]">send</span>
+                    To: <span className="font-medium text-black">{previewLog.toEmail}</span>
+                  </span>
+                  {previewLog.templateName && (
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-500">
+                      {previewLog.templateName}
+                    </span>
+                  )}
+                  <span className="text-xs text-zinc-400">
+                    {new Date(previewLog.createdAt).toLocaleString('en-US', {
+                      month: 'short', day: 'numeric', year: 'numeric',
+                      hour: 'numeric', minute: '2-digit',
+                    })}
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPreviewLog(null)}
+                className="flex-shrink-0 text-zinc-400 hover:text-black transition-colors mt-0.5"
+              >
+                <span className="material-symbols-outlined text-[22px]">close</span>
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="flex-1 overflow-hidden">
+              {previewLoading || previewLog.body == null ? (
+                <div className="flex items-center justify-center h-64 text-zinc-400 text-sm gap-2">
+                  {previewLoading ? (
+                    <>
+                      <span className="material-symbols-outlined text-[18px] animate-spin">progress_activity</span>
+                      Loading…
+                    </>
+                  ) : (
+                    <>
+                      <span className="material-symbols-outlined text-[18px]">mail_off</span>
+                      No preview available for this email
+                    </>
+                  )}
+                </div>
+              ) : (
+                <iframe
+                  srcDoc={previewLog.body}
+                  title="Email preview"
+                  sandbox="allow-same-origin"
+                  className="w-full h-full border-0"
+                  style={{ minHeight: '480px' }}
+                />
+              )}
+            </div>
           </div>
         </div>
       )}

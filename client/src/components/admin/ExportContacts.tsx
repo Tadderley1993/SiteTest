@@ -119,18 +119,17 @@ function generateCSV(
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
 
-function Toggle({ checked, onChange, color = '#E8FF47' }: { checked: boolean; onChange: () => void; color?: string }) {
+function Toggle({ checked, onChange, accent = 'black' }: { checked: boolean; onChange: () => void; accent?: string }) {
   return (
     <button
       type="button"
       onClick={onChange}
-      className="w-5 h-5 rounded-md border flex items-center justify-center flex-shrink-0 transition-all"
-      style={{
-        backgroundColor: checked ? color : 'transparent',
-        borderColor: checked ? color : 'rgba(255,255,255,0.2)',
-      }}
+      className={`w-5 h-5 rounded-md border flex items-center justify-center flex-shrink-0 transition-all ${
+        checked ? 'border-black bg-black' : 'border-zinc-300 bg-white hover:border-zinc-400'
+      }`}
+      style={checked && accent !== 'black' ? { backgroundColor: accent, borderColor: accent } : {}}
     >
-      {checked && <Check className="w-3 h-3 text-[#080A0F]" strokeWidth={3} />}
+      {checked && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
     </button>
   )
 }
@@ -140,16 +139,14 @@ function AvailBadge({ appliesTo, inclSubs, inclClients }: { appliesTo: ListType[
   const needsClient = appliesTo.includes('client')
   const hasBoth     = needsSub && needsClient
 
-  if (hasBoth) return null // applies to everything selected, no badge needed
+  if (hasBoth) return null
 
-  // Only one type — show which
   const label = needsClient ? 'Clients only' : 'Submissions only'
   const missingList = needsClient ? !inclClients : !inclSubs
 
   if (missingList) {
-    // The relevant list isn't even selected — show warning badge
     return (
-      <span className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-white/[0.06] text-zinc-500 font-body">
+      <span className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 font-body">
         <Info className="w-2.5 h-2.5" />
         {label} — not selected
       </span>
@@ -157,7 +154,7 @@ function AvailBadge({ appliesTo, inclSubs, inclClients }: { appliesTo: ListType[
   }
 
   return (
-    <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/[0.06] text-zinc-500 font-body">
+    <span className="text-[10px] px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-500 font-body">
       {label}
     </span>
   )
@@ -238,15 +235,13 @@ export default function ExportContacts({ submissions, clients }: Props) {
       {/* Panel */}
       {open && (
         <div
-          className="absolute right-0 top-full mt-2 w-[400px] rounded-2xl border border-zinc-200 shadow-2xl z-50 flex flex-col"
-          style={{ backgroundColor: '#0E1117', maxHeight: '80vh' }}
+          className="absolute right-0 top-full mt-2 w-[400px] rounded-2xl bg-white border border-zinc-200 shadow-xl z-50 flex flex-col"
+          style={{ maxHeight: '80vh' }}
         >
           {/* ── Header ── */}
-          <div className="flex items-center justify-between px-5 py-3.5 border-b border-zinc-100 flex-shrink-0">
-            <div className="flex items-center gap-2">
-              <Download className="w-3.5 h-3.5 text-black" />
-              <span className="text-xs font-semibold text-zinc-500 uppercase tracking-wider font-body">Export Contacts</span>
-            </div>
+          <div className="flex items-center gap-2 px-5 py-3.5 border-b border-zinc-100 flex-shrink-0">
+            <Download className="w-3.5 h-3.5 text-zinc-400" />
+            <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest font-body">Export Contacts</span>
           </div>
 
           {/* ── Scrollable body ── */}
@@ -254,19 +249,16 @@ export default function ExportContacts({ submissions, clients }: Props) {
 
             {/* ── Section 1: Lists ── */}
             <div className="px-5 py-4 border-b border-zinc-100">
-              <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-body mb-3">Include Lists</p>
+              <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest font-body mb-3">Include Lists</p>
               <div className="space-y-2.5">
                 {([
-                  { label: 'Submissions',      count: submissions.length, checked: inclSubs,    set: () => setInclSubs(v => !v),    color: '#E8FF47' },
-                  { label: 'Current Clients',  count: clients.length,     checked: inclClients, set: () => setInclClients(v => !v), color: '#47C6FF' },
-                ] as const).map(({ label, count, checked, set, color }) => (
+                  { label: 'Submissions',     count: submissions.length, checked: inclSubs,    set: () => setInclSubs(v => !v),    badge: 'bg-zinc-100 text-zinc-600' },
+                  { label: 'Current Clients', count: clients.length,     checked: inclClients, set: () => setInclClients(v => !v), badge: 'bg-zinc-100 text-zinc-600' },
+                ] as const).map(({ label, count, checked, set, badge }) => (
                   <label key={label} className="flex items-center gap-3 cursor-pointer" onClick={set}>
-                    <Toggle checked={checked} onChange={set} color={color} />
+                    <Toggle checked={checked} onChange={set} />
                     <span className="text-sm font-medium text-black font-body flex-1">{label}</span>
-                    <span
-                      className="text-xs font-semibold px-2 py-0.5 rounded-full font-body"
-                      style={{ backgroundColor: `${color}18`, color }}
-                    >
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full font-body ${badge}`}>
                       {count}
                     </span>
                   </label>
@@ -276,13 +268,12 @@ export default function ExportContacts({ submissions, clients }: Props) {
 
             {/* ── Section 2: Fields ── */}
             <div className="px-5 py-4">
-              {/* Sub-header with select all/none */}
               <div className="flex items-center justify-between mb-3">
-                <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-body">Include Fields</p>
+                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest font-body">Include Fields</p>
                 <div className="flex gap-2">
-                  <button type="button" onClick={selectAll}  className="text-[10px] text-black hover:underline font-body">All</button>
-                  <span className="text-[10px] text-zinc-500">·</span>
-                  <button type="button" onClick={selectNone} className="text-[10px] text-zinc-500 hover:text-black font-body">None</button>
+                  <button type="button" onClick={selectAll}  className="text-[10px] text-black font-semibold hover:underline font-body">All</button>
+                  <span className="text-[10px] text-zinc-300">·</span>
+                  <button type="button" onClick={selectNone} className="text-[10px] text-zinc-400 hover:text-black font-body">None</button>
                 </div>
               </div>
 
@@ -291,8 +282,6 @@ export default function ExportContacts({ submissions, clients }: Props) {
                   const keys = group.keys as ColKey[]
                   const allGroupOn = keys.every(k => selectedCols.has(k))
                   const someGroupOn = keys.some(k => selectedCols.has(k))
-
-                  // Determine if this group is even applicable given list selection
                   const groupApplicable =
                     (group.appliesTo.includes('submission') && inclSubs) ||
                     (group.appliesTo.includes('client') && inclClients)
@@ -301,22 +290,19 @@ export default function ExportContacts({ submissions, clients }: Props) {
                     <div key={group.label}>
                       {/* Group header */}
                       <div className="flex items-center gap-2 mb-2">
-                        {/* Group toggle (indeterminate-aware) */}
                         <button
                           type="button"
                           onClick={() => toggleGroup(keys)}
-                          className="w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 transition-all"
-                          style={{
-                            backgroundColor: allGroupOn ? 'rgba(232,255,71,0.15)' : 'transparent',
-                            borderColor: allGroupOn ? '#E8FF47' : someGroupOn ? '#E8FF47' : 'rgba(255,255,255,0.2)',
-                          }}
+                          className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 transition-all ${
+                            allGroupOn ? 'bg-black border-black' : someGroupOn ? 'bg-zinc-100 border-zinc-400' : 'border-zinc-300'
+                          }`}
                         >
-                          {allGroupOn && <Check className="w-2.5 h-2.5 text-black" strokeWidth={3} />}
+                          {allGroupOn && <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />}
                           {!allGroupOn && someGroupOn && (
-                            <div className="w-2 h-0.5 bg-black rounded-full" />
+                            <div className="w-2 h-0.5 bg-zinc-500 rounded-full" />
                           )}
                         </button>
-                        <span className={`text-xs font-semibold font-body ${groupApplicable ? 'text-black' : 'text-zinc-500'}`}>
+                        <span className={`text-xs font-semibold font-body ${groupApplicable ? 'text-black' : 'text-zinc-400'}`}>
                           {group.label}
                         </span>
                         <AvailBadge appliesTo={group.appliesTo} inclSubs={inclSubs} inclClients={inclClients} />
@@ -327,8 +313,6 @@ export default function ExportContacts({ submissions, clients }: Props) {
                         {keys.map(key => {
                           const col = COL_MAP[key]
                           const checked = selectedCols.has(key)
-
-                          // Is this specific column applicable to the selected lists?
                           const colApplicable =
                             (col.appliesTo.includes('submission') && inclSubs) ||
                             (col.appliesTo.includes('client') && inclClients)
@@ -340,24 +324,18 @@ export default function ExportContacts({ submissions, clients }: Props) {
                               onClick={() => toggleCol(key)}
                             >
                               <div
-                                className="w-3.5 h-3.5 rounded border flex items-center justify-center flex-shrink-0 transition-all"
-                                style={{
-                                  backgroundColor: checked ? '#E8FF47' : 'transparent',
-                                  borderColor: checked ? '#E8FF47' : 'rgba(255,255,255,0.2)',
-                                  opacity: colApplicable ? 1 : 0.4,
-                                }}
+                                className={`w-3.5 h-3.5 rounded border flex items-center justify-center flex-shrink-0 transition-all ${
+                                  checked ? 'bg-black border-black' : 'border-zinc-300 group-hover:border-zinc-400'
+                                } ${colApplicable ? '' : 'opacity-35'}`}
                               >
-                                {checked && <Check className="w-2 h-2 text-[#080A0F]" strokeWidth={3.5} />}
+                                {checked && <Check className="w-2 h-2 text-white" strokeWidth={3.5} />}
                               </div>
-                              <span
-                                className="text-xs font-body leading-tight"
-                                style={{
-                                  color: colApplicable ? (checked ? '#F0F0F0' : '#888') : '#444',
-                                }}
-                              >
+                              <span className={`text-xs font-body leading-tight ${
+                                colApplicable ? (checked ? 'text-black' : 'text-zinc-500') : 'text-zinc-300'
+                              }`}>
                                 {col.header}
                                 {!colApplicable && (
-                                  <span className="ml-1 text-[10px] opacity-60">
+                                  <span className="ml-1 text-[10px]">
                                     {col.appliesTo.includes('client') ? '(clients)' : '(subs)'}
                                   </span>
                                 )}
@@ -375,8 +353,7 @@ export default function ExportContacts({ submissions, clients }: Props) {
 
           {/* ── Footer ── */}
           <div className="px-5 pb-5 pt-3 border-t border-zinc-100 flex-shrink-0 space-y-2">
-            {/* Summary line */}
-            <div className="flex justify-between text-[11px] font-body text-zinc-500">
+            <div className="flex justify-between text-[11px] font-body text-zinc-400">
               <span>{selectedCols.size} column{selectedCols.size !== 1 ? 's' : ''} selected</span>
               {!nothingSelected && <span>{totalRecords} record{totalRecords !== 1 ? 's' : ''}</span>}
             </div>
@@ -385,7 +362,7 @@ export default function ExportContacts({ submissions, clients }: Props) {
               type="button"
               onClick={handleDownload}
               disabled={disabled}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-black text-background font-body font-bold text-sm disabled:opacity-35 hover:bg-zinc-800 transition-all"
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-black text-white font-body font-bold text-sm disabled:opacity-30 hover:bg-zinc-800 transition-all"
             >
               <Download className="w-4 h-4" />
               {nothingSelected
@@ -395,7 +372,7 @@ export default function ExportContacts({ submissions, clients }: Props) {
                 : 'Download Spreadsheet (.csv)'}
             </button>
 
-            <p className="text-[10px] text-zinc-500 text-center font-body">
+            <p className="text-[10px] text-zinc-400 text-center font-body">
               Opens in Excel, Google Sheets, or Numbers
             </p>
           </div>

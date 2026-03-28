@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { getDeals, createDeal, updateDeal, moveDeal, deleteDeal, type Deal } from '../../lib/api'
+import { getDeals, getClients, createDeal, createClient, updateDeal, moveDeal, deleteDeal, type Deal } from '../../lib/api'
 
 const STAGES: { id: Deal['stage']; label: string; color: string }[] = [
   { id: 'lead',          label: 'Lead',          color: 'bg-zinc-100 text-zinc-600' },
@@ -109,11 +109,13 @@ function DealModal({ deal, onSave, onClose }: {
   )
 }
 
-function DealCard({ deal, onEdit, onMove, onDelete, onDragStart, onDragEnd, isDragging }: {
+function DealCard({ deal, isClient, onEdit, onMove, onDelete, onConvertToClient, onDragStart, onDragEnd, isDragging }: {
   deal: Deal
+  isClient: boolean
   onEdit: (d: Deal) => void
   onMove: (d: Deal, stage: Deal['stage']) => void
   onDelete: (id: number) => void
+  onConvertToClient: (d: Deal) => void
   onDragStart: (d: Deal) => void
   onDragEnd: () => void
   isDragging: boolean
@@ -127,17 +129,24 @@ function DealCard({ deal, onEdit, onMove, onDelete, onDragStart, onDragEnd, isDr
       draggable
       onDragStart={() => onDragStart(deal)}
       onDragEnd={onDragEnd}
-      className={`bg-white rounded-xl p-4 ring-1 ring-black/[0.06] hover:shadow-md transition-all group cursor-grab active:cursor-grabbing select-none ${
+      className={`rounded-xl p-4 ring-1 hover:shadow-md transition-all group cursor-grab active:cursor-grabbing select-none ${
         isDragging ? 'opacity-40 scale-95' : ''
-      }`}
+      } ${isClient ? 'bg-blue-50 ring-blue-200' : 'bg-white ring-black/[0.06]'}`}
     >
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-2.5 min-w-0">
-          <div className="h-8 w-8 rounded-lg bg-zinc-900 flex items-center justify-center text-white text-[11px] font-bold flex-shrink-0">
+          <div className={`h-8 w-8 rounded-lg flex items-center justify-center text-white text-[11px] font-bold flex-shrink-0 ${isClient ? 'bg-blue-600' : 'bg-zinc-900'}`}>
             {initials(deal.contactName || deal.company || deal.title)}
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-black truncate">{deal.title}</p>
+            <div className="flex items-center gap-1.5">
+              <p className="text-sm font-semibold text-black truncate">{deal.title}</p>
+              {isClient && (
+                <span className="flex-shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 border border-blue-200 uppercase tracking-wide">
+                  Client
+                </span>
+              )}
+            </div>
             {deal.company && <p className="text-xs text-zinc-400 truncate">{deal.company}</p>}
           </div>
         </div>
@@ -147,7 +156,7 @@ function DealCard({ deal, onEdit, onMove, onDelete, onDragStart, onDragEnd, isDr
             <span className="material-symbols-outlined text-[18px]">more_vert</span>
           </button>
           {menuOpen && (
-            <div className="absolute right-0 top-6 z-20 bg-white rounded-xl shadow-lg ring-1 ring-black/[0.08] py-1 w-44" onMouseLeave={() => setMenuOpen(false)}>
+            <div className="absolute right-0 top-6 z-20 bg-white rounded-xl shadow-lg ring-1 ring-black/[0.08] py-1 w-48" onMouseLeave={() => setMenuOpen(false)}>
               <button type="button" onClick={() => { onEdit(deal); setMenuOpen(false) }}
                 className="flex items-center gap-2 w-full px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-50 transition-colors">
                 <span className="material-symbols-outlined text-[16px]">edit</span> Edit
@@ -158,6 +167,10 @@ function DealCard({ deal, onEdit, onMove, onDelete, onDragStart, onDragEnd, isDr
                   <span className="material-symbols-outlined text-[16px]">arrow_forward</span> Move to {nextStage.label}
                 </button>
               )}
+              <button type="button" onClick={() => { onConvertToClient(deal); setMenuOpen(false) }}
+                className="flex items-center gap-2 w-full px-3 py-2 text-sm text-green-700 hover:bg-green-50 transition-colors">
+                <span className="material-symbols-outlined text-[16px]">person_add</span> Convert to Client
+              </button>
               <button type="button" onClick={() => { onDelete(deal.id); setMenuOpen(false) }}
                 className="flex items-center gap-2 w-full px-3 py-2 text-sm text-red-500 hover:bg-red-50 transition-colors">
                 <span className="material-symbols-outlined text-[16px]">delete</span> Delete
@@ -174,6 +187,7 @@ function DealCard({ deal, onEdit, onMove, onDelete, onDragStart, onDragEnd, isDr
 
 export default function DealsView() {
   const [deals, setDeals] = useState<Deal[]>([])
+  const [clientEmails, setClientEmails] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
   const [modal, setModal] = useState<Partial<Deal> | null | 'new'>(null)
   const [draggingId, setDraggingId] = useState<number | null>(null)
@@ -181,7 +195,13 @@ export default function DealsView() {
   const dragDeal = useRef<Deal | null>(null)
 
   useEffect(() => {
-    getDeals().then(setDeals).catch(console.error).finally(() => setLoading(false))
+    Promise.all([getDeals(), getClients()])
+      .then(([d, c]) => {
+        setDeals(d)
+        setClientEmails(new Set(c.map(cl => cl.email.toLowerCase())))
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false))
   }, [])
 
   const totalValue = deals.filter(d => d.stage === 'won').reduce((s, d) => s + d.value, 0)
@@ -213,6 +233,23 @@ export default function DealsView() {
   const handleDelete = async (id: number) => {
     await deleteDeal(id)
     setDeals(prev => prev.filter(d => d.id !== id))
+  }
+
+  const handleConvertToClient = async (deal: Deal) => {
+    const nameParts = (deal.contactName || deal.title).split(' ')
+    const firstName = nameParts[0] ?? deal.title
+    const lastName = nameParts.slice(1).join(' ') || ''
+    await createClient({
+      firstName,
+      lastName,
+      email: deal.contactEmail ?? '',
+      phone: deal.contactPhone,
+      organization: deal.company,
+    })
+    // Mark this email as a client so the card updates immediately
+    if (deal.contactEmail) {
+      setClientEmails(prev => new Set([...prev, deal.contactEmail!.toLowerCase()]))
+    }
   }
 
   // Drag handlers
@@ -315,9 +352,11 @@ export default function DealsView() {
                     <DealCard
                       key={deal.id}
                       deal={deal}
+                      isClient={!!deal.contactEmail && clientEmails.has(deal.contactEmail.toLowerCase())}
                       onEdit={setModal}
                       onMove={handleMove}
                       onDelete={handleDelete}
+                      onConvertToClient={handleConvertToClient}
                       onDragStart={onCardDragStart}
                       onDragEnd={onCardDragEnd}
                       isDragging={draggingId === deal.id}

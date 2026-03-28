@@ -11,6 +11,11 @@ export default defineConfig({
     optimizeDeps: {
         include: ['@react-pdf/renderer'],
     },
+    build: {
+        rollupOptions: {
+            external: ['html2pdf.js'],
+        },
+    },
     server: {
         port: 5173,
         host: '0.0.0.0',

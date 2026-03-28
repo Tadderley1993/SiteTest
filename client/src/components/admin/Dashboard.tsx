@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { useAuth } from '../../context/AuthContext'
-import { getSubmissions, getClients, createClient, Submission, Client, Proposal } from '../../lib/api'
+import { getSubmissions, getClients, createClient, createDeal, deleteSubmission, Submission, Client, Proposal } from '../../lib/api'
 import SubmissionsTable from './SubmissionsTable'
 import ClientsList from './ClientsList'
 import ClientProfile from './ClientProfile'
@@ -127,6 +127,28 @@ export default function Dashboard({ onLogout }: Props) {
       submissionId: submission.id,
     })
     setClients(prev => [client, ...prev])
+    // Remove submission from list after converting
+    await deleteSubmission(submission.id).catch(() => {})
+    setSubmissions(prev => prev.filter(s => s.id !== submission.id))
+  }
+
+  const handleSendToCrm = async (submission: Submission) => {
+    const services = Array.isArray(submission.services)
+      ? submission.services.join(', ')
+      : String(submission.services || '')
+    await createDeal({
+      title: `${submission.firstName} ${submission.lastName}${services ? ` — ${services}` : ''}`,
+      contactName: `${submission.firstName} ${submission.lastName}`,
+      contactEmail: submission.email,
+      contactPhone: submission.phone,
+      company: submission.clientType,
+      value: 0,
+      stage: 'lead',
+      notes: submission.description,
+    })
+    // Remove submission from list after sending to CRM
+    await deleteSubmission(submission.id).catch(() => {})
+    setSubmissions(prev => prev.filter(s => s.id !== submission.id))
   }
 
   const handleLogout = () => {
@@ -266,6 +288,7 @@ export default function Dashboard({ onLogout }: Props) {
                 <SubmissionsTable
                   submissions={submissions}
                   onQuickAdd={handleQuickAdd}
+                  onSendToCrm={handleSendToCrm}
                   clientSubmissionIds={clientSubmissionIds}
                 />
               )}

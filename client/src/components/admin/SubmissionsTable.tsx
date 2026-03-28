@@ -5,6 +5,7 @@ import { Submission } from '../../lib/api'
 interface Props {
   submissions: Submission[]
   onQuickAdd?: (submission: Submission) => Promise<void>
+  onSendToCrm?: (submission: Submission) => Promise<void>
   clientSubmissionIds?: Set<number>
 }
 
@@ -36,10 +37,11 @@ function getInitials(first: string, last: string) {
 const th = 'text-left text-xs font-semibold text-zinc-400 uppercase tracking-wider px-4 py-3 whitespace-nowrap'
 const td = 'px-4 py-3 text-sm align-middle'
 
-export default function SubmissionsTable({ submissions, onQuickAdd, clientSubmissionIds }: Props) {
+export default function SubmissionsTable({ submissions, onQuickAdd, onSendToCrm, clientSubmissionIds }: Props) {
   const [expandedId, setExpandedId] = useState<number | null>(null)
   const [searchTerm, setSearchTerm]  = useState('')
   const [addingId, setAddingId]      = useState<number | null>(null)
+  const [crmingId, setCrmingId]      = useState<number | null>(null)
 
   const filtered = submissions.filter(s =>
     s.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -54,7 +56,15 @@ export default function SubmissionsTable({ submissions, onQuickAdd, clientSubmis
     try { await onQuickAdd(submission) } finally { setAddingId(null) }
   }
 
-  const totalCols = (onQuickAdd ? 11 : 10) + 1
+  const handleSendToCrm = async (e: React.MouseEvent, submission: Submission) => {
+    e.stopPropagation()
+    if (!onSendToCrm || crmingId === submission.id) return
+    setCrmingId(submission.id)
+    try { await onSendToCrm(submission) } finally { setCrmingId(null) }
+  }
+
+  const hasActions = !!(onQuickAdd || onSendToCrm)
+  const totalCols = (hasActions ? 11 : 10) + 1
 
   return (
     <div className="space-y-4">
@@ -77,7 +87,7 @@ export default function SubmissionsTable({ submissions, onQuickAdd, clientSubmis
 
       {/* Table */}
       <div className="bg-white rounded-xl ring-1 ring-black/[0.05] overflow-x-auto shadow-sm">
-        <table className="w-full table-fixed border-collapse" style={{ minWidth: onQuickAdd ? 1240 : 1140 }}>
+        <table className="w-full table-fixed border-collapse" style={{ minWidth: hasActions ? 1320 : 1140 }}>
           <colgroup>
             <col style={{ width: 56  }} />
             <col style={{ width: 180 }} />
@@ -89,7 +99,7 @@ export default function SubmissionsTable({ submissions, onQuickAdd, clientSubmis
             <col style={{ width: 70  }} />
             <col style={{ width: 90  }} />
             <col style={{ width: 105 }} />
-            {onQuickAdd && <col style={{ width: 110 }} />}
+            {hasActions && <col style={{ width: 190 }} />}
             <col style={{ width: 40  }} />
           </colgroup>
 
@@ -105,7 +115,7 @@ export default function SubmissionsTable({ submissions, onQuickAdd, clientSubmis
               <th className={th}>Team</th>
               <th className={th}>Timeline</th>
               <th className={th}>Date</th>
-              {onQuickAdd && <th className={th}>Action</th>}
+              {hasActions && <th className={th}>Actions</th>}
               <th className="w-10" />
             </tr>
           </thead>
@@ -175,7 +185,7 @@ export default function SubmissionsTable({ submissions, onQuickAdd, clientSubmis
 
                     <td className={`${td} text-zinc-400 whitespace-nowrap text-xs`}>{formatDate(s.createdAt)}</td>
 
-                    {onQuickAdd && (
+                    {hasActions && (
                       <td className="px-3 py-3 align-middle" onClick={e => e.stopPropagation()}>
                         {isClient ? (
                           <span className="inline-flex items-center gap-1 text-xs text-green-600 px-2 py-1 bg-green-50 rounded-md whitespace-nowrap font-medium">
@@ -183,15 +193,30 @@ export default function SubmissionsTable({ submissions, onQuickAdd, clientSubmis
                             Client
                           </span>
                         ) : (
-                          <button
-                            type="button"
-                            onClick={e => handleQuickAdd(e, s)}
-                            disabled={isAdding}
-                            className="inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg bg-black text-white opacity-0 group-hover:opacity-100 disabled:opacity-50 transition-all font-semibold whitespace-nowrap hover:bg-zinc-800"
-                          >
-                            <span className="material-symbols-outlined text-[14px]">person_add</span>
-                            {isAdding ? '…' : 'Convert'}
-                          </button>
+                          <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-all">
+                            {onQuickAdd && (
+                              <button
+                                type="button"
+                                onClick={e => handleQuickAdd(e, s)}
+                                disabled={isAdding || crmingId === s.id}
+                                className="inline-flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg bg-black text-white disabled:opacity-50 transition-all font-semibold whitespace-nowrap hover:bg-zinc-800"
+                              >
+                                <span className="material-symbols-outlined text-[13px]">person_add</span>
+                                {isAdding ? '…' : 'Client'}
+                              </button>
+                            )}
+                            {onSendToCrm && (
+                              <button
+                                type="button"
+                                onClick={e => handleSendToCrm(e, s)}
+                                disabled={crmingId === s.id || isAdding}
+                                className="inline-flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg bg-blue-600 text-white disabled:opacity-50 transition-all font-semibold whitespace-nowrap hover:bg-blue-700"
+                              >
+                                <span className="material-symbols-outlined text-[13px]">contacts</span>
+                                {crmingId === s.id ? '…' : 'CRM'}
+                              </button>
+                            )}
+                          </div>
                         )}
                       </td>
                     )}
