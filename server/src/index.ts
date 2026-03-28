@@ -1,5 +1,4 @@
 import express from 'express'
-import cors from 'cors'
 import helmet from 'helmet'
 import dotenv from 'dotenv'
 import { submissionsRouter } from './routes/submissions.js'
@@ -36,27 +35,32 @@ dotenv.config() // fallback for Railway (reads .env in cwd)
 const app = express()
 const PORT = process.env.PORT || 3001
 
-const ALLOWED_ORIGINS = [
-  'http://localhost:5173',
-  'https://dta-puce.vercel.app',
-  'https://designsbyta.com',
-  'https://www.designsbyta.com',
-  /\.vercel\.app$/,
-]
 
 // Security headers
-app.use(helmet())
+app.use(helmet({ crossOriginResourcePolicy: false }))
 
-app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin) return callback(null, true)
-    const allowed = ALLOWED_ORIGINS.some(o =>
-      typeof o === 'string' ? o === origin : o.test(origin)
-    )
-    callback(null, allowed)
-  },
-  credentials: true,
-}))
+// CORS — manual middleware for full control
+app.use((req, res, next) => {
+  const origin = req.headers.origin
+  if (origin) {
+    const allowed =
+      origin === 'http://localhost:5173' ||
+      origin === 'https://dta-puce.vercel.app' ||
+      origin === 'https://designsbyta.com' ||
+      origin === 'https://www.designsbyta.com' ||
+      /\.vercel\.app$/.test(origin)
+    if (allowed) {
+      res.setHeader('Access-Control-Allow-Origin', origin)
+      res.setHeader('Vary', 'Origin')
+      res.setHeader('Access-Control-Allow-Credentials', 'true')
+      res.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS')
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+      res.setHeader('Access-Control-Max-Age', '86400')
+    }
+  }
+  if (req.method === 'OPTIONS') return res.sendStatus(204)
+  next()
+})
 
 // General rate limit for all /api routes
 app.use('/api', generalRateLimit)
