@@ -995,7 +995,7 @@ export default function InvoicesView() {
 
   const totals = {
     draft: invoices.filter(i => i.status === 'draft').reduce((s, i) => s + i.amount, 0),
-    sent: invoices.filter(i => i.status === 'sent').reduce((s, i) => s + i.amount, 0),
+    sent: invoices.filter(i => i.status === 'sent' || i.status === 'overdue').reduce((s, i) => s + i.amount, 0),
     paid: invoices.filter(i => i.status === 'paid').reduce((s, i) => s + i.amount, 0),
   }
 
