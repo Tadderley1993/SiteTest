@@ -39,24 +39,17 @@ const PORT = process.env.PORT || 3001
 // Security headers
 app.use(helmet({ crossOriginResourcePolicy: false }))
 
-// CORS — manual middleware for full control
+// CORS — allow all origins temporarily for debugging
 app.use((req, res, next) => {
   const origin = req.headers.origin
+  console.log(`[CORS] ${req.method} ${req.path} origin=${origin ?? 'none'}`)
   if (origin) {
-    const allowed =
-      origin === 'http://localhost:5173' ||
-      origin === 'https://dta-puce.vercel.app' ||
-      origin === 'https://designsbyta.com' ||
-      origin === 'https://www.designsbyta.com' ||
-      /\.vercel\.app$/.test(origin)
-    if (allowed) {
-      res.setHeader('Access-Control-Allow-Origin', origin)
-      res.setHeader('Vary', 'Origin')
-      res.setHeader('Access-Control-Allow-Credentials', 'true')
-      res.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS')
-      res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-      res.setHeader('Access-Control-Max-Age', '86400')
-    }
+    res.setHeader('Access-Control-Allow-Origin', origin)
+    res.setHeader('Vary', 'Origin')
+    res.setHeader('Access-Control-Allow-Credentials', 'true')
+    res.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS')
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    res.setHeader('Access-Control-Max-Age', '86400')
   }
   if (req.method === 'OPTIONS') return res.sendStatus(204)
   next()
