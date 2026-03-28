@@ -22,11 +22,13 @@ cd client && npm run dev          # Terminal 2
 Admin: http://localhost:5173/admin — `admin` / `admin123`
 
 ## Deploy
-- **Frontend**: Vercel — `vercel --prod --yes` (live at https://dta-puce.vercel.app)
-- **Backend**: Railway (auto-deploys from GitHub `main`) — https://server-production-40a1.up.railway.app
+- **Frontend**: Vercel — auto-deploys from GitHub `main` (live at https://dta-puce.vercel.app and https://designsbyta.com)
+- **Backend**: Railway (auto-deploys from GitHub `main`) — https://gallant-harmony-production-646a.up.railway.app
 - Root `vercel.json` builds from `client/` with `outputDirectory: client/dist`
-- Railway env vars required: `DATABASE_URL` (pooler, port 6543), `DIRECT_URL`, `JWT_SECRET`
+- Railway env vars required: `DATABASE_URL` (pooler, port 6543), `JWT_SECRET`
 - Local `.env` uses `DIRECT_URL` as `DATABASE_URL` (pgbouncer pooler fails locally)
+- **Schema changes**: run `npx prisma db push --schema=prisma/schema.prisma --accept-data-loss` locally BEFORE pushing to GitHub. Do NOT add db push to Railway start command (Railway has no DIRECT_URL and pgbouncer blocks DDL)
+- Railway `startCommand`: `npx prisma generate --schema=prisma/schema.prisma && cd server && npm start`
 
 ## Routes
 | Route | Page | SEO Target |
@@ -48,7 +50,12 @@ Admin: http://localhost:5173/admin — `admin` / `admin123`
 - `POST /submissions` — contact form (no auth)
 - `POST /auth/login` — admin JWT login (returns accessToken + refreshToken)
 - `POST /auth/refresh`, `POST /auth/logout`, `GET /auth/sessions`
-- `GET/POST /admin/submissions`, `/admin/clients`, `/admin/proposals`, `/admin/settings`, `/admin/expenses`
+- `GET /admin/submissions` — active (non-deleted) submissions only
+- `GET /admin/submissions/trash` — trashed submissions (auto-purges >7 days old)
+- `POST /admin/submissions/trash/:id/restore` — restore from trash
+- `DELETE /admin/submissions/trash/:id` — permanent delete
+- `DELETE /admin/submissions/:id` — soft delete (moves to trash, sets deletedAt)
+- `GET/POST /admin/clients`, `/admin/proposals`, `/admin/settings`, `/admin/expenses`
 - `GET /admin/financials/summary`, `/admin/analytics/*`
 - `POST /client-auth/login` — client portal login
 - `GET /portal/me`, `/portal/invoices`, `/portal/proposals`, `/portal/files`
@@ -81,6 +88,7 @@ ring: ring-1 ring-black/[0.06]   shadow: shadow-sm
 `dashboard` | `submissions` | `clients` | `client-profile` | `deals` | `projects` (kanban) | `proposals` | `invoices` | `financials` | `files` | `analytics` | `automations` | `settings`
 - Default view: `dashboard` (DashboardOverview.tsx)
 - Sidebar: w-64, bg-[#f3f3f3], 12 nav items with Material Symbols icons
+- Submissions view has **Inbox / Trash** tabs — delete moves to trash, restore brings back
 
 ## Client Portal (`/portal`)
 - Separate JWT auth — `clientId` claim vs `adminId` for admin tokens
@@ -104,7 +112,7 @@ ring: ring-1 ring-black/[0.06]   shadow: shadow-sm
 - CaseStudies article tags: vertical rotated label (`writingMode: vertical-rl`, `rotate(180deg)`)
 - Portfolio filter: All / Branding / Web App / E-Commerce
 - Multi-step form → `/api/submissions`
-- Full admin: submissions, clients, kanban, proposals, financials, GA4 analytics, settings
+- Full admin: submissions (with trash bin), clients, kanban, proposals, financials, GA4 analytics, settings
 
 ## DB Models
 `Submission`, `Admin`, `Session`, `LoginAttempt`, `Client`, `ClientDocument`, `ProjectScope`,
@@ -112,12 +120,24 @@ ring: ring-1 ring-black/[0.06]   shadow: shadow-sm
 
 - `Admin`: id, username, passwordHash, role, isActive, lastLoginAt
 - `Session`: adminId, refreshToken (hashed), ipAddress, userAgent, expiresAt, revokedAt
-- `Client`: added passwordHash, portalActive, lastLoginAt for client portal
+- `Client`: passwordHash, portalActive, lastLoginAt for client portal
+- `Submission`: has `deletedAt DateTime?` for soft delete / 7-day trash bin
 - `AdminSettings`: PayPal creds, GA4 (gaPropertyId, gaCredentials, gaMeasurementId), SMTP config
+- `Invoice`: has `paypalInvoiceId`, `paypalInvoiceUrl`, `paypalStatus` for PayPal integration
 
 ## Architecture Rules
 - Sub-components at **module level** (not inside parent) — prevents remount/focus bugs
 - Buttons in forms: always `type="button"`
 - Axios errors: read `e?.response?.data?.error`
-- SMTP: Office 365 (smtp.office365.com:587), reads DB first then .env fallback
+- SMTP: Resend (smtp.resend.com:2587) — Railway blocks port 587. From address must include email e.g. `Name <email@domain.com>`
 - ESM module (`"type": "module"` in server/package.json) — never use `require()`, always top-level `import`
+- CORS: manual middleware in `server/src/index.ts` — do NOT use the cors npm package
+- `app.set('trust proxy', 1)` required for Railway reverse proxy (rate limiter)
+- Admin refresh token stored in localStorage (`admin_refresh_token`, `admin_username`) for session persistence across page refresh — restored via `/auth/refresh` on mount in AuthContext
+
+## PayPal Integration
+- Settings → PayPal Account: enter Live Client ID + Secret, set environment to Live, click Save then Test Connection
+- Invoices → open invoice → "Send via PayPal": creates invoice in PayPal + emails client with "Pay with PayPal" button
+- "Sync PayPal" button on Invoices page updates payment status from PayPal
+- `paypalFetch()` in `server/src/lib/paypal.ts` handles all PayPal API calls
+- Live URL: `https://api-m.paypal.com` / Sandbox: `https://api-m.sandbox.paypal.com`
