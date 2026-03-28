@@ -146,8 +146,9 @@ export default function Settings() {
       setSettings(updated)
       setSaveMsg('Settings saved.')
       setTimeout(() => setSaveMsg(''), 3000)
-    } catch {
-      setSaveMsg('Failed to save.')
+    } catch (e) {
+      const msg = (e as { response?: { data?: { error?: string } } })?.response?.data?.error ?? 'Failed to save.'
+      setSaveMsg(msg)
     } finally {
       setSaving(false)
     }

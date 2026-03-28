@@ -58,8 +58,10 @@ router.put('/', async (req, res) => {
     if (recoveryEmail2 !== undefined) updateData.recoveryEmail2 = recoveryEmail2 || null
     const updated = await prisma.adminSettings.update({ where: { id: s.id }, data: updateData })
     res.json(maskSettings(updated as unknown as Record<string, unknown>))
-  } catch {
-    res.status(500).json({ error: 'Failed to save settings' })
+  } catch (error) {
+    console.error('Settings save error:', error)
+    const msg = error instanceof Error ? error.message : String(error)
+    res.status(500).json({ error: `Failed to save settings: ${msg}` })
   }
 })
 
