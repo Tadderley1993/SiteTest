@@ -36,6 +36,7 @@ export interface SubmissionData {
 export interface Submission extends SubmissionData {
   id: number
   createdAt: string
+  deletedAt?: string | null
 }
 
 // Auth types
@@ -169,6 +170,19 @@ export async function getSubmission(id: number): Promise<Submission> {
 
 export async function deleteSubmission(id: number): Promise<void> {
   await api.delete(`/admin/submissions/${id}`)
+}
+
+export async function getSubmissionsTrash(): Promise<Submission[]> {
+  const response = await api.get('/admin/submissions/trash')
+  return response.data
+}
+
+export async function restoreSubmission(id: number): Promise<void> {
+  await api.post(`/admin/submissions/trash/${id}/restore`)
+}
+
+export async function permanentDeleteSubmission(id: number): Promise<void> {
+  await api.delete(`/admin/submissions/trash/${id}`)
 }
 
 // Client API

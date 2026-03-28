@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { useAuth } from '../../context/AuthContext'
-import { getSubmissions, getClients, createClient, createDeal, deleteSubmission, Submission, Client, Proposal } from '../../lib/api'
+import { getSubmissions, getClients, createClient, createDeal, deleteSubmission, getSubmissionsTrash, restoreSubmission, permanentDeleteSubmission, Submission, Client, Proposal } from '../../lib/api'
 import SubmissionsTable from './SubmissionsTable'
 import ClientsList from './ClientsList'
 import ClientProfile from './ClientProfile'
@@ -89,10 +89,13 @@ function markSeen(view: View, count: number) {
 export default function Dashboard({ onLogout }: Props) {
   const { username, logout } = useAuth()
   const [submissions, setSubmissions] = useState<Submission[]>([])
+  const [trashedSubmissions, setTrashedSubmissions] = useState<Submission[]>([])
+  const [trashLoading, setTrashLoading] = useState(false)
   const [clients, setClients] = useState<Client[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
   const [view, setView] = useState<View>('dashboard')
+  const [submissionsTab, setSubmissionsTab] = useState<'inbox' | 'trash'>('inbox')
   const [selectedClientId, setSelectedClientId] = useState<number | null>(null)
   const [editingProposal, setEditingProposal] = useState<Proposal | 'new' | null>(null)
   const [badges, setBadges] = useState<Partial<Record<View, number>>>({})
@@ -151,6 +154,35 @@ export default function Dashboard({ onLogout }: Props) {
     setSubmissions(prev => prev.filter(s => s.id !== submission.id))
   }
 
+  const loadTrash = async () => {
+    setTrashLoading(true)
+    try {
+      const trashed = await getSubmissionsTrash()
+      setTrashedSubmissions(trashed)
+    } finally {
+      setTrashLoading(false)
+    }
+  }
+
+  const handleDeleteSubmission = async (submission: Submission) => {
+    await deleteSubmission(submission.id)
+    setSubmissions(prev => prev.filter(s => s.id !== submission.id))
+  }
+
+  const handleRestoreSubmission = async (id: number) => {
+    await restoreSubmission(id)
+    const restored = trashedSubmissions.find(s => s.id === id)
+    if (restored) {
+      setTrashedSubmissions(prev => prev.filter(s => s.id !== id))
+      setSubmissions(prev => [{ ...restored, deletedAt: null }, ...prev])
+    }
+  }
+
+  const handlePermanentDelete = async (id: number) => {
+    await permanentDeleteSubmission(id)
+    setTrashedSubmissions(prev => prev.filter(s => s.id !== id))
+  }
+
   const handleLogout = () => {
     logout()
     onLogout()
@@ -160,11 +192,17 @@ export default function Dashboard({ onLogout }: Props) {
     setView(id)
     setSelectedClientId(null)
     setEditingProposal(null)
+    setSubmissionsTab('inbox')
     // Clear badge for this view when navigating to it
     if (id === 'submissions') {
       markSeen('submissions', submissions.length)
       setBadges(prev => ({ ...prev, submissions: 0 }))
     }
+  }
+
+  const handleSubmissionsTabChange = (tab: 'inbox' | 'trash') => {
+    setSubmissionsTab(tab)
+    if (tab === 'trash') loadTrash()
   }
 
   return (
@@ -269,7 +307,7 @@ export default function Dashboard({ onLogout }: Props) {
           {/* ── SUBMISSIONS VIEW ── */}
           {view === 'submissions' && (
             <motion.div key="submissions" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
-              <div className="mb-8 flex items-start justify-between">
+              <div className="mb-6 flex items-start justify-between">
                 <div>
                   <nav className="flex items-center gap-2 mb-2 text-[10px] font-bold uppercase tracking-widest text-zinc-400">
                     <span>Agency OS</span>
@@ -278,19 +316,124 @@ export default function Dashboard({ onLogout }: Props) {
                   </nav>
                   <h1 className="text-4xl font-bold tracking-tighter">Submissions</h1>
                 </div>
-                <ExportContacts submissions={submissions} clients={clients} />
+                {submissionsTab === 'inbox' && <ExportContacts submissions={submissions} clients={clients} />}
               </div>
-              {isLoading ? (
-                <div className="text-center py-12 text-zinc-400">Loading submissions...</div>
-              ) : error ? (
-                <div className="text-center py-12 text-red-500">{error}</div>
-              ) : (
-                <SubmissionsTable
-                  submissions={submissions}
-                  onQuickAdd={handleQuickAdd}
-                  onSendToCrm={handleSendToCrm}
-                  clientSubmissionIds={clientSubmissionIds}
-                />
+
+              {/* Tabs */}
+              <div className="flex items-center gap-1 mb-6 bg-[#e8e8e8] rounded-lg p-1 w-fit">
+                <button
+                  type="button"
+                  onClick={() => handleSubmissionsTabChange('inbox')}
+                  className={`px-4 py-1.5 rounded-md text-sm font-semibold transition-colors ${
+                    submissionsTab === 'inbox' ? 'bg-white text-black shadow-sm' : 'text-zinc-500 hover:text-black'
+                  }`}
+                >
+                  Inbox
+                  {submissions.length > 0 && (
+                    <span className="ml-2 text-[10px] bg-black text-white rounded-full px-1.5 py-0.5">{submissions.length}</span>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSubmissionsTabChange('trash')}
+                  className={`flex items-center gap-1.5 px-4 py-1.5 rounded-md text-sm font-semibold transition-colors ${
+                    submissionsTab === 'trash' ? 'bg-white text-black shadow-sm' : 'text-zinc-500 hover:text-black'
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-[15px]">delete</span>
+                  Trash
+                </button>
+              </div>
+
+              {/* Inbox */}
+              {submissionsTab === 'inbox' && (
+                isLoading ? (
+                  <div className="text-center py-12 text-zinc-400">Loading submissions...</div>
+                ) : error ? (
+                  <div className="text-center py-12 text-red-500">{error}</div>
+                ) : (
+                  <SubmissionsTable
+                    submissions={submissions}
+                    onQuickAdd={handleQuickAdd}
+                    onSendToCrm={handleSendToCrm}
+                    onDelete={handleDeleteSubmission}
+                    clientSubmissionIds={clientSubmissionIds}
+                  />
+                )
+              )}
+
+              {/* Trash */}
+              {submissionsTab === 'trash' && (
+                trashLoading ? (
+                  <div className="text-center py-12 text-zinc-400">Loading trash...</div>
+                ) : trashedSubmissions.length === 0 ? (
+                  <div className="text-center py-16 text-zinc-400">
+                    <span className="material-symbols-outlined text-[48px] block mb-3 opacity-30">delete</span>
+                    <p className="text-sm font-medium">Trash is empty</p>
+                    <p className="text-xs mt-1 opacity-70">Deleted submissions are kept for 7 days</p>
+                  </div>
+                ) : (
+                  <div className="bg-white rounded-xl ring-1 ring-black/[0.05] overflow-hidden shadow-sm">
+                    <div className="px-4 py-3 bg-zinc-50 border-b border-zinc-100 flex items-center gap-2">
+                      <span className="material-symbols-outlined text-[16px] text-zinc-400">info</span>
+                      <p className="text-xs text-zinc-500">Items are permanently deleted after 7 days</p>
+                    </div>
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-zinc-100">
+                          <th className="text-left text-xs font-semibold text-zinc-400 uppercase tracking-wider px-4 py-3">Name</th>
+                          <th className="text-left text-xs font-semibold text-zinc-400 uppercase tracking-wider px-4 py-3">Email</th>
+                          <th className="text-left text-xs font-semibold text-zinc-400 uppercase tracking-wider px-4 py-3">Date</th>
+                          <th className="text-left text-xs font-semibold text-zinc-400 uppercase tracking-wider px-4 py-3">Expires</th>
+                          <th className="px-4 py-3" />
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {trashedSubmissions.map(s => {
+                          const deletedAt = s.deletedAt ? new Date(s.deletedAt) : new Date()
+                          const expiresAt = new Date(deletedAt.getTime() + 7 * 24 * 60 * 60 * 1000)
+                          const daysLeft = Math.max(0, Math.ceil((expiresAt.getTime() - Date.now()) / (24 * 60 * 60 * 1000)))
+                          return (
+                            <tr key={s.id} className="border-b border-zinc-50 hover:bg-zinc-50 transition-colors">
+                              <td className="px-4 py-3 text-sm font-semibold text-black">{s.firstName} {s.lastName}</td>
+                              <td className="px-4 py-3 text-sm text-zinc-500">{s.email}</td>
+                              <td className="px-4 py-3 text-xs text-zinc-400 whitespace-nowrap">
+                                {new Date(s.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                              </td>
+                              <td className="px-4 py-3">
+                                <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                                  daysLeft <= 1 ? 'bg-red-50 text-red-600' : daysLeft <= 3 ? 'bg-amber-50 text-amber-600' : 'bg-zinc-100 text-zinc-500'
+                                }`}>
+                                  {daysLeft === 0 ? 'Today' : `${daysLeft}d left`}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3">
+                                <div className="flex items-center gap-2 justify-end">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRestoreSubmission(s.id)}
+                                    className="inline-flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg bg-black text-white hover:bg-zinc-800 transition-colors font-semibold"
+                                  >
+                                    <span className="material-symbols-outlined text-[13px]">restore</span>
+                                    Restore
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handlePermanentDelete(s.id)}
+                                    className="inline-flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-colors font-semibold"
+                                  >
+                                    <span className="material-symbols-outlined text-[13px]">delete_forever</span>
+                                    Delete
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )
               )}
             </motion.div>
           )}

@@ -6,6 +6,7 @@ interface Props {
   submissions: Submission[]
   onQuickAdd?: (submission: Submission) => Promise<void>
   onSendToCrm?: (submission: Submission) => Promise<void>
+  onDelete?: (submission: Submission) => Promise<void>
   clientSubmissionIds?: Set<number>
 }
 
@@ -37,11 +38,12 @@ function getInitials(first: string, last: string) {
 const th = 'text-left text-xs font-semibold text-zinc-400 uppercase tracking-wider px-4 py-3 whitespace-nowrap'
 const td = 'px-4 py-3 text-sm align-middle'
 
-export default function SubmissionsTable({ submissions, onQuickAdd, onSendToCrm, clientSubmissionIds }: Props) {
+export default function SubmissionsTable({ submissions, onQuickAdd, onSendToCrm, onDelete, clientSubmissionIds }: Props) {
   const [expandedId, setExpandedId] = useState<number | null>(null)
   const [searchTerm, setSearchTerm]  = useState('')
   const [addingId, setAddingId]      = useState<number | null>(null)
   const [crmingId, setCrmingId]      = useState<number | null>(null)
+  const [deletingId, setDeletingId]  = useState<number | null>(null)
 
   const filtered = submissions.filter(s =>
     s.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -63,7 +65,14 @@ export default function SubmissionsTable({ submissions, onQuickAdd, onSendToCrm,
     try { await onSendToCrm(submission) } finally { setCrmingId(null) }
   }
 
-  const hasActions = !!(onQuickAdd || onSendToCrm)
+  const handleDelete = async (e: React.MouseEvent, submission: Submission) => {
+    e.stopPropagation()
+    if (!onDelete || deletingId === submission.id) return
+    setDeletingId(submission.id)
+    try { await onDelete(submission) } finally { setDeletingId(null) }
+  }
+
+  const hasActions = !!(onQuickAdd || onSendToCrm || onDelete)
   const totalCols = (hasActions ? 11 : 10) + 1
 
   return (
@@ -188,17 +197,30 @@ export default function SubmissionsTable({ submissions, onQuickAdd, onSendToCrm,
                     {hasActions && (
                       <td className="px-3 py-3 align-middle" onClick={e => e.stopPropagation()}>
                         {isClient ? (
-                          <span className="inline-flex items-center gap-1 text-xs text-green-600 px-2 py-1 bg-green-50 rounded-md whitespace-nowrap font-medium">
-                            <span className="material-symbols-outlined text-[14px]">check</span>
-                            Client
-                          </span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="inline-flex items-center gap-1 text-xs text-green-600 px-2 py-1 bg-green-50 rounded-md whitespace-nowrap font-medium">
+                              <span className="material-symbols-outlined text-[14px]">check</span>
+                              Client
+                            </span>
+                            {onDelete && (
+                              <button
+                                type="button"
+                                onClick={e => handleDelete(e, s)}
+                                disabled={deletingId === s.id}
+                                className="opacity-0 group-hover:opacity-100 inline-flex items-center justify-center w-7 h-7 rounded-lg text-zinc-400 hover:bg-red-50 hover:text-red-500 disabled:opacity-30 transition-all"
+                                title="Move to trash"
+                              >
+                                <span className="material-symbols-outlined text-[16px]">delete</span>
+                              </button>
+                            )}
+                          </div>
                         ) : (
                           <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-all">
                             {onQuickAdd && (
                               <button
                                 type="button"
                                 onClick={e => handleQuickAdd(e, s)}
-                                disabled={isAdding || crmingId === s.id}
+                                disabled={isAdding || crmingId === s.id || deletingId === s.id}
                                 className="inline-flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg bg-black text-white disabled:opacity-50 transition-all font-semibold whitespace-nowrap hover:bg-zinc-800"
                               >
                                 <span className="material-symbols-outlined text-[13px]">person_add</span>
@@ -209,11 +231,24 @@ export default function SubmissionsTable({ submissions, onQuickAdd, onSendToCrm,
                               <button
                                 type="button"
                                 onClick={e => handleSendToCrm(e, s)}
-                                disabled={crmingId === s.id || isAdding}
+                                disabled={crmingId === s.id || isAdding || deletingId === s.id}
                                 className="inline-flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg bg-blue-600 text-white disabled:opacity-50 transition-all font-semibold whitespace-nowrap hover:bg-blue-700"
                               >
                                 <span className="material-symbols-outlined text-[13px]">contacts</span>
                                 {crmingId === s.id ? '…' : 'CRM'}
+                              </button>
+                            )}
+                            {onDelete && (
+                              <button
+                                type="button"
+                                onClick={e => handleDelete(e, s)}
+                                disabled={deletingId === s.id || isAdding || crmingId === s.id}
+                                className="inline-flex items-center justify-center w-7 h-7 rounded-lg text-zinc-400 hover:bg-red-50 hover:text-red-500 disabled:opacity-30 transition-all"
+                                title="Move to trash"
+                              >
+                                <span className="material-symbols-outlined text-[16px]">
+                                  {deletingId === s.id ? 'hourglass_empty' : 'delete'}
+                                </span>
                               </button>
                             )}
                           </div>
