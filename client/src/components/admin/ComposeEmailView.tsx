@@ -1,4 +1,5 @@
-import { useEffect, useState, useMemo, useCallback } from 'react'
+import { useEffect, useState, useMemo, useCallback, useRef } from 'react'
+import { getTokenDef, renderLineItemsHtml, LineItem } from '../../lib/tokenRegistry'
 import {
   getClients,
   getSubmissions,
@@ -34,9 +35,14 @@ function applyVars(template: string, vars: Record<string, string>): string {
   return template.replace(/\{\{(\w+)\}\}/g, (_, key) => vars[key] ?? `{{${key}}}`)
 }
 
-function buildPreviewHtml(template: { htmlContent: string; cssContent?: string | null }, vars: Record<string, string>): string {
+function buildPreviewHtml(
+  template: { htmlContent: string; cssContent?: string | null },
+  vars: Record<string, string>,
+  lineItems?: LineItem[],
+): string {
   const css = template.cssContent ?? ''
-  return applyVars(`<style>${css}</style>${template.htmlContent}`, vars)
+  const allVars = lineItems ? { ...vars, lineItems: renderLineItemsHtml(lineItems) } : vars
+  return applyVars(`<style>${css}</style>${template.htmlContent}`, allVars)
 }
 
 function extractVars(html: string, css: string): string[] {
@@ -45,13 +51,6 @@ function extractVars(html: string, css: string): string[] {
   return [...new Set(matches.map(m => m[1]))]
 }
 
-function humanLabel(varName: string): string {
-  return varName
-    .replace(/([A-Z])/g, ' $1')
-    .replace(/_/g, ' ')
-    .replace(/\b\w/g, c => c.toUpperCase())
-    .trim()
-}
 
 const AGENCY_DEFAULTS: Record<string, string> = {
   agencyName: 'Designs By Terrence Adderley',
@@ -443,6 +442,115 @@ function ManualTab({
   )
 }
 
+// ── Line Item Builder ─────────────────────────────────────────────────────────
+
+function LineItemBuilder({
+  items,
+  onChange,
+}: {
+  items: LineItem[]
+  onChange: (items: LineItem[]) => void
+}) {
+  const nextId = useRef(1)
+
+  function addRow() {
+    onChange([...items, { id: String(nextId.current++), description: '', qty: 1, unitPrice: 0 }])
+  }
+
+  function removeRow(id: string) {
+    onChange(items.filter(i => i.id !== id))
+  }
+
+  function updateRow(id: string, field: keyof Omit<LineItem, 'id'>, value: string) {
+    onChange(
+      items.map(i =>
+        i.id !== id
+          ? i
+          : { ...i, [field]: field === 'description' ? value : Number(value) || 0 },
+      ),
+    )
+  }
+
+  const subtotal = items.reduce((s, i) => s + i.qty * i.unitPrice, 0)
+
+  return (
+    <div className="space-y-2">
+      {/* Header row */}
+      {items.length > 0 && (
+        <div className="grid gap-1.5 text-[10px] font-bold uppercase tracking-widest text-zinc-400 px-1"
+          style={{ gridTemplateColumns: '1fr 60px 90px 80px 28px' }}>
+          <span>Description</span>
+          <span className="text-center">Qty</span>
+          <span className="text-right">Unit Price</span>
+          <span className="text-right">Total</span>
+          <span />
+        </div>
+      )}
+
+      {/* Item rows */}
+      {items.map(item => {
+        const lineTotal = (item.qty * item.unitPrice).toFixed(2)
+        return (
+          <div key={item.id} className="grid gap-1.5 items-center"
+            style={{ gridTemplateColumns: '1fr 60px 90px 80px 28px' }}>
+            <input
+              type="text"
+              value={item.description}
+              onChange={e => updateRow(item.id, 'description', e.target.value)}
+              placeholder="Service or item…"
+              className="border border-zinc-200 rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
+            />
+            <input
+              type="number"
+              min="0"
+              step="1"
+              value={item.qty === 0 ? '' : item.qty}
+              onChange={e => updateRow(item.id, 'qty', e.target.value)}
+              className="border border-zinc-200 rounded-lg px-2 py-1.5 text-sm text-center focus:outline-none focus:ring-2 focus:ring-black/10"
+            />
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={item.unitPrice === 0 ? '' : item.unitPrice}
+              onChange={e => updateRow(item.id, 'unitPrice', e.target.value)}
+              placeholder="0.00"
+              className="border border-zinc-200 rounded-lg px-2 py-1.5 text-sm text-right focus:outline-none focus:ring-2 focus:ring-black/10"
+            />
+            <div className="text-sm font-semibold text-right text-zinc-600 pr-1">
+              ${lineTotal}
+            </div>
+            <button
+              type="button"
+              onClick={() => removeRow(item.id)}
+              className="w-6 h-6 rounded flex items-center justify-center text-zinc-300 hover:text-red-500 hover:bg-red-50 transition-colors"
+            >
+              <span className="material-symbols-outlined text-[14px]">close</span>
+            </button>
+          </div>
+        )
+      })}
+
+      {/* Footer */}
+      <div className="flex items-center justify-between pt-1">
+        <button
+          type="button"
+          onClick={addRow}
+          className="flex items-center gap-1 text-xs font-semibold text-black hover:text-zinc-600 transition-colors"
+        >
+          <span className="material-symbols-outlined text-[14px]">add</span>
+          Add Line Item
+        </button>
+        {items.length > 0 && (
+          <span className="text-xs font-bold text-zinc-600">
+            Subtotal: ${subtotal.toFixed(2)}
+          </span>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ── Main Component ────────────────────────────────────────────────────────────
 
 export default function ComposeEmailView() {
@@ -507,6 +615,7 @@ export default function ComposeEmailView() {
   const [selectedTemplateId, setSelectedTemplateId] = useState<number | ''>('')
   const [subject, setSubject] = useState('')
   const [varValues, setVarValues] = useState<Record<string, string>>({})
+  const [lineItems, setLineItems] = useState<LineItem[]>([])
 
   // Preview
   const [showPreview, setShowPreview] = useState(false)
@@ -561,10 +670,11 @@ export default function ComposeEmailView() {
     [selectedTemplate],
   )
 
-  // When template changes: pre-fill subject and agency defaults
+  // When template changes: pre-fill subject, agency defaults, reset line items
   useEffect(() => {
     if (!selectedTemplate) return
     setSubject(selectedTemplate.subject)
+    setLineItems([])
     setVarValues(prev => {
       const updated: Record<string, string> = {}
       detectedVars.forEach(v => {
@@ -674,6 +784,10 @@ export default function ComposeEmailView() {
       Object.entries(autoFills).forEach(([k, v]) => {
         perRecipient[k] = v  // always override — each recipient gets their own name/email
       })
+      // Serialize line items to HTML rows for injection into template
+      if (detectedVars.includes('lineItems')) {
+        perRecipient.lineItems = renderLineItemsHtml(lineItems)
+      }
 
       try {
         await sendEmailTemplate(selectedTemplate.id, r.email, perRecipient)
@@ -922,7 +1036,7 @@ export default function ComposeEmailView() {
             {/* Variable fields */}
             {selectedTemplate && detectedVars.length > 0 && (
               <div className="bg-white rounded-xl border border-zinc-200 shadow-sm p-5">
-                <div className="flex items-center gap-2 mb-4">
+                <div className="flex items-center gap-2 mb-1">
                   <span className="material-symbols-outlined text-[18px] text-zinc-400">tune</span>
                   <h2 className="text-sm font-bold text-black">Template Variables</h2>
                   <span className="ml-auto text-[10px] bg-zinc-100 text-zinc-500 px-2 py-0.5 rounded-full font-semibold">
@@ -930,47 +1044,122 @@ export default function ComposeEmailView() {
                   </span>
                 </div>
                 <p className="text-xs text-zinc-400 mb-4">
-                  Agency variables are pre-filled. Client variables are auto-filled when a single recipient is selected.
+                  Agency tokens are pre-filled. Client tokens auto-fill when one recipient is selected.
                 </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {detectedVars.map(v => {
-                    const isAgency = v in AGENCY_DEFAULTS
-                    const isLong = /^(message|body|content|notes|description)$/i.test(v)
-                    return (
-                      <div key={v} className={isLong ? 'sm:col-span-2' : ''}>
-                        <label className="block text-[11px] font-semibold text-zinc-500 uppercase tracking-wider mb-1 flex items-center gap-1">
-                          {humanLabel(v)}
-                          {isAgency && (
-                            <span className="text-[9px] bg-amber-100 text-amber-600 px-1.5 rounded-full font-bold">
-                              Agency
-                            </span>
-                          )}
-                        </label>
-                        {/^(message|body|content|notes|description)$/i.test(v) ? (
-                          <textarea
-                            rows={6}
-                            value={varValues[v] ?? ''}
-                            onChange={e =>
-                              setVarValues(prev => ({ ...prev, [v]: e.target.value }))
-                            }
-                            placeholder={`{{${v}}}`}
-                            className="w-full border border-zinc-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/10 resize-y"
-                          />
-                        ) : (
-                          <input
-                            type="text"
-                            value={varValues[v] ?? ''}
-                            onChange={e =>
-                              setVarValues(prev => ({ ...prev, [v]: e.target.value }))
-                            }
-                            placeholder={`{{${v}}}`}
-                            className="w-full border border-zinc-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
-                          />
-                        )}
+
+                {/* Group tokens by category */}
+                {(['client', 'agency', 'invoice', 'proposal', 'custom'] as const).map(cat => {
+                  const catVars = detectedVars.filter(v => getTokenDef(v).category === cat && getTokenDef(v).fieldType !== 'line-items')
+                  if (catVars.length === 0) return null
+                  const catLabels: Record<string, string> = {
+                    client: 'Client', agency: 'Agency', invoice: 'Invoice',
+                    proposal: 'Proposal', custom: 'Custom',
+                  }
+                  const catColors: Record<string, string> = {
+                    client: 'bg-blue-50 text-blue-600',
+                    agency: 'bg-amber-50 text-amber-600',
+                    invoice: 'bg-green-50 text-green-600',
+                    proposal: 'bg-violet-50 text-violet-600',
+                    custom: 'bg-zinc-100 text-zinc-600',
+                  }
+                  return (
+                    <div key={cat} className="mb-5 last:mb-0">
+                      <div className={`inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full mb-3 ${catColors[cat]}`}>
+                        {catLabels[cat]}
                       </div>
-                    )
-                  })}
-                </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {catVars.map(v => {
+                          const def = getTokenDef(v)
+                          const isAgency = def.category === 'agency'
+                          const isWide = def.fieldType === 'textarea'
+                          const inputClass = 'w-full border border-zinc-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/10'
+                          return (
+                            <div key={v} className={isWide ? 'sm:col-span-2' : ''}>
+                              <label className="block text-[11px] font-semibold text-zinc-500 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                                {def.label}
+                                {isAgency && (
+                                  <span className="text-[9px] bg-amber-100 text-amber-600 px-1.5 rounded-full font-bold normal-case tracking-normal">
+                                    auto-filled
+                                  </span>
+                                )}
+                                {def.hint && (
+                                  <span className="text-[9px] text-zinc-400 normal-case tracking-normal font-normal">
+                                    — {def.hint}
+                                  </span>
+                                )}
+                              </label>
+                              {def.fieldType === 'textarea' ? (
+                                <textarea
+                                  rows={v === 'message' ? 6 : 3}
+                                  value={varValues[v] ?? ''}
+                                  onChange={e => setVarValues(prev => ({ ...prev, [v]: e.target.value }))}
+                                  placeholder={`{{${v}}}`}
+                                  className={`${inputClass} resize-y`}
+                                />
+                              ) : def.fieldType === 'url' ? (
+                                <input
+                                  type="url"
+                                  value={varValues[v] ?? ''}
+                                  onChange={e => setVarValues(prev => ({ ...prev, [v]: e.target.value }))}
+                                  placeholder="https://"
+                                  className={inputClass}
+                                />
+                              ) : def.fieldType === 'email' ? (
+                                <input
+                                  type="email"
+                                  value={varValues[v] ?? ''}
+                                  onChange={e => setVarValues(prev => ({ ...prev, [v]: e.target.value }))}
+                                  placeholder="email@example.com"
+                                  className={inputClass}
+                                />
+                              ) : def.fieldType === 'number' ? (
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  value={varValues[v] ?? ''}
+                                  onChange={e => setVarValues(prev => ({ ...prev, [v]: e.target.value }))}
+                                  placeholder="0.00"
+                                  className={inputClass}
+                                />
+                              ) : def.fieldType === 'date' ? (
+                                <input
+                                  type="date"
+                                  value={varValues[v] ?? ''}
+                                  onChange={e => setVarValues(prev => ({ ...prev, [v]: e.target.value }))}
+                                  className={inputClass}
+                                />
+                              ) : (
+                                <input
+                                  type="text"
+                                  value={varValues[v] ?? ''}
+                                  onChange={e => setVarValues(prev => ({ ...prev, [v]: e.target.value }))}
+                                  placeholder={`{{${v}}}`}
+                                  className={inputClass}
+                                />
+                              )}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )
+                })}
+
+                {/* Line items builder — rendered separately */}
+                {detectedVars.includes('lineItems') && (
+                  <div className="mt-4 pt-4 border-t border-zinc-100">
+                    <div className="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full mb-3 bg-green-50 text-green-600">
+                      Invoice
+                    </div>
+                    <label className="block text-[11px] font-semibold text-zinc-500 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                      Line Items
+                      <span className="text-[9px] text-zinc-400 normal-case tracking-normal font-normal">
+                        — injected as table rows into your template
+                      </span>
+                    </label>
+                    <LineItemBuilder items={lineItems} onChange={setLineItems} />
+                  </div>
+                )}
               </div>
             )}
 
@@ -1196,7 +1385,7 @@ export default function ComposeEmailView() {
                   const merged = { ...varValues }
                   Object.entries(buildAutoFillFromRecipient(first)).forEach(([k, v]) => { merged[k] = v })
                   return merged
-                })())}
+                })(), lineItems)}
                 title="Email preview"
                 sandbox="allow-same-origin"
                 className="w-full h-full border-0"

@@ -2,7 +2,7 @@ import { Router } from 'express'
 import { prisma } from '../lib/prisma.js'
 import { getSmtpTransporter } from '../lib/smtp.js'
 import { authMiddleware } from '../middleware/auth.js'
-import { paypalFetch, getPayPalSettings } from '../lib/paypal.js'
+import { getStripeSettings, getStripeClient } from '../lib/stripe.js'
 import { createNotification } from '../lib/notify.js'
 
 const router = Router()
@@ -31,9 +31,9 @@ async function queryInvoices(where?: string, params: unknown[] = []) {
       i.status,
       i.notes,
       i."termsConditions",
-      i."paypalInvoiceId",
-      i."paypalInvoiceUrl",
-      i."paypalStatus",
+      i."stripePaymentLinkId",
+      i."stripePaymentLinkUrl",
+      i."stripeStatus",
       i."sentAt",
       i."createdAt",
       i."updatedAt",
@@ -65,9 +65,9 @@ async function queryInvoices(where?: string, params: unknown[] = []) {
     status: r.status,
     notes: r.notes,
     termsConditions: r.termsConditions,
-    paypalInvoiceId: r.paypalInvoiceId,
-    paypalInvoiceUrl: r.paypalInvoiceUrl,
-    paypalStatus: r.paypalStatus,
+    stripePaymentLinkId: r.stripePaymentLinkId,
+    stripePaymentLinkUrl: r.stripePaymentLinkUrl,
+    stripeStatus: r.stripeStatus,
     sentAt: r.sentAt,
     createdAt: r.createdAt,
     updatedAt: r.updatedAt,
@@ -164,12 +164,12 @@ function buildPaymentLinkEmail(inv: Record<string, unknown>, client: { firstName
         ${inv.notes ? `<tr><td style="padding:0 40px 24px"><p style="margin:0;font-size:13px;color:#777;font-style:italic">${inv.notes}</p></td></tr>` : ''}
         <tr>
           <td style="padding:24px 40px 40px;text-align:center;border-top:1px solid #f0f0f0">
-            <p style="margin:0 0 16px;font-size:13px;color:#777">Click the button below to pay securely via PayPal</p>
+            <p style="margin:0 0 16px;font-size:13px;color:#777">Click the button below to pay securely via Stripe</p>
             <a href="${paymentUrl}" target="_blank"
-              style="display:inline-block;background:#0070ba;color:#fff;font-size:15px;font-weight:700;text-decoration:none;padding:14px 40px;border-radius:8px;letter-spacing:0.3px">
+              style="display:inline-block;background:#635bff;color:#fff;font-size:15px;font-weight:700;text-decoration:none;padding:14px 40px;border-radius:8px;letter-spacing:0.3px">
               Pay Now — $${total.toFixed(2)}
             </a>
-            <p style="margin:16px 0 0;font-size:11px;color:#bbb">Powered by PayPal · Secure &amp; encrypted</p>
+            <p style="margin:16px 0 0;font-size:11px;color:#bbb">Powered by Stripe · Secure &amp; encrypted</p>
           </td>
         </tr>
       </table>
@@ -273,9 +273,6 @@ router.put('/:id', async (req, res) => {
 // DELETE /api/admin/invoices/:id
 router.delete('/:id', async (req, res) => {
   try {
-    const rows = await queryInvoices('i.id = $1', [Number(req.params.id)])
-    const inv = rows[0]
-    // PayPal Orders expire automatically — no API call needed, just delete locally
     await prisma.$executeRawUnsafe('DELETE FROM "Invoice" WHERE id = $1', Number(req.params.id))
     res.json({ success: true })
   } catch (e) {
@@ -283,77 +280,66 @@ router.delete('/:id', async (req, res) => {
   }
 })
 
-// POST /api/admin/invoices/:id/payment-link — create PayPal Order and return checkout URL
+// POST /api/admin/invoices/:id/payment-link — create Stripe Payment Link and return checkout URL
 router.post('/:id/payment-link', async (req, res) => {
   try {
-    const creds = await getPayPalSettings()
+    const creds = await getStripeSettings()
     if (!creds) {
-      return res.status(400).json({ error: 'PayPal credentials not configured. Go to Settings → PayPal to connect your account.' })
+      return res.status(400).json({ error: 'Stripe secret key not configured. Go to Settings → Stripe.' })
     }
 
-    const isSandbox = creds.environment !== 'live'
     const rows = await queryInvoices('i.id = $1', [Number(req.params.id)])
     const inv = rows[0]
     if (!inv) return res.status(404).json({ error: 'Invoice not found' })
     if (!inv.client) return res.status(400).json({ error: 'Invoice has no associated client' })
 
     const client = inv.client as { firstName: string; lastName: string; email: string }
+    const stripe = getStripeClient(creds.secretKey)
 
-    // Re-use existing order if it's still open
-    if (inv.paypalInvoiceId) {
-      try {
-        const existing = await paypalFetch(`/v2/checkout/orders/${inv.paypalInvoiceId}`, 'GET') as { status: string }
-        if (!['VOIDED', 'COMPLETED'].includes(existing.status)) {
-          const paymentUrl = inv.paypalInvoiceUrl as string | null
-          if (req.body.sendEmail && paymentUrl) {
-            const smtp = await getSmtpTransporter()
-            if (smtp) {
-              const html = buildPaymentLinkEmail(inv as Record<string, unknown>, client, paymentUrl)
-              await smtp.transporter.sendMail({
-                from: smtp.from ?? undefined,
-                to: client.email,
-                subject: req.body.subject || `Invoice ${inv.invoiceNumber} — Payment Due`,
-                html,
-              })
-            }
-          }
-          return res.json({ success: true, paymentUrl, orderId: inv.paypalInvoiceId, sandbox: isSandbox, reused: true })
+    // Re-use existing payment link if available
+    if (inv.stripePaymentLinkId) {
+      const paymentUrl = inv.stripePaymentLinkUrl as string | null
+      if (req.body.sendEmail && paymentUrl) {
+        const smtp = await getSmtpTransporter()
+        if (smtp) {
+          const html = buildPaymentLinkEmail(inv as Record<string, unknown>, client, paymentUrl)
+          await smtp.transporter.sendMail({
+            from: smtp.from ?? undefined,
+            to: client.email,
+            subject: req.body.subject || `Invoice ${inv.invoiceNumber} — Payment Due`,
+            html,
+          })
         }
-      } catch { /* order gone or invalid — create a new one */ }
+      }
+      return res.json({ success: true, paymentUrl, linkId: inv.stripePaymentLinkId, reused: true })
     }
 
-    // Create a new PayPal Order (Checkout API)
-    const baseUrl = isSandbox ? 'https://dta-puce.vercel.app' : 'https://www.designsbyta.com'
-    const order = await paypalFetch('/v2/checkout/orders', 'POST', {
-      intent: 'CAPTURE',
-      purchase_units: [{
-        invoice_id: inv.invoiceNumber as string,
-        description: `Invoice ${inv.invoiceNumber}${inv.title ? ` — ${inv.title}` : ''}`,
-        amount: {
-          currency_code: (inv.currency as string) || 'USD',
-          value: Number(inv.amount).toFixed(2),
-        },
-      }],
-      payment_source: {
-        paypal: {
-          experience_context: {
-            brand_name: 'Designs By TA',
-            shipping_preference: 'NO_SHIPPING',
-            user_action: 'PAY_NOW',
-            return_url: baseUrl,
-            cancel_url: baseUrl,
-          },
-        },
-      },
-    }) as { id: string; links?: Array<{ rel: string; href: string }> }
+    // Create a Stripe Product + Price + Payment Link
+    const amountCents = Math.round(Number(inv.amount) * 100)
+    const currency = ((inv.currency as string) || 'USD').toLowerCase()
 
-    const orderId = order.id
-    const paymentUrl = order.links?.find(l => l.rel === 'payer-action')?.href || null
+    const product = await stripe.products.create({
+      name: `Invoice ${inv.invoiceNumber}${inv.title ? ` — ${inv.title}` : ''}`,
+    })
 
-    // Persist order ID and mark invoice as sent
+    const price = await stripe.prices.create({
+      product: product.id,
+      unit_amount: amountCents,
+      currency,
+    })
+
+    const link = await stripe.paymentLinks.create({
+      line_items: [{ price: price.id, quantity: 1 }],
+      metadata: { invoiceId: String(inv.id), invoiceNumber: String(inv.invoiceNumber) },
+    })
+
+    const paymentUrl = link.url
+    const linkId = link.id
+
+    // Persist link ID/URL and mark invoice as sent
     await prisma.$executeRawUnsafe(
-      `UPDATE "Invoice" SET "paypalInvoiceId"=$1,"paypalInvoiceUrl"=$2,"paypalStatus"='CREATED',"status"='sent',"sentAt"=NOW(),"updatedAt"=NOW() WHERE id=$3`,
-      orderId, paymentUrl, Number(req.params.id)
+      `UPDATE "Invoice" SET "stripePaymentLinkId"=$1,"stripePaymentLinkUrl"=$2,"stripeStatus"='active',"status"='sent',"sentAt"=NOW(),"updatedAt"=NOW() WHERE id=$3`,
+      linkId, paymentUrl, Number(req.params.id)
     )
 
     // Optionally send branded SMTP email
@@ -373,11 +359,11 @@ router.post('/:id/payment-link', async (req, res) => {
     await createNotification(
       'invoice_sent',
       'Payment link created',
-      `Payment link generated for Invoice #${inv.invoiceNumber} — ${client.firstName} ${client.lastName}`,
+      `Stripe payment link generated for Invoice #${inv.invoiceNumber} — ${client.firstName} ${client.lastName}`,
     )
 
     const updated = await queryInvoices('i.id = $1', [Number(req.params.id)])
-    res.json({ success: true, paymentUrl, orderId, invoice: updated[0], sandbox: isSandbox })
+    res.json({ success: true, paymentUrl, linkId, invoice: updated[0] })
   } catch (e) {
     res.status(500).json({ error: e instanceof Error ? e.message : 'Failed to create payment link' })
   }
@@ -386,7 +372,6 @@ router.post('/:id/payment-link', async (req, res) => {
 // POST /api/admin/invoices/:id/cancel
 router.post('/:id/cancel', async (req, res) => {
   try {
-    // PayPal Orders expire on their own — just update local status
     await prisma.$executeRawUnsafe(
       `UPDATE "Invoice" SET "status"='cancelled',"updatedAt"=NOW() WHERE id=$1`,
       Number(req.params.id)
@@ -398,57 +383,43 @@ router.post('/:id/cancel', async (req, res) => {
   }
 })
 
-// POST /api/admin/invoices/sync — check PayPal Order statuses, auto-capture approved payments
+// POST /api/admin/invoices/sync — check Stripe Payment Link statuses
 router.post('/sync', async (_req, res) => {
   try {
-    const creds = await getPayPalSettings()
+    const creds = await getStripeSettings()
     if (!creds) {
-      return res.status(400).json({ error: 'PayPal credentials not configured.' })
+      return res.status(400).json({ error: 'Stripe credentials not configured.' })
     }
 
-    const rows = await queryInvoices('i."paypalInvoiceId" IS NOT NULL')
+    const stripe = getStripeClient(creds.secretKey)
+    const rows = await queryInvoices('i."stripePaymentLinkId" IS NOT NULL AND i.status != \'paid\'')
     let updated = 0
     const errors: string[] = []
 
     await Promise.all(rows.map(async inv => {
       try {
-        const order = await paypalFetch(
-          `/v2/checkout/orders/${inv.paypalInvoiceId}`, 'GET'
-        ) as { status: string }
+        // List checkout sessions for this payment link
+        const sessions = await stripe.checkout.sessions.list({
+          payment_link: inv.stripePaymentLinkId as string,
+          limit: 10,
+        })
 
-        let ppStatus = order.status // CREATED, PAYER_ACTION_REQUIRED, SAVED, APPROVED, COMPLETED, VOIDED
+        const paid = sessions.data.some(s => s.payment_status === 'paid')
 
-        // Auto-capture payments the client has approved
-        if (ppStatus === 'APPROVED') {
-          await paypalFetch(`/v2/checkout/orders/${inv.paypalInvoiceId}/capture`, 'POST')
-          ppStatus = 'COMPLETED'
-        }
-
-        let newLocalStatus = inv.status as string
-        if (ppStatus === 'COMPLETED') {
-          newLocalStatus = 'paid'
-        } else if (ppStatus === 'VOIDED') {
-          newLocalStatus = 'cancelled'
-        }
-        // CREATED / PAYER_ACTION_REQUIRED / SAVED → keep current local status
-
-        if (newLocalStatus !== inv.status) {
+        if (paid && inv.status !== 'paid') {
           updated++
-          if (newLocalStatus === 'paid') {
-            const c = inv.client as { firstName?: string; lastName?: string } | null
-            const clientName = c ? `${c.firstName ?? ''} ${c.lastName ?? ''}`.trim() : `Client #${inv.clientId}`
-            await createNotification(
-              'invoice_paid',
-              'Payment received',
-              `${clientName} paid Invoice #${inv.invoiceNumber} — $${(inv.amount as number).toFixed(2)}`,
-            )
-          }
+          const c = inv.client as { firstName?: string; lastName?: string } | null
+          const clientName = c ? `${c.firstName ?? ''} ${c.lastName ?? ''}`.trim() : `Client #${inv.clientId}`
+          await createNotification(
+            'invoice_paid',
+            'Payment received',
+            `${clientName} paid Invoice #${inv.invoiceNumber} — $${(inv.amount as number).toFixed(2)}`,
+          )
+          await prisma.$executeRawUnsafe(
+            'UPDATE "Invoice" SET "status"=\'paid\',"stripeStatus"=\'complete\',"updatedAt"=NOW() WHERE id=$1',
+            inv.id
+          )
         }
-
-        await prisma.$executeRawUnsafe(
-          'UPDATE "Invoice" SET "status"=$1,"paypalStatus"=$2,"updatedAt"=NOW() WHERE id=$3',
-          newLocalStatus, ppStatus, inv.id
-        )
       } catch (e) {
         errors.push(`${inv.invoiceNumber}: ${e instanceof Error ? e.message : String(e)}`)
       }

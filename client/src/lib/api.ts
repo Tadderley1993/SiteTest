@@ -384,7 +384,8 @@ export async function deleteDocument(clientId: number, docId: number): Promise<v
 }
 
 export function getDocumentDownloadUrl(docId: number): string {
-  return `/api/admin/download/${docId}`
+  const base = import.meta.env.VITE_API_URL ?? '/api'
+  return `${base}/admin/download/${docId}`
 }
 
 export async function downloadDocument(docId: number, fileName: string): Promise<void> {
@@ -494,12 +495,11 @@ export async function sendProposalEmail(
 
 export interface AdminSettings {
   id: number
-  paypalClientId: string | null
-  paypalSecret: string | null
-  hasSecret: boolean
-  paypalEnvironment: string
-  paypalMerchantId: string | null
-  paypalEmail: string | null
+  stripeSecretKey: string | null
+  hasStripeKey: boolean
+  stripePublishableKey: string | null
+  stripeWebhookSecret: string | null
+  hasStripeWebhook: boolean
   smtpHost: string | null
   smtpPort: string | null
   smtpUser: string | null
@@ -516,45 +516,13 @@ export async function getAdminSettings(): Promise<AdminSettings> {
   return res.data
 }
 
-export async function saveAdminSettings(data: Partial<AdminSettings & { paypalSecret: string }>): Promise<AdminSettings> {
+export async function saveAdminSettings(data: Partial<AdminSettings & { stripeSecretKey: string; stripeWebhookSecret: string }>): Promise<AdminSettings> {
   const res = await api.put('/admin/settings', data)
   return res.data
 }
 
-export async function testPayPalConnection(): Promise<{ success: boolean; message: string; accountInfo: unknown }> {
-  const res = await api.post('/admin/paypal/test')
-  return res.data
-}
-
-export async function getPayPalInvoices(page = 1, pageSize = 25) {
-  const res = await api.get(`/admin/paypal/invoices?page=${page}&page_size=${pageSize}`)
-  return res.data
-}
-
-export async function createPayPalInvoice(data: unknown) {
-  const res = await api.post('/admin/paypal/invoices', data)
-  return res.data
-}
-
-export async function sendPayPalInvoice(invoiceId: string, opts?: { subject?: string; note?: string }) {
-  const res = await api.post(`/admin/paypal/invoices/${invoiceId}/send`, opts ?? {})
-  return res.data
-}
-
-export async function cancelPayPalInvoice(invoiceId: string, opts?: { subject?: string; note?: string }) {
-  const res = await api.post(`/admin/paypal/invoices/${invoiceId}/cancel`, opts ?? {})
-  return res.data
-}
-
-export async function deletePayPalInvoice(invoiceId: string) {
-  await api.delete(`/admin/paypal/invoices/${invoiceId}`)
-}
-
-export async function getPayPalTransactions(startDate?: string, endDate?: string) {
-  const params = new URLSearchParams()
-  if (startDate) params.set('start_date', startDate)
-  if (endDate) params.set('end_date', endDate)
-  const res = await api.get(`/admin/paypal/transactions?${params}`)
+export async function testStripeConnection(): Promise<{ success: boolean; message: string; accountInfo: unknown }> {
+  const res = await api.post('/stripe/test')
   return res.data
 }
 
@@ -626,7 +594,8 @@ export async function deleteExpenseReceipt(id: number): Promise<Expense> {
 }
 
 export function getExpenseReceiptUrl(id: number): string {
-  return `/api/admin/expenses/${id}/receipt`
+  const base = import.meta.env.VITE_API_URL ?? '/api'
+  return `${base}/admin/expenses/${id}/receipt`
 }
 
 export async function testSmtp(): Promise<{ success: boolean; message?: string; error?: string }> {
@@ -651,10 +620,9 @@ export interface FinancialSummary {
   activeClients: number
   totalProposals: number
   acceptedProposals: number
-  paypalConnected: boolean
-  paypalCollected: number
-  paypalOutstanding: number
-  paypalTransactionCount: number
+  stripeConnected: boolean
+  stripeCollected: number
+  stripeTransactionCount: number
   localCollected: number
 }
 
@@ -663,7 +631,7 @@ export interface MonthlyData {
   label: string
   collected: number
   local: number
-  paypal: number
+  stripe: number
   expenses: number
   profit: number
 }
@@ -682,7 +650,7 @@ export interface FinancialsData {
   expenseCategories: { category: string; amount: number }[]
   clientRevenue: { name: string; collected: number; outstanding: number; contract: number }[]
   statusBreakdown: { collected: number; pending: number; overdue: number; cancelled: number }
-  recentPayments: Array<{ id: number | string; label: string; amount: number; clientName: string; paidDate: string | null; status: string; source: 'local' | 'paypal' }>
+  recentPayments: Array<{ id: number | string; label: string; amount: number; clientName: string; paidDate: string | null; status: string; source: 'local' | 'stripe' }>
 }
 
 export async function getFinancials(): Promise<FinancialsData> {

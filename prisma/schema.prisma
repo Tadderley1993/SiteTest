@@ -229,9 +229,9 @@ model Invoice {
   status           String   @default("draft")
   notes            String?
   termsConditions  String?
-  paypalInvoiceId  String?
-  paypalInvoiceUrl String?
-  paypalStatus     String?
+  stripePaymentLinkId  String?
+  stripePaymentLinkUrl String?
+  stripeStatus         String?
   sentAt           DateTime?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
@@ -239,11 +239,9 @@ model Invoice {
 
 model AdminSettings {
   id                Int      @id @default(autoincrement())
-  paypalClientId    String?
-  paypalSecret      String?
-  paypalEnvironment String   @default("sandbox")
-  paypalMerchantId  String?
-  paypalEmail       String?
+  stripeSecretKey      String?
+  stripePublishableKey String?
+  stripeWebhookSecret  String?
   gaPropertyId      String?
   gaCredentials     String?
   gaMeasurementId   String?

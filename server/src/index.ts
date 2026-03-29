@@ -8,7 +8,7 @@ import { clientsRouter } from './routes/clients.js'
 import { documentsRouter } from './routes/documents.js'
 import { proposalsRouter } from './routes/proposals.js'
 import { settingsRouter } from './routes/settings.js'
-import { paypalRouter } from './routes/paypal.js'
+import { stripeRouter } from './routes/stripe.js'
 import { expensesRouter } from './routes/expenses.js'
 import { financialsRouter } from './routes/financials.js'
 import { analyticsRouter } from './routes/analytics.js'
@@ -38,9 +38,9 @@ async function runMigrations() {
   try {
     await prisma.$executeRawUnsafe(`
       ALTER TABLE "Invoice"
-        ADD COLUMN IF NOT EXISTS "paypalInvoiceId"  TEXT,
-        ADD COLUMN IF NOT EXISTS "paypalInvoiceUrl" TEXT,
-        ADD COLUMN IF NOT EXISTS "paypalStatus"     TEXT
+        ADD COLUMN IF NOT EXISTS "stripePaymentLinkId"  TEXT,
+        ADD COLUMN IF NOT EXISTS "stripePaymentLinkUrl" TEXT,
+        ADD COLUMN IF NOT EXISTS "stripeStatus"         TEXT
     `)
     await prisma.$executeRawUnsafe(`
       ALTER TABLE "Submission"
@@ -86,6 +86,9 @@ app.use((req, res, next) => {
 // General rate limit for all /api routes
 app.use('/api', generalRateLimit)
 
+// Raw body required for Stripe webhook signature verification (must be before express.json)
+app.use('/api/stripe/webhook', express.raw({ type: 'application/json' }))
+
 app.use(express.json({ limit: '2mb' }))
 
 // Routes
@@ -96,7 +99,7 @@ app.use('/api/admin/clients', clientsRouter)
 app.use('/api/admin', documentsRouter)
 app.use('/api/admin/proposals', proposalsRouter)
 app.use('/api/admin/settings', settingsRouter)
-app.use('/api/admin/paypal', paypalRouter)
+app.use('/api/stripe', stripeRouter)
 app.use('/api/admin/expenses', expensesRouter)
 app.use('/api/admin/financials', financialsRouter)
 app.use('/api/admin/analytics', analyticsRouter)
@@ -119,19 +122,6 @@ app.use('/api/portal', clientPortalRouter)
 app.get('/api/health', (_, res) => {
   res.json({ status: 'ok' })
 })
-
-// DB column diagnostic (temporary)
-app.get('/api/db-check', async (_, res) => {
-  try {
-    const cols = await prisma.$queryRawUnsafe<{ column_name: string }[]>(
-      `SELECT column_name FROM information_schema.columns WHERE table_name = 'Invoice' ORDER BY column_name`
-    )
-    res.json({ invoiceColumns: cols.map(c => c.column_name) })
-  } catch (e) {
-    res.status(500).json({ error: e instanceof Error ? e.message : String(e) })
-  }
-})
-
 
 // Centralized error handler (must be last)
 app.use(errorHandler)

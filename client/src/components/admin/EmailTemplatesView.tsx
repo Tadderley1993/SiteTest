@@ -1,4 +1,5 @@
-import { useEffect, useState, useMemo, useCallback } from 'react'
+import { useEffect, useState, useMemo, useCallback, useRef } from 'react'
+import { getTokenDef, renderLineItemsHtml, LineItem } from '../../lib/tokenRegistry'
 import {
   EmailTemplate,
   getEmailTemplates,
@@ -154,7 +155,7 @@ Sections to include (in order):
   4. Line items table — columns: Description | Qty | Unit Price | Total — with alternating row shading
   5. Totals block — subtotal, discount (if any), tax, bold total
   6. Status badge — shows current invoice status (sent/paid/overdue)
-  7. Payment section — PayPal payment button/link + payment terms
+  7. Payment section — Stripe payment button/link + payment terms
   8. Notes
   9. Terms & Conditions (smaller text)
   10. Footer — agency contact info
@@ -176,7 +177,7 @@ Use these {{tokens}} exactly — they will be replaced with real data:
   {{currency}}           Currency code (e.g. USD)
   {{notes}}              Any additional notes
   {{termsConditions}}    Payment terms and conditions text
-  {{paypalUrl}}          PayPal invoice payment link (may be empty — hide button if so)
+  {{stripeUrl}}          Stripe payment link (may be empty — hide Pay Now button if so)
   {{agencyName}}         Designs By Terrence Adderley
   {{agencyEmail}}        terrenceadderley@designsbyta.com
   {{agencyWebsite}}      www.designsbyta.com
@@ -330,7 +331,7 @@ const TOKEN_REFERENCE: Record<DocType, TokenGroup[]> = {
       label: 'Payment & Legal',
       color: 'bg-rose-50 text-rose-700 border-rose-200',
       tokens: [
-        { token: '{{paypalUrl}}',       description: 'PayPal payment link — hide the Pay Now button entirely if this is empty' },
+        { token: '{{stripeUrl}}',       description: 'Stripe payment link — hide the Pay Now button entirely if this is empty' },
         { token: '{{notes}}',           description: 'Any extra notes for the client — may be empty' },
         { token: '{{termsConditions}}', description: 'Payment terms and conditions text' },
       ],
@@ -480,8 +481,9 @@ function removeAgencyDefaults(vars: string[], current: Record<string, string>): 
 
 // ── Preview builder ───────────────────────────────────────────────────────────
 
-function buildPreviewDoc(html: string, css: string, vars: Record<string, string>): string {
-  const substituted = (html + '').replace(/\{\{(\w+)\}\}/g, (_, k) => vars[k] ?? `<span style="background:#fef9c3;color:#92400e;padding:0 4px;border-radius:3px">{{${k}}}</span>`)
+function buildPreviewDoc(html: string, css: string, vars: Record<string, string>, lineItems?: LineItem[]): string {
+  const allVars = lineItems?.length ? { ...vars, lineItems: renderLineItemsHtml(lineItems) } : vars
+  const substituted = (html + '').replace(/\{\{(\w+)\}\}/g, (_, k) => allVars[k] ?? `<span style="background:#fef9c3;color:#92400e;padding:0 4px;border-radius:3px">{{${k}}}</span>`)
   if (/<html[\s>]/i.test(substituted)) {
     return substituted.replace(/<\/head>/i, `<style>${css}</style></head>`)
   }
@@ -722,28 +724,129 @@ function CodeEditor({ value, onChange, placeholder }: { value: string; onChange:
   )
 }
 
-function VariableFields({ vars, values, onChange }: { vars: string[]; values: Record<string, string>; onChange: (key: string, val: string) => void }) {
-  if (vars.length === 0) {
+function LineItemBuilder({
+  items,
+  onChange,
+}: {
+  items: LineItem[]
+  onChange: (items: LineItem[]) => void
+}) {
+  const nextId = useRef(1)
+  function addRow() {
+    onChange([...items, { id: String(nextId.current++), description: '', qty: 1, unitPrice: 0 }])
+  }
+  function removeRow(id: string) { onChange(items.filter(i => i.id !== id)) }
+  function updateRow(id: string, field: keyof Omit<LineItem, 'id'>, value: string) {
+    onChange(items.map(i => i.id !== id ? i : { ...i, [field]: field === 'description' ? value : Number(value) || 0 }))
+  }
+  const subtotal = items.reduce((s, i) => s + i.qty * i.unitPrice, 0)
+  return (
+    <div className="space-y-2">
+      {items.length > 0 && (
+        <div className="grid gap-1.5 text-[10px] font-bold uppercase tracking-widest text-zinc-400 px-1"
+          style={{ gridTemplateColumns: '1fr 60px 90px 80px 28px' }}>
+          <span>Description</span><span className="text-center">Qty</span>
+          <span className="text-right">Unit Price</span><span className="text-right">Total</span><span />
+        </div>
+      )}
+      {items.map(item => {
+        const lineTotal = (item.qty * item.unitPrice).toFixed(2)
+        return (
+          <div key={item.id} className="grid gap-1.5 items-center"
+            style={{ gridTemplateColumns: '1fr 60px 90px 80px 28px' }}>
+            <input type="text" value={item.description} onChange={e => updateRow(item.id, 'description', e.target.value)}
+              placeholder="Service or item…" className="border border-zinc-200 rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-black/10" />
+            <input type="number" min="0" step="1" value={item.qty === 0 ? '' : item.qty}
+              onChange={e => updateRow(item.id, 'qty', e.target.value)}
+              className="border border-zinc-200 rounded-lg px-2 py-1.5 text-sm text-center focus:outline-none focus:ring-2 focus:ring-black/10" />
+            <input type="number" min="0" step="0.01" value={item.unitPrice === 0 ? '' : item.unitPrice}
+              onChange={e => updateRow(item.id, 'unitPrice', e.target.value)} placeholder="0.00"
+              className="border border-zinc-200 rounded-lg px-2 py-1.5 text-sm text-right focus:outline-none focus:ring-2 focus:ring-black/10" />
+            <div className="text-sm font-semibold text-right text-zinc-600 pr-1">${lineTotal}</div>
+            <button type="button" onClick={() => removeRow(item.id)}
+              className="w-6 h-6 rounded flex items-center justify-center text-zinc-300 hover:text-red-500 hover:bg-red-50 transition-colors">
+              <span className="material-symbols-outlined text-[14px]">close</span>
+            </button>
+          </div>
+        )
+      })}
+      <div className="flex items-center justify-between pt-1">
+        <button type="button" onClick={addRow}
+          className="flex items-center gap-1 text-xs font-semibold text-black hover:text-zinc-600 transition-colors">
+          <span className="material-symbols-outlined text-[14px]">add</span>Add Line Item
+        </button>
+        {items.length > 0 && <span className="text-xs font-bold text-zinc-600">Subtotal: ${subtotal.toFixed(2)}</span>}
+      </div>
+    </div>
+  )
+}
+
+function VariableFields({
+  vars,
+  values,
+  lineItems,
+  onChange,
+  onLineItemsChange,
+}: {
+  vars: string[]
+  values: Record<string, string>
+  lineItems: LineItem[]
+  onChange: (key: string, val: string) => void
+  onLineItemsChange: (items: LineItem[]) => void
+}) {
+  const nonLineItemVars = vars.filter(v => getTokenDef(v).fieldType !== 'line-items')
+  const hasLineItems = vars.includes('lineItems')
+
+  if (nonLineItemVars.length === 0 && !hasLineItems) {
     return (
       <p className="text-xs text-zinc-400 italic">
         No variables detected. Use <code className="bg-zinc-100 px-1 rounded">{'{{variableName}}'}</code> in your HTML or CSS.
       </p>
     )
   }
+  const inputClass = 'w-full border border-zinc-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/10'
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-      {vars.map(v => (
-        <div key={v}>
-          <label className="block text-[11px] font-semibold text-zinc-500 uppercase tracking-wider mb-1">{humanLabel(v)}</label>
-          <input
-            type="text"
-            value={values[v] ?? ''}
-            onChange={e => onChange(v, e.target.value)}
-            placeholder={`{{${v}}}`}
-            className="w-full border border-zinc-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
-          />
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {nonLineItemVars.map(v => {
+          const def = getTokenDef(v)
+          const isWide = def.fieldType === 'textarea'
+          return (
+            <div key={v} className={isWide ? 'sm:col-span-2' : ''}>
+              <label className="block text-[11px] font-semibold text-zinc-500 uppercase tracking-wider mb-1">
+                {def.label}
+              </label>
+              {def.fieldType === 'textarea' ? (
+                <textarea rows={3} value={values[v] ?? ''} onChange={e => onChange(v, e.target.value)}
+                  placeholder={`{{${v}}}`} className={`${inputClass} resize-y`} />
+              ) : def.fieldType === 'url' ? (
+                <input type="url" value={values[v] ?? ''} onChange={e => onChange(v, e.target.value)}
+                  placeholder="https://" className={inputClass} />
+              ) : def.fieldType === 'email' ? (
+                <input type="email" value={values[v] ?? ''} onChange={e => onChange(v, e.target.value)}
+                  placeholder="email@example.com" className={inputClass} />
+              ) : def.fieldType === 'number' ? (
+                <input type="number" step="0.01" value={values[v] ?? ''} onChange={e => onChange(v, e.target.value)}
+                  placeholder="0.00" className={inputClass} />
+              ) : def.fieldType === 'date' ? (
+                <input type="date" value={values[v] ?? ''} onChange={e => onChange(v, e.target.value)}
+                  className={inputClass} />
+              ) : (
+                <input type="text" value={values[v] ?? ''} onChange={e => onChange(v, e.target.value)}
+                  placeholder={`{{${v}}}`} className={inputClass} />
+              )}
+            </div>
+          )
+        })}
+      </div>
+      {hasLineItems && (
+        <div className="pt-2 border-t border-zinc-100">
+          <label className="block text-[11px] font-semibold text-zinc-500 uppercase tracking-wider mb-3">
+            Line Items <span className="normal-case font-normal text-zinc-400">— injected as table rows</span>
+          </label>
+          <LineItemBuilder items={lineItems} onChange={onLineItemsChange} />
         </div>
-      ))}
+      )}
     </div>
   )
 }
@@ -804,6 +907,7 @@ function SendModal({ template, onClose }: { template: EmailTemplate; onClose: ()
   const vars = extractVars(template.htmlContent, template.cssContent ?? '')
   const [to, setTo] = useState('')
   const [varValues, setVarValues] = useState<Record<string, string>>(() => applyAgencyDefaults(vars, {}))
+  const [lineItems, setLineItems] = useState<LineItem[]>([])
   const [agencyAutoFill, setAgencyAutoFill] = useState(true)
   const [sending, setSending] = useState(false)
   const [sent, setSent] = useState(false)
@@ -814,7 +918,9 @@ function SendModal({ template, onClose }: { template: EmailTemplate; onClose: ()
     setSending(true)
     setErr('')
     try {
-      await sendEmailTemplate(template.id, to, varValues)
+      const payload = { ...varValues }
+      if (vars.includes('lineItems')) payload.lineItems = renderLineItemsHtml(lineItems)
+      await sendEmailTemplate(template.id, to, payload)
       setSent(true)
     } catch (e: unknown) {
       const msg = (e as { response?: { data?: { error?: string } } })?.response?.data?.error
@@ -874,7 +980,13 @@ function SendModal({ template, onClose }: { template: EmailTemplate; onClose: ()
                       Agency Auto-fill {agencyAutoFill ? 'On' : 'Off'}
                     </button>
                   </div>
-                  <VariableFields vars={vars} values={varValues} onChange={(k, v) => setVarValues(prev => ({ ...prev, [k]: v }))} />
+                  <VariableFields
+                    vars={vars}
+                    values={varValues}
+                    lineItems={lineItems}
+                    onChange={(k, v) => setVarValues(prev => ({ ...prev, [k]: v }))}
+                    onLineItemsChange={setLineItems}
+                  />
                 </div>
               )}
               {err && <p className="text-sm text-red-500">{err}</p>}
@@ -939,6 +1051,7 @@ export default function EmailTemplatesView() {
   // Variables
   const vars = useMemo(() => extractVars(html, css), [html, css])
   const [varValues, setVarValues] = useState<Record<string, string>>({})
+  const [editorLineItems, setEditorLineItems] = useState<LineItem[]>([])
   const [agencyAutoFill, setAgencyAutoFill] = useState(true)
 
   // Apply agency defaults whenever vars change and auto-fill is on
@@ -1002,6 +1115,7 @@ export default function EmailTemplatesView() {
     }
     const templateVars = extractVars(t.htmlContent, t.cssContent ?? '')
     setVarValues(agencyAutoFill ? applyAgencyDefaults(templateVars, {}) : {})
+    setEditorLineItems([])
     setPreviewTab('editor')
     setCodeTab('html')
     setSaveMsg('')
@@ -1018,6 +1132,7 @@ export default function EmailTemplatesView() {
     setHtml(`<!DOCTYPE html>\n<html>\n<head><meta charset="UTF-8" /></head>\n<body>\n  <h1>Hello, {{clientName}}!</h1>\n  <p>{{message}}</p>\n</body>\n</html>`)
     setCss(`body {\n  font-family: Arial, sans-serif;\n  color: #333;\n  max-width: 650px;\n  margin: 0 auto;\n  padding: 24px;\n}\nh1 { color: #111; }`)
     setVarValues({})
+    setEditorLineItems([])
     setPreviewTab('editor')
     setCodeTab('html')
     setSaveMsg('')
@@ -1079,7 +1194,7 @@ export default function EmailTemplatesView() {
     return categoryFilter === 'all' || t.category === categoryFilter
   })
 
-  const previewDoc = buildPreviewDoc(html, css, varValues)
+  const previewDoc = buildPreviewDoc(html, css, varValues, editorLineItems)
   const hasEditor = isNew || selected !== null
 
   const pageTitle = docType === 'email' ? 'Email Templates' : docType === 'proposal' ? 'Proposal Templates' : 'Invoice Templates'
@@ -1215,6 +1330,30 @@ export default function EmailTemplatesView() {
                   Preview
                 </button>
               </div>
+
+              {/* Detected token badges */}
+              {vars.length > 0 && (
+                <div className="flex items-center gap-1 flex-wrap max-w-xs overflow-hidden">
+                  {vars.slice(0, 6).map(v => {
+                    const def = getTokenDef(v)
+                    const catColor: Record<string, string> = {
+                      client: 'bg-blue-50 text-blue-600 border-blue-200',
+                      agency: 'bg-amber-50 text-amber-600 border-amber-200',
+                      invoice: 'bg-green-50 text-green-600 border-green-200',
+                      proposal: 'bg-violet-50 text-violet-600 border-violet-200',
+                      custom: 'bg-zinc-100 text-zinc-500 border-zinc-200',
+                    }
+                    return (
+                      <span key={v} className={`text-[9px] font-mono px-1.5 py-0.5 rounded border ${catColor[def.category] ?? catColor.custom}`}>
+                        {`{{${v}}}`}
+                      </span>
+                    )
+                  })}
+                  {vars.length > 6 && (
+                    <span className="text-[9px] text-zinc-400 font-semibold">+{vars.length - 6}</span>
+                  )}
+                </div>
+              )}
 
               <div className="flex-1" />
 
@@ -1377,7 +1516,9 @@ export default function EmailTemplatesView() {
                     <VariableFields
                       vars={vars}
                       values={varValues}
+                      lineItems={editorLineItems}
                       onChange={(k, v) => setVarValues(prev => ({ ...prev, [k]: v }))}
+                      onLineItemsChange={setEditorLineItems}
                     />
                     {vars.length > 0 && (
                       <p className="text-[11px] text-zinc-400 mt-3">

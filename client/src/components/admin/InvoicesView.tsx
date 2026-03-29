@@ -48,8 +48,8 @@ interface Invoice {
   status: string
   notes: string | null
   termsConditions: string | null
-  paypalInvoiceId: string | null  // stores PayPal Order ID
-  paypalInvoiceUrl: string | null // stores PayPal checkout URL (payer-action link)
+  stripePaymentLinkId: string | null
+  stripePaymentLinkUrl: string | null
   sentAt: string | null
   createdAt: string
 }
@@ -292,7 +292,7 @@ function InvoiceBuilder({
   const [sending, setSending] = useState(false)
   const [error, setError] = useState('')
   const [sendSuccess, setSendSuccess] = useState('')
-  const [paymentLink, setPaymentLink] = useState<string | null>(initial?.paypalInvoiceUrl || null)
+  const [paymentLink, setPaymentLink] = useState<string | null>(initial?.stripePaymentLinkUrl || null)
   const [sendEmail, setSendEmail] = useState(false)
   const [linkCopied, setLinkCopied] = useState(false)
 
@@ -349,7 +349,7 @@ function InvoiceBuilder({
       amount: total,
       notes: notes || null,
       termsConditions: termsConditions || null,
-      paypalInvoiceUrl: initial?.paypalInvoiceUrl ?? null,
+      stripePaymentLinkUrl: initial?.stripePaymentLinkUrl ?? null,
       client: selectedClient
         ? { firstName: selectedClient.firstName, lastName: selectedClient.lastName, email: selectedClient.email }
         : undefined,
@@ -687,7 +687,7 @@ function InvoiceBuilder({
                           status: initial?.status ?? 'draft', currency, subtotal,
                           discountType, discountValue, taxRate, amount: total,
                           notes: notes || null, termsConditions: termsConditions || null,
-                          paypalInvoiceUrl: initial?.paypalInvoiceUrl ?? null,
+                          stripePaymentLinkUrl: initial?.stripePaymentLinkUrl ?? null,
                           client: selectedClient
                             ? { firstName: selectedClient.firstName, lastName: selectedClient.lastName, email: selectedClient.email }
                             : undefined,
@@ -753,9 +753,9 @@ function InvoiceBuilder({
                   href={paymentLink}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="mt-2 flex items-center gap-1 text-[11px] text-[#0070ba] hover:underline font-body"
+                  className="mt-2 flex items-center gap-1 text-[11px] text-[#635bff] hover:underline font-body"
                 >
-                  Open in PayPal <ExternalLink className="w-3 h-3" />
+                  Open Stripe Checkout <ExternalLink className="w-3 h-3" />
                 </a>
               </div>
             )}
@@ -808,7 +808,7 @@ function InvoiceBuilder({
             </div>
 
             <p className="mt-4 text-xs text-zinc-500 font-body text-center leading-relaxed">
-              Generates a secure PayPal checkout link. Share it directly or email it to your client.
+              Generates a secure Stripe checkout link. Share it directly or email it to your client.
             </p>
           </div>
         </div>
@@ -913,24 +913,24 @@ function InvoiceRow({
               </div>
 
               {/* Payment link */}
-              {invoice.paypalInvoiceUrl && (
+              {invoice.stripePaymentLinkUrl && (
                 <div className="flex items-center gap-2 p-3 bg-zinc-100 border border-zinc-200 rounded-lg">
-                  <Link className="w-4 h-4 text-[#0070ba] flex-shrink-0" />
+                  <Link className="w-4 h-4 text-[#635bff] flex-shrink-0" />
                   <span className="text-xs text-zinc-500 font-body flex-1">
-                    {invoice.status === 'paid' ? 'Payment received via PayPal' : 'Payment link active — awaiting client payment'}
+                    {invoice.status === 'paid' ? 'Payment received via Stripe' : 'Stripe payment link active — awaiting client payment'}
                   </span>
                   <a
-                    href={invoice.paypalInvoiceUrl}
+                    href={invoice.stripePaymentLinkUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-1 text-xs text-[#0070ba] hover:underline font-body"
+                    className="flex items-center gap-1 text-xs text-[#635bff] hover:underline font-body"
                     onClick={e => e.stopPropagation()}
                   >
                     Open <ExternalLink className="w-3 h-3" />
                   </a>
                   <button
                     type="button"
-                    onClick={e => { e.stopPropagation(); navigator.clipboard.writeText(invoice.paypalInvoiceUrl!) }}
+                    onClick={e => { e.stopPropagation(); navigator.clipboard.writeText(invoice.stripePaymentLinkUrl!) }}
                     className="p-1 rounded text-zinc-500 hover:text-black"
                     title="Copy payment link"
                   >
@@ -953,12 +953,12 @@ function InvoiceRow({
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-black text-background text-xs font-body font-semibold hover:bg-zinc-800 disabled:opacity-50 transition-all"
                   >
                     <Link className="w-3.5 h-3.5" />
-                    {invoice.paypalInvoiceUrl ? 'View / Resend Link' : 'Generate Payment Link'}
+                    {invoice.stripePaymentLinkUrl ? 'View / Resend Link' : 'Generate Payment Link'}
                   </button>
                 )}
-                {invoice.paypalInvoiceUrl && invoice.status !== 'paid' && (
+                {invoice.stripePaymentLinkUrl && invoice.status !== 'paid' && (
                   <button type="button" disabled={loading}
-                    onClick={e => { e.stopPropagation(); navigator.clipboard.writeText(invoice.paypalInvoiceUrl!) }}
+                    onClick={e => { e.stopPropagation(); navigator.clipboard.writeText(invoice.stripePaymentLinkUrl!) }}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-200 text-black text-xs font-body hover:bg-white/[0.05] disabled:opacity-50 transition-all"
                   >
                     <Copy className="w-3.5 h-3.5" /> Copy Link
@@ -1023,8 +1023,8 @@ export default function InvoicesView() {
         setSyncMsg(`${updated} updated, ${errors.length} error(s): ${errors[0]}`)
       } else {
         setSyncMsg(updated > 0
-          ? `${updated} payment${updated !== 1 ? 's' : ''} captured from PayPal`
-          : total === 0 ? 'No active PayPal orders to sync' : `${total} order${total !== 1 ? 's' : ''} checked — all up to date`
+          ? `${updated} invoice${updated !== 1 ? 's' : ''} marked paid via Stripe`
+          : total === 0 ? 'No active Stripe payment links to sync' : `${total} link${total !== 1 ? 's' : ''} checked — all up to date`
         )
       }
       if (updated > 0) load()
@@ -1077,11 +1077,11 @@ export default function InvoicesView() {
             type="button"
             onClick={handleSync}
             disabled={syncing}
-            title="Pull latest payment status from PayPal"
+            title="Pull latest payment status from Stripe"
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-zinc-200 text-black font-body font-medium text-sm hover:bg-[#f3f3f3] disabled:opacity-50 transition-all"
           >
             <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
-            {syncing ? 'Syncing…' : 'Sync PayPal'}
+            {syncing ? 'Syncing…' : 'Sync Stripe'}
           </button>
           <button
             type="button"

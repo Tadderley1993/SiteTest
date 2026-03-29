@@ -610,7 +610,7 @@ export default function StandingSection({ clientId }: Props) {
           </button>
           <div className="flex items-center gap-3">
             <span className="text-xs text-zinc-500 bg-[#f3f3f3] border border-zinc-200 px-3 py-1.5 rounded-lg">
-              PayPal / Stripe integration coming soon
+              Stripe payment links available on Invoices
             </span>
             <button onClick={() => setShowAddInvoice(s => !s)}
               className="flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg border border-accent/30 text-black hover:bg-zinc-100 transition-colors">

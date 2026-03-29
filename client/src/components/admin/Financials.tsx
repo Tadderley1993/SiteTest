@@ -329,20 +329,14 @@ export default function Financials() {
         </button>
       </div>
 
-      {/* ── PAYPAL BANNER ── */}
-      {summary.paypalConnected && (
-        <div className="flex items-center gap-3 px-4 py-3 bg-[#003087]/20 border border-[#003087]/40 rounded-xl text-sm">
-          <LinkIcon className="w-4 h-4 text-[#009cde] flex-shrink-0" />
-          <span className="text-[#009cde] font-medium">PayPal connected</span>
+      {/* ── STRIPE BANNER ── */}
+      {summary.stripeConnected && (
+        <div className="flex items-center gap-3 px-4 py-3 bg-[#635bff]/10 border border-[#635bff]/30 rounded-xl text-sm">
+          <LinkIcon className="w-4 h-4 text-[#635bff] flex-shrink-0" />
+          <span className="text-[#635bff] font-medium">Stripe connected</span>
           <span className="text-zinc-500">—</span>
-          <span className="text-zinc-500">{fmt(summary.paypalCollected)} from PayPal transactions</span>
-          {summary.paypalOutstanding > 0 && (
-            <>
-              <span className="text-zinc-500">·</span>
-              <span className="text-yellow-400">{fmt(summary.paypalOutstanding)} PayPal invoices outstanding</span>
-            </>
-          )}
-          <span className="ml-auto text-xs text-zinc-500">{summary.paypalTransactionCount} transactions (last 12 months)</span>
+          <span className="text-zinc-500">{fmt(summary.stripeCollected)} from Stripe transactions</span>
+          <span className="ml-auto text-xs text-zinc-500">{summary.stripeTransactionCount} transactions (last 12 months)</span>
         </div>
       )}
 
@@ -351,8 +345,8 @@ export default function Financials() {
         <KpiCard
           label="Total Collected"
           value={fmt(summary.totalCollected)}
-          sub={summary.paypalConnected
-            ? `${fmt(summary.localCollected)} local · ${fmt(summary.paypalCollected)} PayPal`
+          sub={summary.stripeConnected
+            ? `${fmt(summary.localCollected)} local · ${fmt(summary.stripeCollected)} Stripe`
             : `of ${fmt(summary.totalContractValue)} contracted`}
           icon={<DollarSign className="w-4 h-4" />}
           highlight
@@ -434,10 +428,10 @@ export default function Financials() {
               <YAxis tick={{ fill: '#666', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={v => `$${v >= 1000 ? (v/1000).toFixed(0)+'k' : v}`} />
               <Tooltip content={<CustomTooltip />} />
               <Legend wrapperStyle={{ fontSize: '11px', color: '#666' }} />
-              {summary.paypalConnected ? (
+              {summary.stripeConnected ? (
                 <>
                   <Bar dataKey="local" name="Collected (Local)" stackId="c" fill={CHART_COLORS.collected} />
-                  <Bar dataKey="paypal" name="Collected (PayPal)" stackId="c" fill="#009cde" radius={[4,4,0,0]} />
+                  <Bar dataKey="stripe" name="Collected (Stripe)" stackId="c" fill="#635bff" radius={[4,4,0,0]} />
                 </>
               ) : (
                 <Bar dataKey="collected" name="Collected" fill={CHART_COLORS.collected} radius={[4,4,0,0]} />
@@ -576,20 +570,20 @@ export default function Financials() {
           <div className="space-y-2">
             {data.recentPayments.map(p => (
               <div key={String(p.id)} className="flex items-center gap-4 py-2 border-b border-zinc-200/50 last:border-0">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${p.source === 'paypal' ? 'bg-[#003087]/30' : 'bg-zinc-100'}`}>
-                  <DollarSign className={`w-4 h-4 ${p.source === 'paypal' ? 'text-[#009cde]' : 'text-black'}`} />
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${p.source === 'stripe' ? 'bg-[#635bff]/20' : 'bg-zinc-100'}`}>
+                  <DollarSign className={`w-4 h-4 ${p.source === 'stripe' ? 'text-[#635bff]' : 'text-black'}`} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <p className="text-sm text-black truncate">{p.label}</p>
-                    {p.source === 'paypal' && (
-                      <span className="text-xs text-[#009cde] bg-[#003087]/20 border border-[#003087]/40 px-1.5 py-0.5 rounded-full flex-shrink-0">PayPal</span>
+                    {p.source === 'stripe' && (
+                      <span className="text-xs text-[#635bff] bg-[#635bff]/10 border border-[#635bff]/30 px-1.5 py-0.5 rounded-full flex-shrink-0">Stripe</span>
                     )}
                   </div>
                   <p className="text-xs text-zinc-500">{p.clientName}</p>
                 </div>
                 <div className="text-right">
-                  <p className={`text-sm font-bold ${p.source === 'paypal' ? 'text-[#009cde]' : 'text-black'}`}>{fmt(p.amount)}</p>
+                  <p className={`text-sm font-bold ${p.source === 'stripe' ? 'text-[#635bff]' : 'text-black'}`}>{fmt(p.amount)}</p>
                   <p className="text-xs text-zinc-500">{p.paidDate ? new Date(p.paidDate).toLocaleDateString() : '—'}</p>
                 </div>
               </div>

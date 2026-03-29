@@ -16,8 +16,10 @@ async function getOrCreateSettings() {
 function maskSettings(s: Record<string, unknown>) {
   return {
     ...s,
-    paypalSecret: s.paypalSecret ? '••••••••' : null,
-    hasSecret: !!s.paypalSecret,
+    stripeSecretKey: s.stripeSecretKey ? '••••••••' : null,
+    hasStripeKey: !!s.stripeSecretKey,
+    stripeWebhookSecret: s.stripeWebhookSecret ? '••••••••' : null,
+    hasStripeWebhook: !!s.stripeWebhookSecret,
     smtpPass: s.smtpPass ? '••••••••' : null,
     hasSmtpPass: !!s.smtpPass,
   }
@@ -38,16 +40,14 @@ router.put('/', async (req, res) => {
   try {
     const s = await getOrCreateSettings()
     const {
-      paypalClientId, paypalSecret, paypalEnvironment, paypalMerchantId, paypalEmail,
+      stripeSecretKey, stripePublishableKey, stripeWebhookSecret,
       smtpHost, smtpPort, smtpUser, smtpPass, smtpFrom, smtpSecure,
       recoveryEmail1, recoveryEmail2,
     } = req.body
     const updateData: Record<string, unknown> = {}
-    if (paypalClientId !== undefined) updateData.paypalClientId = paypalClientId
-    if (paypalSecret !== undefined && paypalSecret !== '••••••••') updateData.paypalSecret = paypalSecret
-    if (paypalEnvironment !== undefined) updateData.paypalEnvironment = paypalEnvironment
-    if (paypalMerchantId !== undefined) updateData.paypalMerchantId = paypalMerchantId
-    if (paypalEmail !== undefined) updateData.paypalEmail = paypalEmail
+    if (stripeSecretKey !== undefined && stripeSecretKey !== '••••••••') updateData.stripeSecretKey = stripeSecretKey || null
+    if (stripePublishableKey !== undefined) updateData.stripePublishableKey = stripePublishableKey || null
+    if (stripeWebhookSecret !== undefined && stripeWebhookSecret !== '••••••••') updateData.stripeWebhookSecret = stripeWebhookSecret || null
     if (smtpHost !== undefined) updateData.smtpHost = smtpHost || null
     if (smtpPort !== undefined) updateData.smtpPort = smtpPort || null
     if (smtpUser !== undefined) updateData.smtpUser = smtpUser || null
