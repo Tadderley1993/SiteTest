@@ -384,7 +384,7 @@ router.post('/:id/payment-link', async (req, res) => {
 })
 
 // POST /api/admin/invoices/:id/cancel
-router.post('/:id/cancel', async (_req, res) => {
+router.post('/:id/cancel', async (req, res) => {
   try {
     // PayPal Orders expire on their own — just update local status
     await prisma.$executeRawUnsafe(
