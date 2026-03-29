@@ -120,6 +120,18 @@ app.get('/api/health', (_, res) => {
   res.json({ status: 'ok' })
 })
 
+// DB column diagnostic (temporary)
+app.get('/api/db-check', async (_, res) => {
+  try {
+    const cols = await prisma.$queryRawUnsafe<{ column_name: string }[]>(
+      `SELECT column_name FROM information_schema.columns WHERE table_name = 'Invoice' ORDER BY column_name`
+    )
+    res.json({ invoiceColumns: cols.map(c => c.column_name) })
+  } catch (e) {
+    res.status(500).json({ error: e instanceof Error ? e.message : String(e) })
+  }
+})
+
 
 // Centralized error handler (must be last)
 app.use(errorHandler)
