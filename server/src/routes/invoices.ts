@@ -11,10 +11,6 @@ router.use(authMiddleware)
 
 // ── Raw SQL helpers (bypass stale Prisma client schema) ───────────────────────
 
-function fmt(n: number) {
-  return n.toFixed(2)
-}
-
 // Fetch invoices via raw SQL so new columns are always returned
 async function queryInvoices(where?: string, params: unknown[] = []) {
   const sql = `
@@ -86,11 +82,18 @@ async function queryInvoices(where?: string, params: unknown[] = []) {
 }
 
 
-// ── PayPal button email builder ───────────────────────────────────────────────
+// ── Payment link email builder ────────────────────────────────────────────────
 
-function buildPaypalButtonEmail(inv: Record<string, unknown>, client: { firstName: string; lastName: string; email: string }, paypalUrl: string): string {
+function buildPaymentLinkEmail(inv: Record<string, unknown>, client: { firstName: string; lastName: string; email: string }, paymentUrl: string): string {
   const lineItems: { description: string; quantity: number; unitPrice: number }[] =
     inv.lineItems ? JSON.parse(inv.lineItems as string) : []
+  const subtotal = Number(inv.subtotal) || 0
+  const discountType = (inv.discountType as string) || 'fixed'
+  const discountValue = Number(inv.discountValue) || 0
+  const taxRate = Number(inv.taxRate) || 0
+  const discountAmt = discountType === 'percent' ? (subtotal * discountValue) / 100 : discountValue
+  const taxAmt = ((subtotal - discountAmt) * taxRate) / 100
+  const total = Number(inv.amount) || 0
 
   const rowsHtml = lineItems.map(item => `
     <tr>
@@ -100,14 +103,6 @@ function buildPaypalButtonEmail(inv: Record<string, unknown>, client: { firstNam
       <td style="padding:10px 16px;font-size:14px;color:#111;text-align:right;border-bottom:1px solid #f0f0f0">$${(item.quantity * item.unitPrice).toFixed(2)}</td>
     </tr>`).join('')
 
-  const subtotal = Number(inv.subtotal) || 0
-  const discountType = (inv.discountType as string) || 'fixed'
-  const discountValue = Number(inv.discountValue) || 0
-  const taxRate = Number(inv.taxRate) || 0
-  const discountAmt = discountType === 'percent' ? (subtotal * discountValue) / 100 : discountValue
-  const taxAmt = ((subtotal - discountAmt) * taxRate) / 100
-  const total = Number(inv.amount) || 0
-
   return `<!DOCTYPE html>
 <html>
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
@@ -115,16 +110,12 @@ function buildPaypalButtonEmail(inv: Record<string, unknown>, client: { firstNam
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#f9f9f9;padding:40px 20px">
     <tr><td align="center">
       <table width="600" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.06)">
-
-        <!-- Header -->
         <tr>
           <td style="background:#111;padding:32px 40px">
             <p style="margin:0;font-size:22px;font-weight:700;color:#fff;letter-spacing:-0.5px">Invoice</p>
             <p style="margin:6px 0 0;font-size:13px;color:rgba(255,255,255,0.5)">${inv.invoiceNumber}</p>
           </td>
         </tr>
-
-        <!-- Bill to / dates -->
         <tr>
           <td style="padding:28px 40px;border-bottom:1px solid #f0f0f0">
             <table width="100%" cellpadding="0" cellspacing="0">
@@ -143,8 +134,6 @@ function buildPaypalButtonEmail(inv: Record<string, unknown>, client: { firstNam
             </table>
           </td>
         </tr>
-
-        <!-- Line items -->
         <tr>
           <td style="padding:0 40px 8px">
             <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:24px">
@@ -160,8 +149,6 @@ function buildPaypalButtonEmail(inv: Record<string, unknown>, client: { firstNam
             </table>
           </td>
         </tr>
-
-        <!-- Totals -->
         <tr>
           <td style="padding:16px 40px 28px">
             <table width="100%" cellpadding="0" cellspacing="0">
@@ -174,120 +161,22 @@ function buildPaypalButtonEmail(inv: Record<string, unknown>, client: { firstNam
             </table>
           </td>
         </tr>
-
         ${inv.notes ? `<tr><td style="padding:0 40px 24px"><p style="margin:0;font-size:13px;color:#777;font-style:italic">${inv.notes}</p></td></tr>` : ''}
-
-        <!-- PayPal Button -->
         <tr>
           <td style="padding:24px 40px 40px;text-align:center;border-top:1px solid #f0f0f0">
-            <p style="margin:0 0 16px;font-size:13px;color:#777">Click the button below to pay securely with PayPal</p>
-            <a href="${paypalUrl}" target="_blank"
+            <p style="margin:0 0 16px;font-size:13px;color:#777">Click the button below to pay securely via PayPal</p>
+            <a href="${paymentUrl}" target="_blank"
               style="display:inline-block;background:#0070ba;color:#fff;font-size:15px;font-weight:700;text-decoration:none;padding:14px 40px;border-radius:8px;letter-spacing:0.3px">
-              Pay with PayPal
+              Pay Now — $${total.toFixed(2)}
             </a>
             <p style="margin:16px 0 0;font-size:11px;color:#bbb">Powered by PayPal · Secure &amp; encrypted</p>
           </td>
         </tr>
-
       </table>
     </td></tr>
   </table>
 </body>
 </html>`
-}
-
-// ── PayPal payload builder ────────────────────────────────────────────────────
-
-async function buildPayPalPayload(invoice: Record<string, unknown>, client: { firstName: string; lastName: string; email: string }) {
-  const settings = await prisma.adminSettings.findFirst()
-  const invoicerEmail = settings?.paypalEmail || process.env.SMTP_USER || ''
-  const items: { description: string; quantity: number; unitPrice: number }[] =
-    invoice.lineItems ? JSON.parse(invoice.lineItems as string) : []
-  const currency = (invoice.currency as string) || 'USD'
-  const subtotal = Number(invoice.subtotal) || 0
-  const discountType = (invoice.discountType as string) || 'fixed'
-  const discountValue = Number(invoice.discountValue) || 0
-  const taxRate = Number(invoice.taxRate) || 0
-
-  const discountAmt = discountType === 'percent' ? (subtotal * discountValue) / 100 : discountValue
-
-  const ppItems = items.map(item => ({
-    name: item.description,
-    quantity: String(item.quantity),
-    unit_amount: { currency_code: currency, value: fmt(item.unitPrice) },
-    unit_of_measure: 'QUANTITY',
-  }))
-
-  // Note: omitting `invoicer` so PayPal uses the authenticated account automatically.
-  // Providing an email that doesn't exactly match the PayPal account causes USER_NOT_FOUND (422).
-  void invoicerEmail // fetched but not sent; kept in case needed for SMTP fallback later
-
-  // Add tax to each item if taxRate > 0
-  const ppItemsWithTax = taxRate > 0
-    ? ppItems.map(item => ({ ...item, tax: { name: 'Tax', percent: String(taxRate) } }))
-    : ppItems
-
-  return {
-    detail: {
-      invoice_number: invoice.invoiceNumber,
-      invoice_date: invoice.issuedDate,
-      currency_code: currency,
-      payment_term: { term_type: 'DUE_ON_DATE_SPECIFIED', due_date: invoice.dueDate },
-      note: (invoice.notes as string) || undefined,
-      terms_and_conditions: (invoice.termsConditions as string) || undefined,
-      memo: (invoice.title as string) || undefined,
-    },
-    primary_recipients: [{
-      billing_info: {
-        email_address: client.email,
-        name: { given_name: client.firstName, surname: client.lastName },
-      },
-    }],
-    items: ppItemsWithTax,
-    // Discount at invoice level if applicable
-    ...(discountAmt > 0 ? {
-      configuration: {
-        allow_tips: false,
-        tax_calculated_after_discount: true,
-        tax_inclusive: false,
-        discount: {
-          percent: discountType === 'percent' ? String(discountValue) : undefined,
-          amount: discountType === 'fixed'
-            ? { currency_code: currency, value: fmt(discountAmt) }
-            : undefined,
-        },
-      },
-    } : {
-      configuration: { allow_tips: false, tax_inclusive: false },
-    }),
-    // NOTE: Do NOT send `amount` — PayPal computes it from items and rejects mismatches
-  }
-}
-
-// ── PayPal invoice create with duplicate-number retry ─────────────────────────
-
-async function createPayPalInvoice(
-  inv: Record<string, unknown>,
-  client: { firstName: string; lastName: string; email: string }
-): Promise<{ id: string; links?: Array<{ rel: string; href: string }> }> {
-  for (let attempt = 0; attempt <= 4; attempt++) {
-    // First attempt uses the exact user-entered number; subsequent attempts append -2, -3, …
-    const suffix = attempt === 0 ? '' : `-${attempt + 1}`
-    const payload = await buildPayPalPayload(
-      { ...inv, invoiceNumber: `${inv.invoiceNumber}${suffix}` },
-      client
-    )
-    try {
-      return await paypalFetch('/v2/invoicing/invoices', 'POST', payload) as {
-        id: string
-        links?: Array<{ rel: string; href: string }>
-      }
-    } catch (e) {
-      if (attempt < 4 && e instanceof Error && e.message.includes('DUPLICATE_INVOICE_NUMBER')) continue
-      throw e
-    }
-  }
-  throw new Error('Could not create PayPal invoice: invoice number already exists on PayPal for all variants tried')
 }
 
 // ── Routes ────────────────────────────────────────────────────────────────────
@@ -386,13 +275,7 @@ router.delete('/:id', async (req, res) => {
   try {
     const rows = await queryInvoices('i.id = $1', [Number(req.params.id)])
     const inv = rows[0]
-    if (inv?.paypalInvoiceId && inv.status === 'sent') {
-      try {
-        await paypalFetch(`/v2/invoicing/invoices/${inv.paypalInvoiceId}/cancel`, 'POST', {
-          subject: 'Invoice cancelled', note: '', send_to_invoicer: false, send_to_recipient: false,
-        })
-      } catch { /* ignore */ }
-    }
+    // PayPal Orders expire automatically — no API call needed, just delete locally
     await prisma.$executeRawUnsafe('DELETE FROM "Invoice" WHERE id = $1', Number(req.params.id))
     res.json({ success: true })
   } catch (e) {
@@ -400,8 +283,8 @@ router.delete('/:id', async (req, res) => {
   }
 })
 
-// POST /api/admin/invoices/:id/send
-router.post('/:id/send', async (req, res) => {
+// POST /api/admin/invoices/:id/payment-link — create PayPal Order and return checkout URL
+router.post('/:id/payment-link', async (req, res) => {
   try {
     const creds = await getPayPalSettings()
     if (!creds) {
@@ -409,8 +292,6 @@ router.post('/:id/send', async (req, res) => {
     }
 
     const isSandbox = creds.environment !== 'live'
-    const includePaypalButton: boolean = req.body.includePaypalButton === true
-
     const rows = await queryInvoices('i.id = $1', [Number(req.params.id)])
     const inv = rows[0]
     if (!inv) return res.status(404).json({ error: 'Invoice not found' })
@@ -418,44 +299,68 @@ router.post('/:id/send', async (req, res) => {
 
     const client = inv.client as { firstName: string; lastName: string; email: string }
 
-    let paypalInvoiceId: string
-    let paypalInvoiceUrl: string | null
-
-    // Re-send existing PayPal invoice
+    // Re-use existing order if it's still open
     if (inv.paypalInvoiceId) {
-      await paypalFetch(`/v2/invoicing/invoices/${inv.paypalInvoiceId}/send`, 'POST', {
-        send_to_invoicer: false, send_to_recipient: true,
-        subject: req.body.subject || `Invoice ${inv.invoiceNumber} from Designs by TA`,
-      })
-      await prisma.$executeRawUnsafe(
-        `UPDATE "Invoice" SET "status"='sent',"sentAt"=NOW(),"updatedAt"=NOW() WHERE id=$1`,
-        Number(req.params.id)
-      )
-      paypalInvoiceId = inv.paypalInvoiceId as string
-      paypalInvoiceUrl = inv.paypalInvoiceUrl as string | null
-    } else {
-      // Create new PayPal invoice (retries with suffix on duplicate number)
-      const created = await createPayPalInvoice(inv as Record<string, unknown>, client)
-      paypalInvoiceId = created.id
-      paypalInvoiceUrl = created.links?.find(l => l.rel === 'payer-view')?.href || null
-
-      // Send it via PayPal
-      await paypalFetch(`/v2/invoicing/invoices/${paypalInvoiceId}/send`, 'POST', {
-        send_to_invoicer: false, send_to_recipient: true,
-        subject: req.body.subject || `Invoice ${inv.invoiceNumber} from Designs by TA`,
-      })
-
-      await prisma.$executeRawUnsafe(
-        `UPDATE "Invoice" SET "paypalInvoiceId"=$1,"paypalInvoiceUrl"=$2,"status"='sent',"sentAt"=NOW(),"updatedAt"=NOW() WHERE id=$3`,
-        paypalInvoiceId, paypalInvoiceUrl, Number(req.params.id)
-      )
+      try {
+        const existing = await paypalFetch(`/v2/checkout/orders/${inv.paypalInvoiceId}`, 'GET') as { status: string }
+        if (!['VOIDED', 'COMPLETED'].includes(existing.status)) {
+          const paymentUrl = inv.paypalInvoiceUrl as string | null
+          if (req.body.sendEmail && paymentUrl) {
+            const smtp = await getSmtpTransporter()
+            if (smtp) {
+              const html = buildPaymentLinkEmail(inv as Record<string, unknown>, client, paymentUrl)
+              await smtp.transporter.sendMail({
+                from: smtp.from ?? undefined,
+                to: client.email,
+                subject: req.body.subject || `Invoice ${inv.invoiceNumber} — Payment Due`,
+                html,
+              })
+            }
+          }
+          return res.json({ success: true, paymentUrl, orderId: inv.paypalInvoiceId, sandbox: isSandbox, reused: true })
+        }
+      } catch { /* order gone or invalid — create a new one */ }
     }
 
-    // Optional: send branded SMTP email with PayPal button
-    if (includePaypalButton && paypalInvoiceUrl) {
+    // Create a new PayPal Order (Checkout API)
+    const baseUrl = isSandbox ? 'https://dta-puce.vercel.app' : 'https://www.designsbyta.com'
+    const order = await paypalFetch('/v2/checkout/orders', 'POST', {
+      intent: 'CAPTURE',
+      purchase_units: [{
+        invoice_id: inv.invoiceNumber as string,
+        description: `Invoice ${inv.invoiceNumber}${inv.title ? ` — ${inv.title}` : ''}`,
+        amount: {
+          currency_code: (inv.currency as string) || 'USD',
+          value: Number(inv.amount).toFixed(2),
+        },
+      }],
+      payment_source: {
+        paypal: {
+          experience_context: {
+            brand_name: 'Designs By TA',
+            shipping_preference: 'NO_SHIPPING',
+            user_action: 'PAY_NOW',
+            return_url: baseUrl,
+            cancel_url: baseUrl,
+          },
+        },
+      },
+    }) as { id: string; links?: Array<{ rel: string; href: string }> }
+
+    const orderId = order.id
+    const paymentUrl = order.links?.find(l => l.rel === 'payer-action')?.href || null
+
+    // Persist order ID and mark invoice as sent
+    await prisma.$executeRawUnsafe(
+      `UPDATE "Invoice" SET "paypalInvoiceId"=$1,"paypalInvoiceUrl"=$2,"paypalStatus"='CREATED',"status"='sent',"sentAt"=NOW(),"updatedAt"=NOW() WHERE id=$3`,
+      orderId, paymentUrl, Number(req.params.id)
+    )
+
+    // Optionally send branded SMTP email
+    if (req.body.sendEmail && paymentUrl) {
       const smtp = await getSmtpTransporter()
       if (smtp) {
-        const html = buildPaypalButtonEmail(inv as Record<string, unknown>, client, paypalInvoiceUrl)
+        const html = buildPaymentLinkEmail(inv as Record<string, unknown>, client, paymentUrl)
         await smtp.transporter.sendMail({
           from: smtp.from ?? undefined,
           to: client.email,
@@ -465,33 +370,23 @@ router.post('/:id/send', async (req, res) => {
       }
     }
 
-    const updated = await queryInvoices('i.id = $1', [Number(req.params.id)])
     await createNotification(
       'invoice_sent',
-      'Invoice sent',
-      `Invoice #${inv.invoiceNumber} sent to ${client.firstName} ${client.lastName} (${client.email})`,
+      'Payment link created',
+      `Payment link generated for Invoice #${inv.invoiceNumber} — ${client.firstName} ${client.lastName}`,
     )
-    res.json({ success: true, invoice: updated[0], paypalInvoiceId, paypalInvoiceUrl, sandbox: isSandbox })
+
+    const updated = await queryInvoices('i.id = $1', [Number(req.params.id)])
+    res.json({ success: true, paymentUrl, orderId, invoice: updated[0], sandbox: isSandbox })
   } catch (e) {
-    res.status(500).json({ error: e instanceof Error ? e.message : 'Failed to send invoice' })
+    res.status(500).json({ error: e instanceof Error ? e.message : 'Failed to create payment link' })
   }
 })
 
 // POST /api/admin/invoices/:id/cancel
-router.post('/:id/cancel', async (req, res) => {
+router.post('/:id/cancel', async (_req, res) => {
   try {
-    const rows = await queryInvoices('i.id = $1', [Number(req.params.id)])
-    const inv = rows[0]
-    if (!inv) return res.status(404).json({ error: 'Not found' })
-
-    if (inv.paypalInvoiceId) {
-      await paypalFetch(`/v2/invoicing/invoices/${inv.paypalInvoiceId}/cancel`, 'POST', {
-        subject: req.body.subject || 'Invoice cancelled',
-        note: req.body.note || '',
-        send_to_invoicer: false, send_to_recipient: true,
-      })
-    }
-
+    // PayPal Orders expire on their own — just update local status
     await prisma.$executeRawUnsafe(
       `UPDATE "Invoice" SET "status"='cancelled',"updatedAt"=NOW() WHERE id=$1`,
       Number(req.params.id)
@@ -503,25 +398,7 @@ router.post('/:id/cancel', async (req, res) => {
   }
 })
 
-// POST /api/admin/invoices/:id/remind
-router.post('/:id/remind', async (req, res) => {
-  try {
-    const rows = await queryInvoices('i.id = $1', [Number(req.params.id)])
-    const inv = rows[0]
-    if (!inv?.paypalInvoiceId) return res.status(400).json({ error: 'Invoice not sent via PayPal yet' })
-
-    await paypalFetch(`/v2/invoicing/invoices/${inv.paypalInvoiceId}/remind`, 'POST', {
-      subject: req.body.subject || `Reminder: Invoice ${inv.invoiceNumber}`,
-      note: req.body.note || 'This is a friendly reminder that your invoice is due.',
-      send_to_invoicer: false, send_to_recipient: true,
-    })
-    res.json({ success: true })
-  } catch (e) {
-    res.status(500).json({ error: e instanceof Error ? e.message : 'Failed to send reminder' })
-  }
-})
-
-// POST /api/admin/invoices/sync — pull payment status from PayPal into local DB
+// POST /api/admin/invoices/sync — check PayPal Order statuses, auto-capture approved payments
 router.post('/sync', async (_req, res) => {
   try {
     const creds = await getPayPalSettings()
@@ -529,23 +406,31 @@ router.post('/sync', async (_req, res) => {
       return res.status(400).json({ error: 'PayPal credentials not configured.' })
     }
 
-    const rows = await queryInvoices('i.paypalInvoiceId IS NOT NULL')
+    const rows = await queryInvoices('i."paypalInvoiceId" IS NOT NULL')
     let updated = 0
+    const errors: string[] = []
 
     await Promise.all(rows.map(async inv => {
       try {
-        const ppInv = await paypalFetch(
-          `/v2/invoicing/invoices/${inv.paypalInvoiceId}`, 'GET'
+        const order = await paypalFetch(
+          `/v2/checkout/orders/${inv.paypalInvoiceId}`, 'GET'
         ) as { status: string }
 
-        const ppStatus = ppInv.status // DRAFT, SENT, VIEWED, PAID, MARKED_AS_PAID, CANCELLED, REFUNDED
+        let ppStatus = order.status // CREATED, PAYER_ACTION_REQUIRED, SAVED, APPROVED, COMPLETED, VOIDED
+
+        // Auto-capture payments the client has approved
+        if (ppStatus === 'APPROVED') {
+          await paypalFetch(`/v2/checkout/orders/${inv.paypalInvoiceId}/capture`, 'POST')
+          ppStatus = 'COMPLETED'
+        }
 
         let newLocalStatus = inv.status as string
-        if (ppStatus === 'PAID' || ppStatus === 'MARKED_AS_PAID') {
+        if (ppStatus === 'COMPLETED') {
           newLocalStatus = 'paid'
-        } else if (ppStatus === 'CANCELLED' || ppStatus === 'REFUNDED') {
+        } else if (ppStatus === 'VOIDED') {
           newLocalStatus = 'cancelled'
         }
+        // CREATED / PAYER_ACTION_REQUIRED / SAVED → keep current local status
 
         if (newLocalStatus !== inv.status) {
           updated++
@@ -564,10 +449,12 @@ router.post('/sync', async (_req, res) => {
           'UPDATE "Invoice" SET "status"=$1,"paypalStatus"=$2,"updatedAt"=NOW() WHERE id=$3',
           newLocalStatus, ppStatus, inv.id
         )
-      } catch { /* skip individual failures silently */ }
+      } catch (e) {
+        errors.push(`${inv.invoiceNumber}: ${e instanceof Error ? e.message : String(e)}`)
+      }
     }))
 
-    res.json({ success: true, updated, total: rows.length })
+    res.json({ success: true, updated, total: rows.length, errors })
   } catch (e) {
     res.status(500).json({ error: e instanceof Error ? e.message : 'Sync failed' })
   }

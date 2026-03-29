@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Plus, ArrowLeft, Trash2, Send, ExternalLink, Bell, XCircle,
+  Plus, ArrowLeft, Trash2, ExternalLink, XCircle,
   Copy, ChevronDown, ChevronUp, FileText, CheckCircle, Clock, AlertCircle,
-  Search, User, RefreshCw, Download, Eye, EyeOff, FileCode,
+  Search, User, RefreshCw, Download, Eye, EyeOff, FileCode, Link,
 } from 'lucide-react'
 import api, { getEmailTemplates } from '../../lib/api'
 import type { EmailTemplate } from '../../lib/api'
@@ -48,8 +48,8 @@ interface Invoice {
   status: string
   notes: string | null
   termsConditions: string | null
-  paypalInvoiceId: string | null
-  paypalInvoiceUrl: string | null
+  paypalInvoiceId: string | null  // stores PayPal Order ID
+  paypalInvoiceUrl: string | null // stores PayPal checkout URL (payer-action link)
   sentAt: string | null
   createdAt: string
 }
@@ -57,11 +57,11 @@ interface Invoice {
 // ── Status helpers ──────────────────────────────────────────────────────────────
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; Icon: typeof FileText }> = {
-  draft:     { label: 'Draft',     color: '#9CA3AF', bg: 'rgba(156,163,175,0.1)', Icon: FileText },
-  sent:      { label: 'Sent',      color: '#47C6FF', bg: 'rgba(71,198,255,0.1)',  Icon: Send },
-  paid:      { label: 'Paid',      color: '#10B981', bg: 'rgba(16,185,129,0.1)',  Icon: CheckCircle },
-  overdue:   { label: 'Overdue',   color: '#F97316', bg: 'rgba(249,115,22,0.1)', Icon: AlertCircle },
-  cancelled: { label: 'Cancelled', color: '#6B7280', bg: 'rgba(107,114,128,0.1)', Icon: XCircle },
+  draft:     { label: 'Draft',            color: '#9CA3AF', bg: 'rgba(156,163,175,0.1)', Icon: FileText },
+  sent:      { label: 'Awaiting Payment', color: '#47C6FF', bg: 'rgba(71,198,255,0.1)',  Icon: Clock },
+  paid:      { label: 'Paid',             color: '#10B981', bg: 'rgba(16,185,129,0.1)',  Icon: CheckCircle },
+  overdue:   { label: 'Overdue',          color: '#F97316', bg: 'rgba(249,115,22,0.1)',  Icon: AlertCircle },
+  cancelled: { label: 'Cancelled',        color: '#6B7280', bg: 'rgba(107,114,128,0.1)', Icon: XCircle },
 }
 
 function StatusBadge({ status }: { status: string }) {
@@ -292,7 +292,9 @@ function InvoiceBuilder({
   const [sending, setSending] = useState(false)
   const [error, setError] = useState('')
   const [sendSuccess, setSendSuccess] = useState('')
-  const [includePaypalButton, setIncludePaypalButton] = useState(false)
+  const [paymentLink, setPaymentLink] = useState<string | null>(initial?.paypalInvoiceUrl || null)
+  const [sendEmail, setSendEmail] = useState(false)
+  const [linkCopied, setLinkCopied] = useState(false)
 
   // Template
   const [invoiceTemplates, setInvoiceTemplates] = useState<EmailTemplate[]>([])
@@ -409,7 +411,7 @@ function InvoiceBuilder({
     }
   }
 
-  const handleSend = async () => {
+  const handlePaymentLink = async () => {
     const err = validate()
     if (err) { setError(err); return }
     setSending(true); setError(''); setSendSuccess('')
@@ -422,19 +424,28 @@ function InvoiceBuilder({
         const r = await api.post('/admin/invoices', payload())
         invId = r.data.id
       }
-      // Send via PayPal
-      const sendRes = await api.post(`/admin/invoices/${invId}/send`, { includePaypalButton })
+      const r = await api.post(`/admin/invoices/${invId}/payment-link`, { sendEmail })
+      setPaymentLink(r.data.paymentUrl)
       setSendSuccess(
-        sendRes.data.sandbox
-          ? 'Invoice sent in Sandbox mode — no real email is delivered. Switch to Live credentials in Settings → PayPal when ready to bill real clients.'
-          : 'Invoice sent! The client will receive a PayPal payment link via email.'
+        r.data.sandbox
+          ? 'Payment link created (Sandbox mode — test only). Copy the link and share with your client.'
+          : sendEmail
+            ? 'Payment link created and emailed to client!'
+            : 'Payment link created! Copy and share it with your client.'
       )
-      setTimeout(() => onSaved(), 2500)
+      onSaved()
     } catch (e: unknown) {
-      setError((e as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Failed to send invoice')
+      setError((e as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Failed to create payment link')
     } finally {
       setSending(false)
     }
+  }
+
+  const copyLink = () => {
+    if (!paymentLink) return
+    navigator.clipboard.writeText(paymentLink)
+    setLinkCopied(true)
+    setTimeout(() => setLinkCopied(false), 2000)
   }
 
   return (
@@ -717,47 +728,74 @@ function InvoiceBuilder({
               </div>
             )}
 
-            {/* PayPal button toggle */}
+            {/* Payment link display */}
+            {paymentLink && (
+              <div className="mb-4 p-3.5 rounded-xl border border-zinc-200 bg-white">
+                <p className="text-xs font-semibold text-black font-body mb-2 flex items-center gap-1.5">
+                  <Link className="w-3.5 h-3.5 text-[#0070ba]" /> Payment Link
+                </p>
+                <div className="flex items-center gap-2">
+                  <input
+                    readOnly
+                    value={paymentLink}
+                    className="flex-1 min-w-0 text-[11px] text-zinc-500 bg-zinc-50 border border-zinc-200 rounded-lg px-2 py-1.5 font-mono truncate"
+                  />
+                  <button
+                    type="button"
+                    onClick={copyLink}
+                    className="flex-shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-black text-white text-[11px] font-body hover:bg-zinc-800 transition-colors"
+                  >
+                    <Copy className="w-3 h-3" />
+                    {linkCopied ? 'Copied!' : 'Copy'}
+                  </button>
+                </div>
+                <a
+                  href={paymentLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-2 flex items-center gap-1 text-[11px] text-[#0070ba] hover:underline font-body"
+                >
+                  Open in PayPal <ExternalLink className="w-3 h-3" />
+                </a>
+              </div>
+            )}
+
+            {/* Email toggle */}
             <div className="mb-4 p-3.5 rounded-xl border border-zinc-200 bg-white">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-black font-body leading-tight">PayPal Payment Button</p>
+                  <p className="text-sm font-semibold text-black font-body leading-tight">Email link to client</p>
                   <p className="text-[11px] text-zinc-400 font-body mt-0.5 leading-snug">
-                    Send a branded email with a "Pay with PayPal" button. Requires SMTP to be configured.
+                    Send a branded payment email via SMTP when the link is generated.
                   </p>
                 </div>
                 <button
                   type="button"
-                  onClick={() => setIncludePaypalButton(v => !v)}
+                  onClick={() => setSendEmail(v => !v)}
                   className={`relative flex-shrink-0 w-11 h-6 rounded-full transition-colors duration-200 focus:outline-none ${
-                    includePaypalButton ? 'bg-[#0070ba]' : 'bg-zinc-200'
+                    sendEmail ? 'bg-[#0070ba]' : 'bg-zinc-200'
                   }`}
-                  aria-pressed={includePaypalButton}
+                  aria-pressed={sendEmail}
                 >
                   <span
                     className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 ${
-                      includePaypalButton ? 'translate-x-5' : 'translate-x-0'
+                      sendEmail ? 'translate-x-5' : 'translate-x-0'
                     }`}
                   />
                 </button>
               </div>
-              {includePaypalButton && (
-                <p className="mt-2.5 text-[11px] text-[#0070ba] font-medium font-body flex items-center gap-1">
-                  <span>✓</span> Branded invoice email will be sent via your SMTP
-                </p>
-              )}
             </div>
 
             {/* Actions */}
             <div className="space-y-3">
               <button
                 type="button"
-                onClick={handleSend}
+                onClick={handlePaymentLink}
                 disabled={sending}
                 className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-black text-background font-body font-semibold text-sm hover:bg-zinc-800 disabled:opacity-50 transition-all"
               >
-                <Send className="w-4 h-4" />
-                {sending ? 'Sending via PayPal…' : 'Send via PayPal'}
+                <Link className="w-4 h-4" />
+                {sending ? 'Generating…' : paymentLink ? 'Regenerate Link' : 'Generate Payment Link'}
               </button>
               <button
                 type="button"
@@ -770,7 +808,7 @@ function InvoiceBuilder({
             </div>
 
             <p className="mt-4 text-xs text-zinc-500 font-body text-center leading-relaxed">
-              Sending creates a PayPal invoice and emails the client a direct payment link.
+              Generates a secure PayPal checkout link. Share it directly or email it to your client.
             </p>
           </div>
         </div>
@@ -874,25 +912,27 @@ function InvoiceRow({
                 <span className="text-black font-semibold">Total: <span className="text-black">${invoice.amount.toFixed(2)}</span></span>
               </div>
 
-              {/* PayPal link */}
+              {/* Payment link */}
               {invoice.paypalInvoiceUrl && (
-                <div className="flex items-center gap-2 p-3 bg-zinc-100 border border-accent/20 rounded-lg">
-                  <CheckCircle className="w-4 h-4 text-black flex-shrink-0" />
-                  <span className="text-xs text-zinc-500 font-body flex-1">PayPal invoice sent — client can pay directly</span>
+                <div className="flex items-center gap-2 p-3 bg-zinc-100 border border-zinc-200 rounded-lg">
+                  <Link className="w-4 h-4 text-[#0070ba] flex-shrink-0" />
+                  <span className="text-xs text-zinc-500 font-body flex-1">
+                    {invoice.status === 'paid' ? 'Payment received via PayPal' : 'Payment link active — awaiting client payment'}
+                  </span>
                   <a
                     href={invoice.paypalInvoiceUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-1 text-xs text-black hover:underline font-body"
+                    className="flex items-center gap-1 text-xs text-[#0070ba] hover:underline font-body"
                     onClick={e => e.stopPropagation()}
                   >
-                    View <ExternalLink className="w-3 h-3" />
+                    Open <ExternalLink className="w-3 h-3" />
                   </a>
                   <button
                     type="button"
                     onClick={e => { e.stopPropagation(); navigator.clipboard.writeText(invoice.paypalInvoiceUrl!) }}
                     className="p-1 rounded text-zinc-500 hover:text-black"
-                    title="Copy link"
+                    title="Copy payment link"
                   >
                     <Copy className="w-3.5 h-3.5" />
                   </button>
@@ -907,20 +947,21 @@ function InvoiceRow({
 
               {/* Actions */}
               <div className="flex flex-wrap gap-2">
-                {!isSent && (
+                {invoice.status !== 'paid' && invoice.status !== 'cancelled' && (
                   <button type="button" disabled={loading}
-                    onClick={e => { e.stopPropagation(); act(() => api.post(`/admin/invoices/${invoice.id}/send`), 'Send') }}
+                    onClick={e => { e.stopPropagation(); onEdit() }}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-black text-background text-xs font-body font-semibold hover:bg-zinc-800 disabled:opacity-50 transition-all"
                   >
-                    <Send className="w-3.5 h-3.5" /> Send via PayPal
+                    <Link className="w-3.5 h-3.5" />
+                    {invoice.paypalInvoiceUrl ? 'View / Resend Link' : 'Generate Payment Link'}
                   </button>
                 )}
-                {isSent && (
+                {invoice.paypalInvoiceUrl && invoice.status !== 'paid' && (
                   <button type="button" disabled={loading}
-                    onClick={e => { e.stopPropagation(); act(() => api.post(`/admin/invoices/${invoice.id}/remind`), 'Reminder') }}
+                    onClick={e => { e.stopPropagation(); navigator.clipboard.writeText(invoice.paypalInvoiceUrl!) }}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-200 text-black text-xs font-body hover:bg-white/[0.05] disabled:opacity-50 transition-all"
                   >
-                    <Bell className="w-3.5 h-3.5" /> Send Reminder
+                    <Copy className="w-3.5 h-3.5" /> Copy Link
                   </button>
                 )}
                 {isSent && (
@@ -928,10 +969,10 @@ function InvoiceRow({
                     onClick={e => { e.stopPropagation(); if (confirm('Cancel this invoice?')) act(() => api.post(`/admin/invoices/${invoice.id}/cancel`), 'Cancel') }}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-500/20 text-red-500 text-xs font-body hover:bg-red-500/10 disabled:opacity-50 transition-all"
                   >
-                    <XCircle className="w-3.5 h-3.5" /> Cancel Invoice
+                    <XCircle className="w-3.5 h-3.5" /> Cancel
                   </button>
                 )}
-                {!isSent && (
+                {!isSent && invoice.status !== 'paid' && (
                   <button type="button" disabled={loading}
                     onClick={e => { e.stopPropagation(); if (confirm('Delete this invoice?')) act(() => api.delete(`/admin/invoices/${invoice.id}`), 'Delete') }}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-500/20 text-red-500 text-xs font-body hover:bg-red-500/10 disabled:opacity-50 transition-all"
@@ -977,11 +1018,15 @@ export default function InvoicesView() {
     setSyncMsg('')
     try {
       const r = await api.post('/admin/invoices/sync')
-      const { updated, total } = r.data
-      setSyncMsg(updated > 0
-        ? `${updated} invoice${updated !== 1 ? 's' : ''} updated from PayPal`
-        : `${total} invoice${total !== 1 ? 's' : ''} already up to date`
-      )
+      const { updated, total, errors } = r.data
+      if (errors?.length) {
+        setSyncMsg(`${updated} updated, ${errors.length} error(s): ${errors[0]}`)
+      } else {
+        setSyncMsg(updated > 0
+          ? `${updated} payment${updated !== 1 ? 's' : ''} captured from PayPal`
+          : total === 0 ? 'No active PayPal orders to sync' : `${total} order${total !== 1 ? 's' : ''} checked — all up to date`
+        )
+      }
       if (updated > 0) load()
     } catch (e: unknown) {
       setSyncMsg((e as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Sync failed')
@@ -1021,7 +1066,7 @@ export default function InvoicesView() {
         <div className="flex items-center gap-3">
           {syncMsg && (
             <span className={`text-xs font-body px-3 py-1.5 rounded-lg ${
-              syncMsg.includes('failed') || syncMsg.includes('error')
+              syncMsg.includes('failed') || syncMsg.includes('error') || syncMsg.includes('Error') || syncMsg.includes('error(s)')
                 ? 'bg-red-500/10 text-red-500'
                 : 'bg-green-500/10 text-green-600'
             }`}>
