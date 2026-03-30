@@ -363,6 +363,7 @@ export default function NexaBank() {
                   <div className="flex -space-x-2">
                     {STACK_AVATARS.map((src, i) => (
                       <img
+          loading="lazy"
                         key={i}
                         src={src}
                         alt=""
@@ -401,7 +402,8 @@ export default function NexaBank() {
                     </div>
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 rounded-full overflow-hidden" style={{ background: SURFACE_HIGH }}>
-                        <img src={avatar} alt={name} className="w-full h-full object-cover" />
+                        <img
+          loading="lazy" src={avatar} alt={name} className="w-full h-full object-cover" />
                       </div>
                       <div>
                         <p className="font-bold text-sm" style={{ color: ON_SURFACE }}>{name}</p>

@@ -401,6 +401,7 @@ export default function RestaurantDemo() {
           <div style={{ position: 'relative' }}>
             <div style={{ borderRadius: 20, overflow: 'hidden', aspectRatio: '1/1', position: 'relative' }}>
               <img
+          loading="lazy"
                 src="/imgs/restaurant-hero.png"
                 alt="Live fire cooking at Prime & Co."
                 style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center top', display: 'block', filter: 'brightness(0.85)' }}
@@ -497,6 +498,7 @@ export default function RestaurantDemo() {
           <div style={{ padding: mobile ? '32px 20px' : '52px 48px', position: 'relative', overflow: 'hidden' }}>
             {/* Background image */}
             <img
+          loading="lazy"
               src="/imgs/restaurant-reservation.png"
               alt="Reserve your seat"
               style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', display: 'block' }}

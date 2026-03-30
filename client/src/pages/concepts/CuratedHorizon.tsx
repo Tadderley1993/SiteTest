@@ -445,7 +445,8 @@ function HomePage({ go }: { go: (p: Page) => void }) {
         <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', height: 700 }}>
           {/* Left big image */}
           <div style={{ position: 'relative', overflow: 'hidden' }}>
-            <img src={IMG_HEDGE} alt="Avery Heights Estate" className="ch-gs" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+            <img
+          loading="lazy" src={IMG_HEDGE} alt="Avery Heights Estate" className="ch-gs" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
             <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(to top, rgba(8,39,23,0.85) 0%, transparent 100%)', padding: '32px 32px 28px' }}>
               <p style={{ fontSize: 10, letterSpacing: '0.2em', textTransform: 'uppercase', color: OPC, marginBottom: 4 }}>Featured Estate</p>
               <p className="ch-serif" style={{ fontWeight: 300, fontSize: 22, color: '#ffffff', fontStyle: 'italic' }}>Avery Heights Estate</p>
@@ -453,7 +454,8 @@ function HomePage({ go }: { go: (p: Page) => void }) {
           </div>
           {/* Right image */}
           <div style={{ overflow: 'hidden' }}>
-            <img src={IMG_LAWN} alt="Lawn detail" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+            <img
+          loading="lazy" src={IMG_LAWN} alt="Lawn detail" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
           </div>
         </div>
       </section>
@@ -507,6 +509,7 @@ function HomePage({ go }: { go: (p: Page) => void }) {
       {/* 7. CLOSING CTA */}
       <section style={{ position: 'relative', background: P, padding: '100px 48px', textAlign: 'center', overflow: 'hidden' }}>
         <img
+          loading="lazy"
           src={IMG_CTA_BG}
           alt=""
           style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.15 }}
@@ -552,7 +555,8 @@ function ServicesPage({ go }: { go: (p: Page) => void }) {
       <section style={{ background: '#ffffff', padding: '80px 48px' }}>
         <div style={{ maxWidth: 1280, margin: '0 auto', display: 'grid', gridTemplateColumns: '7fr 5fr', gap: 64, alignItems: 'center' }}>
           <div style={{ overflow: 'hidden' }}>
-            <img src={IMG_SVC_LAWN} alt="Estate Lawn Care" className="ch-gs" style={{ width: '100%', aspectRatio: '4/5', objectFit: 'cover', display: 'block' }} />
+            <img
+          loading="lazy" src={IMG_SVC_LAWN} alt="Estate Lawn Care" className="ch-gs" style={{ width: '100%', aspectRatio: '4/5', objectFit: 'cover', display: 'block' }} />
           </div>
           <div>
             <p style={{ fontSize: 10, letterSpacing: '0.2em', textTransform: 'uppercase', color: S, fontWeight: 600, marginBottom: 16 }}>Service 01</p>
@@ -601,7 +605,8 @@ function ServicesPage({ go }: { go: (p: Page) => void }) {
             </div>
           </div>
           <div style={{ overflow: 'hidden' }}>
-            <img src={IMG_SVC_LAND} alt="Landscape Design" className="ch-gs" style={{ width: '100%', aspectRatio: '4/3', objectFit: 'cover', display: 'block' }} />
+            <img
+          loading="lazy" src={IMG_SVC_LAND} alt="Landscape Design" className="ch-gs" style={{ width: '100%', aspectRatio: '4/3', objectFit: 'cover', display: 'block' }} />
           </div>
         </div>
       </section>
@@ -624,7 +629,8 @@ function ServicesPage({ go }: { go: (p: Page) => void }) {
             </div>
             {/* Spring image with overlay */}
             <div style={{ position: 'relative', overflow: 'hidden', minHeight: 360 }}>
-              <img src={IMG_SVC_SPRING} alt="Spring Care" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', position: 'absolute', inset: 0 }} />
+              <img
+          loading="lazy" src={IMG_SVC_SPRING} alt="Spring Care" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', position: 'absolute', inset: 0 }} />
               <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(8,39,23,0.8) 0%, transparent 60%)' }} />
               <div style={{ position: 'absolute', bottom: 32, left: 32, right: 32 }}>
                 <h3 className="ch-serif" style={{ fontWeight: 300, fontSize: 24, color: '#ffffff', marginBottom: 8, fontStyle: 'italic' }}>Spring Awakening</h3>
@@ -646,6 +652,7 @@ function ServicesPage({ go }: { go: (p: Page) => void }) {
       {/* Service 4: Irrigation — full width image bg with text overlay */}
       <section style={{ position: 'relative', minHeight: 500, display: 'flex', alignItems: 'center', overflow: 'hidden' }}>
         <img
+          loading="lazy"
           src={IMG_SVC_IRRIG}
           alt="Irrigation & Turf Management"
           style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', filter: 'brightness(0.5)' }}
@@ -693,10 +700,13 @@ function ServicesPage({ go }: { go: (p: Page) => void }) {
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
-              <img src={IMG_GND1} alt="Groundskeeping" className="ch-gs" style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', display: 'block' }} />
-              <img src={IMG_GND2} alt="Groundskeeping detail" className="ch-gs" style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', display: 'block' }} />
+              <img
+          loading="lazy" src={IMG_GND1} alt="Groundskeeping" className="ch-gs" style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', display: 'block' }} />
+              <img
+          loading="lazy" src={IMG_GND2} alt="Groundskeeping detail" className="ch-gs" style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', display: 'block' }} />
             </div>
-            <img src={IMG_GND3} alt="Estate grounds" style={{ width: '100%', aspectRatio: '16/7', objectFit: 'cover', display: 'block' }} />
+            <img
+          loading="lazy" src={IMG_GND3} alt="Estate grounds" style={{ width: '100%', aspectRatio: '16/7', objectFit: 'cover', display: 'block' }} />
           </div>
         </div>
       </section>
@@ -747,7 +757,8 @@ function PortfolioPage({ go }: { go: (p: Page) => void }) {
       <section style={{ background: '#ffffff', padding: '64px 48px' }}>
         <div style={{ maxWidth: 1280, margin: '0 auto', display: 'grid', gridTemplateColumns: '8fr 4fr', gap: 48, alignItems: 'start' }}>
           <div style={{ overflow: 'hidden' }}>
-            <img src={IMG_PORT1} alt="Windmere Estate" style={{ width: '100%', aspectRatio: '4/3', objectFit: 'cover', display: 'block' }} />
+            <img
+          loading="lazy" src={IMG_PORT1} alt="Windmere Estate" style={{ width: '100%', aspectRatio: '4/3', objectFit: 'cover', display: 'block' }} />
           </div>
           <div style={{ paddingTop: 16 }}>
             <p style={{ fontSize: 10, letterSpacing: '0.2em', textTransform: 'uppercase', color: S, fontWeight: 600, marginBottom: 12 }}>Project 01</p>
@@ -778,7 +789,8 @@ function PortfolioPage({ go }: { go: (p: Page) => void }) {
       <section style={{ background: SL, padding: '0' }}>
         <div style={{ display: 'grid', gridTemplateColumns: '5fr 7fr' }}>
           <div style={{ overflow: 'hidden', position: 'relative' }}>
-            <img src={IMG_PORT2A} alt="Clearwater Gardens" className="ch-gs" style={{ width: '100%', height: '100%', minHeight: 500, objectFit: 'cover', display: 'block' }} />
+            <img
+          loading="lazy" src={IMG_PORT2A} alt="Clearwater Gardens" className="ch-gs" style={{ width: '100%', height: '100%', minHeight: 500, objectFit: 'cover', display: 'block' }} />
             <div style={{ position: 'absolute', bottom: 24, left: 24, right: 24 }}>
               <div style={{ background: 'rgba(8,39,23,0.85)', backdropFilter: 'blur(4px)', padding: '16px 20px' }}>
                 <p style={{ fontSize: 10, letterSpacing: '0.15em', textTransform: 'uppercase', color: OPC, marginBottom: 4 }}>Project 02</p>
@@ -787,7 +799,8 @@ function PortfolioPage({ go }: { go: (p: Page) => void }) {
             </div>
           </div>
           <div style={{ overflow: 'hidden', position: 'relative' }}>
-            <img src={IMG_PORT2B} alt="Harborview Manor" className="ch-gs" style={{ width: '100%', height: '100%', minHeight: 500, objectFit: 'cover', display: 'block' }} />
+            <img
+          loading="lazy" src={IMG_PORT2B} alt="Harborview Manor" className="ch-gs" style={{ width: '100%', height: '100%', minHeight: 500, objectFit: 'cover', display: 'block' }} />
             <div style={{ position: 'absolute', bottom: 24, right: 24 }}>
               <div style={{ background: 'rgba(8,39,23,0.85)', backdropFilter: 'blur(4px)', padding: '16px 20px' }}>
                 <p style={{ fontSize: 10, letterSpacing: '0.15em', textTransform: 'uppercase', color: OPC, marginBottom: 4 }}>Project 03</p>
@@ -801,7 +814,8 @@ function PortfolioPage({ go }: { go: (p: Page) => void }) {
       {/* Gallery Item 3 — full width 700px */}
       <section style={{ background: '#ffffff', padding: '2px 0' }}>
         <div style={{ position: 'relative', height: 700, overflow: 'hidden' }}>
-          <img src={IMG_PORT4} alt="Grand Estate Entrance" className="ch-gs" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+          <img
+          loading="lazy" src={IMG_PORT4} alt="Grand Estate Entrance" className="ch-gs" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
           <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(8,39,23,0.7) 0%, transparent 50%)' }} />
           <div style={{ position: 'absolute', bottom: 48, left: '50%', transform: 'translateX(-50%)', textAlign: 'center', width: '100%' }}>
             <p style={{ fontSize: 10, letterSpacing: '0.2em', textTransform: 'uppercase', color: OPC, marginBottom: 8 }}>Project 04</p>
@@ -855,7 +869,8 @@ function AboutPage({ go }: { go: (p: Page) => void }) {
       <section style={{ background: '#ffffff', padding: '80px 48px' }}>
         <div style={{ maxWidth: 1280, margin: '0 auto', display: 'grid', gridTemplateColumns: '7fr 5fr', gap: 64, alignItems: 'center' }}>
           <div style={{ overflow: 'hidden' }}>
-            <img src={IMG_ABOUT_EST} alt="Estate Heritage" style={{ width: '100%', aspectRatio: '4/3', objectFit: 'cover', display: 'block' }} />
+            <img
+          loading="lazy" src={IMG_ABOUT_EST} alt="Estate Heritage" style={{ width: '100%', aspectRatio: '4/3', objectFit: 'cover', display: 'block' }} />
           </div>
           <div>
             <p style={{ fontSize: 10, letterSpacing: '0.2em', textTransform: 'uppercase', color: S, fontWeight: 600, marginBottom: 16 }}>Our Heritage</p>
@@ -905,7 +920,8 @@ function AboutPage({ go }: { go: (p: Page) => void }) {
       <section style={{ background: '#ffffff', padding: '80px 48px' }}>
         <div style={{ maxWidth: 1280, margin: '0 auto', display: 'grid', gridTemplateColumns: '5fr 6fr', gap: 64, alignItems: 'center' }}>
           <div style={{ overflow: 'hidden' }}>
-            <img src={IMG_ABOUT_TEAM} alt="Our Team" style={{ width: '100%', aspectRatio: '3/4', objectFit: 'cover', display: 'block' }} />
+            <img
+          loading="lazy" src={IMG_ABOUT_TEAM} alt="Our Team" style={{ width: '100%', aspectRatio: '3/4', objectFit: 'cover', display: 'block' }} />
           </div>
           <div>
             <p style={{ fontSize: 10, letterSpacing: '0.2em', textTransform: 'uppercase', color: S, fontWeight: 600, marginBottom: 16 }}>Our People</p>
@@ -1034,7 +1050,8 @@ function ContactPage({ go: _go }: { go: (p: Page) => void }) {
               <p style={{ fontSize: 13, color: OSV }}>estate@curatedhorizon.com</p>
             </div>
             <div style={{ overflow: 'hidden' }}>
-              <img src={IMG_CONTACT} alt="Estate" className="ch-gs" style={{ width: '100%', aspectRatio: '4/3', objectFit: 'cover', display: 'block' }} />
+              <img
+          loading="lazy" src={IMG_CONTACT} alt="Estate" className="ch-gs" style={{ width: '100%', aspectRatio: '4/3', objectFit: 'cover', display: 'block' }} />
             </div>
           </div>
 
@@ -1135,7 +1152,8 @@ function ContactPage({ go: _go }: { go: (p: Page) => void }) {
           <div style={{ position: 'relative' }}>
             <div style={{ position: 'absolute', top: 24, left: 24, right: -24, bottom: -24, background: SF, zIndex: 0 }} />
             <div style={{ position: 'relative', zIndex: 1, overflow: 'hidden' }}>
-              <img src={IMG_TOPIARY} alt="Precision topiary" className="ch-gs" style={{ width: '100%', aspectRatio: '4/3', objectFit: 'cover', display: 'block' }} />
+              <img
+          loading="lazy" src={IMG_TOPIARY} alt="Precision topiary" className="ch-gs" style={{ width: '100%', aspectRatio: '4/3', objectFit: 'cover', display: 'block' }} />
             </div>
           </div>
           {/* Text right */}

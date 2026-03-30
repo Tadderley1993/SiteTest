@@ -305,6 +305,7 @@ export default function ProductDemo() {
         {/* Image */}
         <div style={{ position: 'relative', overflow: 'hidden' }}>
           <img
+          loading="lazy"
             src="/imgs/apex-lifestyle.png"
             alt="Apex Pro lifestyle"
             style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center' }}
@@ -364,6 +365,7 @@ export default function ProductDemo() {
       <section style={{ borderTop: '1px solid rgba(255,255,255,0.06)', position: 'relative', padding: mobile ? '40px 20px' : '64px 48px', overflow: 'hidden' }}>
         {/* Background image */}
         <img
+          loading="lazy"
           src="/imgs/apex-crowd.png"
           alt=""
           style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', filter: 'blur(6px)', transform: 'scale(1.05)' }}
