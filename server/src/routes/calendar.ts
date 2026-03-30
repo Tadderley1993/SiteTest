@@ -30,7 +30,7 @@ router.get('/events', authMiddleware, async (req, res) => {
     `, ...params)
     res.json(events)
   } catch (e) {
-    console.error(e)
+    logger.error(e)
     res.status(500).json({ error: 'Failed to fetch events' })
   }
 })
@@ -59,7 +59,7 @@ router.get('/upcoming', authMiddleware, async (req, res) => {
     `, now, end)
     res.json(events)
   } catch (e) {
-    console.error(e)
+    logger.error(e)
     res.status(500).json({ error: 'Failed to fetch upcoming events' })
   }
 })
@@ -76,7 +76,7 @@ router.get('/clients', authMiddleware, async (req, res) => {
     `)
     res.json(clients)
   } catch (e) {
-    console.error(e)
+    logger.error(e)
     res.status(500).json({ error: 'Failed to fetch clients' })
   }
 })
@@ -95,7 +95,7 @@ router.post('/events', authMiddleware, async (req, res) => {
        allDay ?? false, eventType || 'reminder', clientId ? Number(clientId) : null, color || '#18181b', remindersJson)
     res.json(rows[0])
   } catch (e) {
-    console.error(e)
+    logger.error(e)
     res.status(500).json({ error: 'Failed to create event' })
   }
 })
@@ -117,7 +117,7 @@ router.put('/events/:id', authMiddleware, async (req, res) => {
     if (!(rows as unknown[]).length) return res.status(404).json({ error: 'Event not found' })
     res.json(rows[0])
   } catch (e) {
-    console.error(e)
+    logger.error(e)
     res.status(500).json({ error: 'Failed to update event' })
   }
 })
@@ -128,7 +128,7 @@ router.delete('/events/:id', authMiddleware, async (req, res) => {
     await prisma.$executeRawUnsafe(`DELETE FROM "CalendarEvent" WHERE id=$1`, Number(req.params.id))
     res.json({ ok: true })
   } catch (e) {
-    console.error(e)
+    logger.error(e)
     res.status(500).json({ error: 'Failed to delete event' })
   }
 })

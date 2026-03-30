@@ -48,8 +48,8 @@ interface Invoice {
   status: string
   notes: string | null
   termsConditions: string | null
-  stripePaymentLinkId: string | null
-  stripePaymentLinkUrl: string | null
+  stripeInvoiceId: string | null
+  stripeInvoiceUrl: string | null
   sentAt: string | null
   createdAt: string
 }
@@ -292,7 +292,7 @@ function InvoiceBuilder({
   const [sending, setSending] = useState(false)
   const [error, setError] = useState('')
   const [sendSuccess, setSendSuccess] = useState('')
-  const [paymentLink, setPaymentLink] = useState<string | null>(initial?.stripePaymentLinkUrl || null)
+  const [paymentLink, setPaymentLink] = useState<string | null>(initial?.stripeInvoiceUrl || null)
   const [sendEmail, setSendEmail] = useState(false)
   const [linkCopied, setLinkCopied] = useState(false)
 
@@ -349,7 +349,7 @@ function InvoiceBuilder({
       amount: total,
       notes: notes || null,
       termsConditions: termsConditions || null,
-      stripePaymentLinkUrl: initial?.stripePaymentLinkUrl ?? null,
+      stripeInvoiceUrl: initial?.stripeInvoiceUrl ?? null,
       client: selectedClient
         ? { firstName: selectedClient.firstName, lastName: selectedClient.lastName, email: selectedClient.email }
         : undefined,
@@ -425,17 +425,15 @@ function InvoiceBuilder({
         invId = r.data.id
       }
       const r = await api.post(`/admin/invoices/${invId}/payment-link`, { sendEmail })
-      setPaymentLink(r.data.paymentUrl)
+      setPaymentLink(r.data.invoiceUrl)
       setSendSuccess(
-        r.data.sandbox
-          ? 'Payment link created (Sandbox mode — test only). Copy the link and share with your client.'
-          : sendEmail
-            ? 'Payment link created and emailed to client!'
-            : 'Payment link created! Copy and share it with your client.'
+        sendEmail
+          ? 'Stripe invoice created and emailed to client!'
+          : 'Stripe invoice created! Share the link with your client.'
       )
       onSaved()
     } catch (e: unknown) {
-      setError((e as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Failed to create payment link')
+      setError((e as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Failed to create Stripe invoice')
     } finally {
       setSending(false)
     }
@@ -687,7 +685,7 @@ function InvoiceBuilder({
                           status: initial?.status ?? 'draft', currency, subtotal,
                           discountType, discountValue, taxRate, amount: total,
                           notes: notes || null, termsConditions: termsConditions || null,
-                          stripePaymentLinkUrl: initial?.stripePaymentLinkUrl ?? null,
+                          stripeInvoiceUrl: initial?.stripeInvoiceUrl ?? null,
                           client: selectedClient
                             ? { firstName: selectedClient.firstName, lastName: selectedClient.lastName, email: selectedClient.email }
                             : undefined,
@@ -728,11 +726,11 @@ function InvoiceBuilder({
               </div>
             )}
 
-            {/* Payment link display */}
+            {/* Stripe invoice link display */}
             {paymentLink && (
               <div className="mb-4 p-3.5 rounded-xl border border-zinc-200 bg-white">
                 <p className="text-xs font-semibold text-black font-body mb-2 flex items-center gap-1.5">
-                  <Link className="w-3.5 h-3.5 text-[#0070ba]" /> Payment Link
+                  <Link className="w-3.5 h-3.5 text-[#635bff]" /> Stripe Invoice Link
                 </p>
                 <div className="flex items-center gap-2">
                   <input
@@ -755,7 +753,7 @@ function InvoiceBuilder({
                   rel="noopener noreferrer"
                   className="mt-2 flex items-center gap-1 text-[11px] text-[#635bff] hover:underline font-body"
                 >
-                  Open Stripe Checkout <ExternalLink className="w-3 h-3" />
+                  View Invoice <ExternalLink className="w-3 h-3" />
                 </a>
               </div>
             )}
@@ -795,7 +793,7 @@ function InvoiceBuilder({
                 className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-black text-background font-body font-semibold text-sm hover:bg-zinc-800 disabled:opacity-50 transition-all"
               >
                 <Link className="w-4 h-4" />
-                {sending ? 'Generating…' : paymentLink ? 'Regenerate Link' : 'Generate Payment Link'}
+                {sending ? 'Creating…' : paymentLink ? 'Resend Invoice' : 'Send Stripe Invoice'}
               </button>
               <button
                 type="button"
@@ -808,7 +806,7 @@ function InvoiceBuilder({
             </div>
 
             <p className="mt-4 text-xs text-zinc-500 font-body text-center leading-relaxed">
-              Generates a secure Stripe checkout link. Share it directly or email it to your client.
+              Creates a professional Stripe invoice with PDF. Stripe emails it directly to your client.
             </p>
           </div>
         </div>
@@ -913,14 +911,14 @@ function InvoiceRow({
               </div>
 
               {/* Payment link */}
-              {invoice.stripePaymentLinkUrl && (
+              {invoice.stripeInvoiceUrl && (
                 <div className="flex items-center gap-2 p-3 bg-zinc-100 border border-zinc-200 rounded-lg">
                   <Link className="w-4 h-4 text-[#635bff] flex-shrink-0" />
                   <span className="text-xs text-zinc-500 font-body flex-1">
-                    {invoice.status === 'paid' ? 'Payment received via Stripe' : 'Stripe payment link active — awaiting client payment'}
+                    {invoice.status === 'paid' ? 'Payment received via Stripe' : 'Stripe invoice sent — awaiting client payment'}
                   </span>
                   <a
-                    href={invoice.stripePaymentLinkUrl}
+                    href={invoice.stripeInvoiceUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-1 text-xs text-[#635bff] hover:underline font-body"
@@ -930,7 +928,7 @@ function InvoiceRow({
                   </a>
                   <button
                     type="button"
-                    onClick={e => { e.stopPropagation(); navigator.clipboard.writeText(invoice.stripePaymentLinkUrl!) }}
+                    onClick={e => { e.stopPropagation(); navigator.clipboard.writeText(invoice.stripeInvoiceUrl!) }}
                     className="p-1 rounded text-zinc-500 hover:text-black"
                     title="Copy payment link"
                   >
@@ -953,12 +951,12 @@ function InvoiceRow({
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-black text-background text-xs font-body font-semibold hover:bg-zinc-800 disabled:opacity-50 transition-all"
                   >
                     <Link className="w-3.5 h-3.5" />
-                    {invoice.stripePaymentLinkUrl ? 'View / Resend Link' : 'Generate Payment Link'}
+                    {invoice.stripeInvoiceUrl ? 'View / Resend Invoice' : 'Send Stripe Invoice'}
                   </button>
                 )}
-                {invoice.stripePaymentLinkUrl && invoice.status !== 'paid' && (
+                {invoice.stripeInvoiceUrl && invoice.status !== 'paid' && (
                   <button type="button" disabled={loading}
-                    onClick={e => { e.stopPropagation(); navigator.clipboard.writeText(invoice.stripePaymentLinkUrl!) }}
+                    onClick={e => { e.stopPropagation(); navigator.clipboard.writeText(invoice.stripeInvoiceUrl!) }}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-200 text-black text-xs font-body hover:bg-white/[0.05] disabled:opacity-50 transition-all"
                   >
                     <Copy className="w-3.5 h-3.5" /> Copy Link
@@ -1024,7 +1022,7 @@ export default function InvoicesView() {
       } else {
         setSyncMsg(updated > 0
           ? `${updated} invoice${updated !== 1 ? 's' : ''} marked paid via Stripe`
-          : total === 0 ? 'No active Stripe payment links to sync' : `${total} link${total !== 1 ? 's' : ''} checked — all up to date`
+          : total === 0 ? 'No active Stripe invoices to sync' : `${total} invoice${total !== 1 ? 's' : ''} checked — all up to date`
         )
       }
       if (updated > 0) load()

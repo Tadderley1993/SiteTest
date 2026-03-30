@@ -229,9 +229,9 @@ model Invoice {
   status           String   @default("draft")
   notes            String?
   termsConditions  String?
-  stripePaymentLinkId  String?
-  stripePaymentLinkUrl String?
-  stripeStatus         String?
+  stripeInvoiceId  String?
+  stripeInvoiceUrl String?
+  stripeStatus     String?
   sentAt           DateTime?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt

@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { prisma } from '../lib/prisma.js'
+import { logger } from '../lib/logger.js'
 import { getSmtpTransporter } from '../lib/smtp.js'
 import { authMiddleware } from '../middleware/auth.js'
 
@@ -59,7 +60,7 @@ router.put('/', async (req, res) => {
     const updated = await prisma.adminSettings.update({ where: { id: s.id }, data: updateData })
     res.json(maskSettings(updated as unknown as Record<string, unknown>))
   } catch (error) {
-    console.error('Settings save error:', error)
+    logger.error({ err: error }, 'Settings save error')
     const msg = error instanceof Error ? error.message : String(error)
     res.status(500).json({ error: `Failed to save settings: ${msg}` })
   }

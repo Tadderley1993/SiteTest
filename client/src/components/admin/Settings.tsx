@@ -328,11 +328,11 @@ export default function Settings() {
             <code className="block text-xs bg-[#f3f3f3] border border-zinc-200 rounded-lg px-3 py-2 text-black font-mono break-all">
               https://gallant-harmony-production-646a.up.railway.app/api/stripe/webhook
             </code>
-            <p className="text-xs text-zinc-500">Events to listen for: <strong>checkout.session.completed</strong></p>
+            <p className="text-xs text-zinc-500">Events to listen for: <strong>invoice.paid</strong></p>
             {[
               ['1', 'Go to dashboard.stripe.com → Developers → Webhooks'],
               ['2', 'Click "Add endpoint" and paste the URL above'],
-              ['3', 'Select event: checkout.session.completed'],
+              ['3', 'Select event: invoice.paid'],
               ['4', 'Copy the "Signing secret" (whsec_...) and paste above'],
               ['5', 'For local testing: stripe listen --forward-to localhost:3001/api/stripe/webhook'],
             ].map(([num, text]) => (

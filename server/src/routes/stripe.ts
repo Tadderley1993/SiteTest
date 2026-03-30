@@ -51,13 +51,13 @@ router.post('/webhook', async (req: Request, res) => {
       return res.status(400).json({ error: 'Webhook signature verification failed' })
     }
 
-    if (event.type === 'checkout.session.completed') {
-      const session = event.data.object as Stripe.Checkout.Session
-      const invoiceId = session.metadata?.invoiceId
+    if (event.type === 'invoice.paid') {
+      const stripeInvoice = event.data.object as Stripe.Invoice
+      const invoiceId = stripeInvoice.metadata?.invoiceId
 
       if (invoiceId) {
         await prisma.$executeRawUnsafe(
-          `UPDATE "Invoice" SET "status"='paid',"stripeStatus"='complete',"updatedAt"=NOW() WHERE id=$1`,
+          `UPDATE "Invoice" SET "status"='paid',"stripeStatus"='paid',"updatedAt"=NOW() WHERE id=$1`,
           Number(invoiceId),
         )
         await createNotification(

@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { prisma } from '../lib/prisma.js'
+import { logger } from '../lib/logger.js'
 import { authMiddleware } from '../middleware/auth.js'
 import { getStripeSettings, getStripeClient } from '../lib/stripe.js'
 
@@ -278,7 +279,7 @@ router.get('/summary', async (_req, res) => {
       recentPayments,
     })
   } catch (error) {
-    console.error('Financials error:', error)
+    logger.error({ err: error }, 'Financials error')
     res.status(500).json({ error: 'Failed to compute financials' })
   }
 })

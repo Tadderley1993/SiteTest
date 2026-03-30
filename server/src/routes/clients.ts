@@ -26,7 +26,7 @@ router.get('/', async (_req, res) => {
     }))
     res.json(patched)
   } catch (error) {
-    console.error('Error fetching clients:', error)
+    logger.error({ error }, 'Error fetching clients')
     res.status(500).json({ error: 'Failed to fetch clients' })
   }
 })
@@ -47,7 +47,7 @@ router.post('/', async (req, res) => {
     })
     res.json(client)
   } catch (error) {
-    console.error('Error creating client:', error)
+    logger.error({ err: error }, 'Error creating client')
     res.status(500).json({ error: 'Failed to create client' })
   }
 })
@@ -77,7 +77,7 @@ router.get('/:id', async (req, res) => {
       tasks: client.tasks.map(t => ({ ...t, taskOwner: ownerMap[t.id] ?? 'client' })),
     })
   } catch (error) {
-    console.error('Error fetching client:', error)
+    logger.error({ err: error }, 'Error fetching client')
     res.status(500).json({ error: 'Failed to fetch client' })
   }
 })
@@ -95,7 +95,7 @@ router.put('/:id', async (req, res) => {
     })
     res.json(client)
   } catch (error) {
-    console.error('Error updating client:', error)
+    logger.error({ err: error }, 'Error updating client')
     res.status(500).json({ error: 'Failed to update client' })
   }
 })
@@ -115,7 +115,7 @@ router.put('/:id/journey', async (req, res) => {
     ) as Array<{ journeyPhase: string }>
     res.json({ journeyPhase: rows[0]?.journeyPhase })
   } catch (error) {
-    console.error('Error updating journey phase:', error)
+    logger.error({ err: error }, 'Error updating journey phase')
     res.status(500).json({ error: 'Failed to update journey phase' })
   }
 })
@@ -126,7 +126,7 @@ router.delete('/:id', async (req, res) => {
     await prisma.client.delete({ where: { id: parseInt(req.params.id) } })
     res.json({ success: true })
   } catch (error) {
-    console.error('Error deleting client:', error)
+    logger.error({ err: error }, 'Error deleting client')
     res.status(500).json({ error: 'Failed to delete client' })
   }
 })
@@ -142,7 +142,7 @@ router.put('/:id/scope', async (req, res) => {
     })
     res.json(scope)
   } catch (error) {
-    console.error('Error updating scope:', error)
+    logger.error({ err: error }, 'Error updating scope')
     res.status(500).json({ error: 'Failed to update project scope' })
   }
 })
@@ -159,7 +159,7 @@ router.post('/:id/tasks', async (req, res) => {
     `, clientId, title, description ?? null, column, priority, dueDate ?? null, order) as unknown[]
     res.json((rows as unknown[])[0])
   } catch (error) {
-    console.error('Error creating task:', error)
+    logger.error({ err: error }, 'Error creating task')
     res.status(500).json({ error: 'Failed to create task' })
   }
 })
@@ -186,7 +186,7 @@ router.put('/:id/tasks/:taskId', async (req, res) => {
     `, ...params) as unknown[]
     res.json((rows as unknown[])[0])
   } catch (error) {
-    console.error('Error updating task:', error)
+    logger.error({ err: error }, 'Error updating task')
     res.status(500).json({ error: 'Failed to update task' })
   }
 })
@@ -197,7 +197,7 @@ router.delete('/:id/tasks/:taskId', async (req, res) => {
     await prisma.kanbanTask.delete({ where: { id: parseInt(req.params.taskId) } })
     res.json({ success: true })
   } catch (error) {
-    console.error('Error deleting task:', error)
+    logger.error({ err: error }, 'Error deleting task')
     res.status(500).json({ error: 'Failed to delete task' })
   }
 })
@@ -215,7 +215,7 @@ router.get('/:id/standing', async (req, res) => {
     ])
     res.json({ standing, payments, invoices })
   } catch (error) {
-    console.error('Error fetching standing:', error)
+    logger.error({ err: error }, 'Error fetching standing')
     res.status(500).json({ error: 'Failed to fetch standing' })
   }
 })
@@ -231,7 +231,7 @@ router.put('/:id/standing', async (req, res) => {
     })
     res.json(standing)
   } catch (error) {
-    console.error('Error updating standing:', error)
+    logger.error({ err: error }, 'Error updating standing')
     res.status(500).json({ error: 'Failed to update standing' })
   }
 })
@@ -243,7 +243,7 @@ router.post('/:id/payments', async (req, res) => {
     const payment = await prisma.paymentEntry.create({ data: { clientId, ...req.body } })
     res.json(payment)
   } catch (error) {
-    console.error('Error creating payment:', error)
+    logger.error({ err: error }, 'Error creating payment')
     res.status(500).json({ error: 'Failed to create payment' })
   }
 })
@@ -257,7 +257,7 @@ router.put('/:id/payments/:paymentId', async (req, res) => {
     })
     res.json(payment)
   } catch (error) {
-    console.error('Error updating payment:', error)
+    logger.error({ err: error }, 'Error updating payment')
     res.status(500).json({ error: 'Failed to update payment' })
   }
 })
@@ -268,7 +268,7 @@ router.delete('/:id/payments/:paymentId', async (req, res) => {
     await prisma.paymentEntry.delete({ where: { id: parseInt(req.params.paymentId) } })
     res.json({ success: true })
   } catch (error) {
-    console.error('Error deleting payment:', error)
+    logger.error({ err: error }, 'Error deleting payment')
     res.status(500).json({ error: 'Failed to delete payment' })
   }
 })
@@ -280,7 +280,7 @@ router.post('/:id/invoices', async (req, res) => {
     const invoice = await prisma.invoice.create({ data: { clientId, ...req.body } })
     res.json(invoice)
   } catch (error) {
-    console.error('Error creating invoice:', error)
+    logger.error({ err: error }, 'Error creating invoice')
     res.status(500).json({ error: 'Failed to create invoice' })
   }
 })
@@ -294,7 +294,7 @@ router.put('/:id/invoices/:invoiceId', async (req, res) => {
     })
     res.json(invoice)
   } catch (error) {
-    console.error('Error updating invoice:', error)
+    logger.error({ err: error }, 'Error updating invoice')
     res.status(500).json({ error: 'Failed to update invoice' })
   }
 })
@@ -305,7 +305,7 @@ router.delete('/:id/invoices/:invoiceId', async (req, res) => {
     await prisma.invoice.delete({ where: { id: parseInt(req.params.invoiceId) } })
     res.json({ success: true })
   } catch (error) {
-    console.error('Error deleting invoice:', error)
+    logger.error({ err: error }, 'Error deleting invoice')
     res.status(500).json({ error: 'Failed to delete invoice' })
   }
 })
@@ -325,7 +325,7 @@ router.post('/:id/set-portal-password', authMiddleware, async (req, res) => {
     )
     res.json({ message: 'Portal password set', clientId, portalActive: true })
   } catch (error) {
-    console.error('Error setting portal password:', error)
+    logger.error({ err: error }, 'Error setting portal password')
     res.status(500).json({ error: 'Failed to set portal password' })
   }
 })

@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express'
 import { prisma } from '../lib/prisma.js'
+import { logger } from '../lib/logger.js'
 import multer from 'multer'
 import path from 'path'
 import fs from 'fs'
@@ -83,7 +84,7 @@ router.post('/:id/receipt', receiptUpload.single('receipt'), async (req: Request
     })
     res.json(updated)
   } catch (error) {
-    console.error('Receipt upload error:', error)
+    logger.error({ err: error }, 'Receipt upload error')
     res.status(500).json({ error: 'Receipt upload failed' })
   }
 })

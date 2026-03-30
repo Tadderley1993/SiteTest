@@ -59,7 +59,7 @@ router.post('/:clientId/documents', upload.single('file'), async (req: Request, 
     )
     res.json(doc)
   } catch (error) {
-    console.error('Error uploading document:', error)
+    logger.error({ err: error }, 'Error uploading document')
     res.status(500).json({ error: 'Upload failed' })
   }
 })

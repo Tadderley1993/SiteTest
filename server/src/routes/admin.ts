@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { prisma } from '../lib/prisma.js'
+import { logger } from '../lib/logger.js'
 import { authMiddleware, AuthRequest } from '../middleware/auth.js'
 
 const router = Router()
@@ -17,7 +18,7 @@ router.get('/submissions', async (_req, res) => {
     const parsed = submissions.map(s => ({ ...s, services: JSON.parse(s.services) }))
     res.json(parsed)
   } catch (error) {
-    console.error('Error fetching submissions:', error)
+    logger.error({ err: error }, 'Error fetching submissions')
     res.status(500).json({ error: 'Failed to fetch submissions' })
   }
 })
@@ -35,7 +36,7 @@ router.get('/submissions/trash', async (_req, res) => {
     const parsed = trashed.map(s => ({ ...s, services: JSON.parse(s.services) }))
     res.json(parsed)
   } catch (error) {
-    console.error('Error fetching trash:', error)
+    logger.error({ err: error }, 'Error fetching trash')
     res.status(500).json({ error: 'Failed to fetch trash' })
   }
 })
@@ -47,7 +48,7 @@ router.post('/submissions/trash/:id/restore', async (req, res) => {
     await prisma.submission.update({ where: { id }, data: { deletedAt: null } })
     res.json({ success: true })
   } catch (error) {
-    console.error('Error restoring submission:', error)
+    logger.error({ err: error }, 'Error restoring submission')
     res.status(500).json({ error: 'Failed to restore submission' })
   }
 })
@@ -60,7 +61,7 @@ router.delete('/submissions/trash/:id', async (req, res) => {
     await prisma.submission.delete({ where: { id } })
     res.json({ success: true })
   } catch (error) {
-    console.error('Error permanently deleting submission:', error)
+    logger.error({ err: error }, 'Error permanently deleting submission')
     res.status(500).json({ error: 'Failed to permanently delete submission' })
   }
 })
@@ -73,7 +74,7 @@ router.get('/submissions/:id', async (req, res) => {
     if (!submission) return res.status(404).json({ error: 'Submission not found' })
     res.json({ ...submission, services: JSON.parse(submission.services) })
   } catch (error) {
-    console.error('Error fetching submission:', error)
+    logger.error({ err: error }, 'Error fetching submission')
     res.status(500).json({ error: 'Failed to fetch submission' })
   }
 })
@@ -85,7 +86,7 @@ router.delete('/submissions/:id', async (req, res) => {
     await prisma.submission.update({ where: { id }, data: { deletedAt: new Date() } })
     res.json({ success: true })
   } catch (error) {
-    console.error('Error deleting submission:', error)
+    logger.error({ err: error }, 'Error deleting submission')
     res.status(500).json({ error: 'Failed to delete submission' })
   }
 })

@@ -38,9 +38,9 @@ async function runMigrations() {
   try {
     await prisma.$executeRawUnsafe(`
       ALTER TABLE "Invoice"
-        ADD COLUMN IF NOT EXISTS "stripePaymentLinkId"  TEXT,
-        ADD COLUMN IF NOT EXISTS "stripePaymentLinkUrl" TEXT,
-        ADD COLUMN IF NOT EXISTS "stripeStatus"         TEXT
+        ADD COLUMN IF NOT EXISTS "stripeInvoiceId"  TEXT,
+        ADD COLUMN IF NOT EXISTS "stripeInvoiceUrl" TEXT,
+        ADD COLUMN IF NOT EXISTS "stripeStatus"     TEXT
     `)
     await prisma.$executeRawUnsafe(`
       ALTER TABLE "Submission"
@@ -48,7 +48,7 @@ async function runMigrations() {
     `)
     logger.info('DB migrations OK')
   } catch (err) {
-    console.error('DB migration error:', err)
+    logger.error({ err }, 'DB migration error')
   }
 }
 

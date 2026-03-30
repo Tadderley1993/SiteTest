@@ -130,7 +130,7 @@ export interface FullInvoice {
   status?: string
   notes?: string | null
   termsConditions?: string | null
-  stripePaymentLinkUrl?: string | null
+  stripeInvoiceUrl?: string | null
 }
 
 export function buildInvoiceTokenMap(
@@ -173,7 +173,7 @@ export function buildInvoiceTokenMap(
     currency:          currency ?? 'USD',
     notes:             invoice.notes              ?? '',
     termsConditions:   invoice.termsConditions    ?? '',
-    stripeUrl:         invoice.stripePaymentLinkUrl ?? '',
+    stripeUrl:         invoice.stripeInvoiceUrl ?? '',
 
     // Agency
     agencyName:        'Designs By Terrence Adderley',

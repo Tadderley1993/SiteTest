@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express'
 import { GoogleGenAI } from '@google/genai'
+import { logger } from '../lib/logger.js'
 import { authMiddleware } from '../middleware/auth.js'
 
 const router = Router()
@@ -37,7 +38,7 @@ router.post('/generate', async (req: Request, res: Response) => {
     res.json({ images })
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Image generation failed'
-    console.error('Image generation error:', message)
+    logger.error({ err: message }, 'Image generation error')
     res.status(500).json({ error: message })
   }
 })

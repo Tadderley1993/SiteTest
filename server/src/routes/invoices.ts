@@ -31,8 +31,8 @@ async function queryInvoices(where?: string, params: unknown[] = []) {
       i.status,
       i.notes,
       i."termsConditions",
-      i."stripePaymentLinkId",
-      i."stripePaymentLinkUrl",
+      i."stripeInvoiceId",
+      i."stripeInvoiceUrl",
       i."stripeStatus",
       i."sentAt",
       i."createdAt",
@@ -65,8 +65,8 @@ async function queryInvoices(where?: string, params: unknown[] = []) {
     status: r.status,
     notes: r.notes,
     termsConditions: r.termsConditions,
-    stripePaymentLinkId: r.stripePaymentLinkId,
-    stripePaymentLinkUrl: r.stripePaymentLinkUrl,
+    stripeInvoiceId: r.stripeInvoiceId,
+    stripeInvoiceUrl: r.stripeInvoiceUrl,
     stripeStatus: r.stripeStatus,
     sentAt: r.sentAt,
     createdAt: r.createdAt,
@@ -280,7 +280,7 @@ router.delete('/:id', async (req, res) => {
   }
 })
 
-// POST /api/admin/invoices/:id/payment-link — create Stripe Payment Link and return checkout URL
+// POST /api/admin/invoices/:id/payment-link — create Stripe Invoice and send to client
 router.post('/:id/payment-link', async (req, res) => {
   try {
     const creds = await getStripeSettings()
@@ -296,76 +296,101 @@ router.post('/:id/payment-link', async (req, res) => {
     const client = inv.client as { firstName: string; lastName: string; email: string }
     const stripe = getStripeClient(creds.secretKey)
 
-    // Re-use existing payment link if available
-    if (inv.stripePaymentLinkId) {
-      const paymentUrl = inv.stripePaymentLinkUrl as string | null
-      if (req.body.sendEmail && paymentUrl) {
-        const smtp = await getSmtpTransporter()
-        if (smtp) {
-          const html = buildPaymentLinkEmail(inv as Record<string, unknown>, client, paymentUrl)
-          await smtp.transporter.sendMail({
-            from: smtp.from ?? undefined,
-            to: client.email,
-            subject: req.body.subject || `Invoice ${inv.invoiceNumber} — Payment Due`,
-            html,
-          })
-        }
+    // Re-use existing Stripe invoice if already created
+    if (inv.stripeInvoiceId) {
+      const existing = await stripe.invoices.retrieve(inv.stripeInvoiceId as string)
+      const invoiceUrl = existing.hosted_invoice_url ?? inv.stripeInvoiceUrl as string | null
+      // Re-send if requested
+      if (req.body.sendEmail && ['draft', 'open'].includes(existing.status ?? '')) {
+        await stripe.invoices.sendInvoice(existing.id)
       }
-      return res.json({ success: true, paymentUrl, linkId: inv.stripePaymentLinkId, reused: true })
+      return res.json({ success: true, invoiceUrl, stripeInvoiceId: existing.id, reused: true })
     }
 
-    // Create a Stripe Product + Price + Payment Link
-    const amountCents = Math.round(Number(inv.amount) * 100)
     const currency = ((inv.currency as string) || 'USD').toLowerCase()
 
-    const product = await stripe.products.create({
-      name: `Invoice ${inv.invoiceNumber}${inv.title ? ` — ${inv.title}` : ''}`,
+    // Find or create Stripe customer by email
+    const customers = await stripe.customers.list({ email: client.email, limit: 1 })
+    const customer = customers.data[0] ?? await stripe.customers.create({
+      email: client.email,
+      name: `${client.firstName} ${client.lastName}`,
     })
 
-    const price = await stripe.prices.create({
-      product: product.id,
-      unit_amount: amountCents,
-      currency,
-    })
+    // Create invoice items — one per line item, or fall back to total amount
+    const lineItems: { description: string; quantity: number; unitPrice: number }[] =
+      inv.lineItems ? JSON.parse(inv.lineItems as string) : []
 
-    const link = await stripe.paymentLinks.create({
-      line_items: [{ price: price.id, quantity: 1 }],
-      metadata: { invoiceId: String(inv.id), invoiceNumber: String(inv.invoiceNumber) },
-    })
+    if (lineItems.length > 0) {
+      await Promise.all(lineItems.map(item =>
+        stripe.invoiceItems.create({
+          customer: customer.id,
+          unit_amount: Math.round(item.unitPrice * 100),
+          quantity: item.quantity,
+          currency,
+          description: item.description,
+        })
+      ))
 
-    const paymentUrl = link.url
-    const linkId = link.id
-
-    // Persist link ID/URL and mark invoice as sent
-    await prisma.$executeRawUnsafe(
-      `UPDATE "Invoice" SET "stripePaymentLinkId"=$1,"stripePaymentLinkUrl"=$2,"stripeStatus"='active',"status"='sent',"sentAt"=NOW(),"updatedAt"=NOW() WHERE id=$3`,
-      linkId, paymentUrl, Number(req.params.id)
-    )
-
-    // Optionally send branded SMTP email
-    if (req.body.sendEmail && paymentUrl) {
-      const smtp = await getSmtpTransporter()
-      if (smtp) {
-        const html = buildPaymentLinkEmail(inv as Record<string, unknown>, client, paymentUrl)
-        await smtp.transporter.sendMail({
-          from: smtp.from ?? undefined,
-          to: client.email,
-          subject: req.body.subject || `Invoice ${inv.invoiceNumber} — Payment Due`,
-          html,
+      // Add discount as a negative item if applicable
+      const discountType = (inv.discountType as string) || 'fixed'
+      const discountValue = Number(inv.discountValue) || 0
+      const subtotal = Number(inv.subtotal) || 0
+      const discountAmt = discountType === 'percent' ? (subtotal * discountValue) / 100 : discountValue
+      if (discountAmt > 0) {
+        await stripe.invoiceItems.create({
+          customer: customer.id,
+          unit_amount: -Math.round(discountAmt * 100),
+          quantity: 1,
+          currency,
+          description: `Discount${discountType === 'percent' ? ` (${discountValue}%)` : ''}`,
         })
       }
+    } else {
+      // Fallback: single line item for total amount
+      await stripe.invoiceItems.create({
+        customer: customer.id,
+        unit_amount: Math.round(Number(inv.amount) * 100),
+        quantity: 1,
+        currency,
+        description: `Invoice ${inv.invoiceNumber}${inv.title ? ` — ${inv.title}` : ''}`,
+      })
     }
+
+    // Create the Stripe invoice
+    const stripeInv = await stripe.invoices.create({
+      customer: customer.id,
+      collection_method: 'send_invoice',
+      days_until_due: 30,
+      metadata: { invoiceId: String(inv.id), invoiceNumber: String(inv.invoiceNumber) },
+      description: inv.title as string ?? undefined,
+    })
+
+    // Finalize (required before sending)
+    const finalized = await stripe.invoices.finalizeInvoice(stripeInv.id)
+
+    // Send via Stripe (emails client directly with PDF)
+    const sent = req.body.sendEmail !== false
+      ? await stripe.invoices.sendInvoice(finalized.id)
+      : finalized
+
+    const invoiceUrl = sent.hosted_invoice_url ?? null
+
+    // Persist Stripe invoice ID/URL and mark as sent
+    await prisma.$executeRawUnsafe(
+      `UPDATE "Invoice" SET "stripeInvoiceId"=$1,"stripeInvoiceUrl"=$2,"stripeStatus"='open',"status"='sent',"sentAt"=NOW(),"updatedAt"=NOW() WHERE id=$3`,
+      sent.id, invoiceUrl, Number(req.params.id)
+    )
 
     await createNotification(
       'invoice_sent',
-      'Payment link created',
-      `Stripe payment link generated for Invoice #${inv.invoiceNumber} — ${client.firstName} ${client.lastName}`,
+      'Stripe invoice sent',
+      `Invoice #${inv.invoiceNumber} sent to ${client.email} via Stripe — ${client.firstName} ${client.lastName}`,
     )
 
     const updated = await queryInvoices('i.id = $1', [Number(req.params.id)])
-    res.json({ success: true, paymentUrl, linkId, invoice: updated[0] })
+    res.json({ success: true, invoiceUrl, stripeInvoiceId: sent.id, invoice: updated[0] })
   } catch (e) {
-    res.status(500).json({ error: e instanceof Error ? e.message : 'Failed to create payment link' })
+    res.status(500).json({ error: e instanceof Error ? e.message : 'Failed to create Stripe invoice' })
   }
 })
 
@@ -383,7 +408,7 @@ router.post('/:id/cancel', async (req, res) => {
   }
 })
 
-// POST /api/admin/invoices/sync — check Stripe Payment Link statuses
+// POST /api/admin/invoices/sync — check Stripe Invoice statuses
 router.post('/sync', async (_req, res) => {
   try {
     const creds = await getStripeSettings()
@@ -392,21 +417,15 @@ router.post('/sync', async (_req, res) => {
     }
 
     const stripe = getStripeClient(creds.secretKey)
-    const rows = await queryInvoices('i."stripePaymentLinkId" IS NOT NULL AND i.status != \'paid\'')
+    const rows = await queryInvoices('i."stripeInvoiceId" IS NOT NULL AND i.status != \'paid\'')
     let updated = 0
     const errors: string[] = []
 
     await Promise.all(rows.map(async inv => {
       try {
-        // List checkout sessions for this payment link
-        const sessions = await stripe.checkout.sessions.list({
-          payment_link: inv.stripePaymentLinkId as string,
-          limit: 10,
-        })
+        const stripeInv = await stripe.invoices.retrieve(inv.stripeInvoiceId as string)
 
-        const paid = sessions.data.some(s => s.payment_status === 'paid')
-
-        if (paid && inv.status !== 'paid') {
+        if (stripeInv.status === 'paid' && inv.status !== 'paid') {
           updated++
           const c = inv.client as { firstName?: string; lastName?: string } | null
           const clientName = c ? `${c.firstName ?? ''} ${c.lastName ?? ''}`.trim() : `Client #${inv.clientId}`
@@ -416,7 +435,12 @@ router.post('/sync', async (_req, res) => {
             `${clientName} paid Invoice #${inv.invoiceNumber} — $${(inv.amount as number).toFixed(2)}`,
           )
           await prisma.$executeRawUnsafe(
-            'UPDATE "Invoice" SET "status"=\'paid\',"stripeStatus"=\'complete\',"updatedAt"=NOW() WHERE id=$1',
+            'UPDATE "Invoice" SET "status"=\'paid\',"stripeStatus"=\'paid\',"updatedAt"=NOW() WHERE id=$1',
+            inv.id
+          )
+        } else if (stripeInv.status === 'void' && inv.status !== 'cancelled') {
+          await prisma.$executeRawUnsafe(
+            'UPDATE "Invoice" SET "status"=\'cancelled\',"stripeStatus"=\'void\',"updatedAt"=NOW() WHERE id=$1',
             inv.id
           )
         }

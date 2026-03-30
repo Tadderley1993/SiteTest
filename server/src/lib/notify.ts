@@ -1,4 +1,5 @@
 import { prisma } from './prisma.js'
+import { logger } from './logger.js'
 
 /**
  * Creates a notification record. Non-fatal — errors are swallowed so they
@@ -15,6 +16,6 @@ export async function createNotification(
       type, title, body,
     )
   } catch (e) {
-    console.error('[notify] Failed to create notification:', e)
+    logger.error({ err: e }, '[notify] Failed to create notification')
   }
 }

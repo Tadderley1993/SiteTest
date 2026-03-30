@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { BetaAnalyticsDataClient } from '@google-analytics/data'
 import { prisma } from '../lib/prisma.js'
+import { logger } from '../lib/logger.js'
 import { authMiddleware } from '../middleware/auth.js'
 
 const router = Router()
@@ -100,7 +101,7 @@ router.get('/overview', async (req, res) => {
       engagementRate: mv(row, 6),
     })
   } catch (error) {
-    console.error('Analytics overview error:', error)
+    logger.error({ err: error }, 'Analytics overview error')
     res.status(500).json({ error: error instanceof Error ? error.message : 'Failed to fetch overview' })
   }
 })
