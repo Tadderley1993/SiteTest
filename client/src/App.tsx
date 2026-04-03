@@ -26,6 +26,7 @@ const SignProposal = lazy(() => import('./pages/SignProposal'))
 const Concepts = lazy(() => import('./pages/Concepts'))
 const NexaBank = lazy(() => import('./pages/concepts/NexaBank'))
 const CuratedHorizon = lazy(() => import('./pages/concepts/CuratedHorizon'))
+const BrandGuide = lazy(() => import('./pages/BrandGuide'))
 
 const SuspenseFallback = <div className="min-h-screen bg-[#08090D]" />
 
@@ -84,6 +85,7 @@ function App() {
               <Route path="/concepts" element={<PublicLayout><Concepts /></PublicLayout>} />
               <Route path="/concepts/nexabank" element={<NexaBank />} />
               <Route path="/concepts/curated-horizon" element={<CuratedHorizon />} />
+              <Route path="/guide" element={<BrandGuide />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>

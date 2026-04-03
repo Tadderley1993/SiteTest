@@ -12,7 +12,7 @@ import { useAuth } from '../../context/AuthContext'
 
 const inputCls = "w-full px-3 py-2 bg-[#f3f3f3] border border-zinc-200 rounded-lg text-black text-sm focus:outline-none focus:border-black/20 placeholder-text-muted"
 
-type Tab = 'stripe' | 'email' | 'account'
+type Tab = 'stripe' | 'email' | 'account' | 'links'
 
 export default function Settings() {
   const { username: currentUsername } = useAuth()
@@ -199,6 +199,7 @@ export default function Settings() {
         {tabBtn('stripe', 'Stripe')}
         {tabBtn('email', 'Email / SMTP')}
         {tabBtn('account', 'My Account')}
+        {tabBtn('links', 'Links')}
       </div>
 
       {/* ── STRIPE TAB ── */}
@@ -586,6 +587,72 @@ export default function Settings() {
           </div>
         </motion.div>
       )}
+
+      {/* ── LINKS TAB ── */}
+      {tab === 'links' && (
+        <motion.div key="links" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="max-w-2xl space-y-6">
+          <div>
+            <h3 className="text-sm font-semibold text-black mb-1">Shareable Links</h3>
+            <p className="text-xs text-zinc-500">Copy these URLs to share with clients or prospects at any time.</p>
+          </div>
+
+          {[
+            {
+              label: 'Brand Guide',
+              description: 'Interactive walkthrough — branding, web design & growing your business.',
+              path: '/guide',
+            },
+            {
+              label: 'Client Portal',
+              description: 'Login page for clients to view their project, invoices, files, and messages.',
+              path: '/portal',
+            },
+          ].map(link => {
+            const fullUrl = `${window.location.origin}${link.path}`
+            return (
+              <LinkCopyCard key={link.path} label={link.label} description={link.description} url={fullUrl} />
+            )
+          })}
+        </motion.div>
+      )}
+    </div>
+  )
+}
+
+function LinkCopyCard({ label, description, url }: { label: string; description: string; url: string }) {
+  const [copied, setCopied] = useState(false)
+  const copy = () => {
+    navigator.clipboard.writeText(url)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+  return (
+    <div className="bg-white border border-zinc-200 rounded-xl p-5 space-y-3">
+      <div>
+        <p className="text-sm font-semibold text-black">{label}</p>
+        <p className="text-xs text-zinc-500 mt-0.5">{description}</p>
+      </div>
+      <div className="flex items-center gap-2">
+        <div className="flex-1 bg-[#f3f3f3] border border-zinc-200 rounded-lg px-3 py-2 text-xs text-zinc-500 font-mono truncate">
+          {url}
+        </div>
+        <button
+          type="button"
+          onClick={copy}
+          className="flex items-center gap-1.5 px-3 py-2 bg-black text-white text-xs font-semibold rounded-lg hover:bg-zinc-800 transition-colors flex-shrink-0"
+        >
+          <ExternalLink className="w-3 h-3" />
+          {copied ? 'Copied!' : 'Copy'}
+        </button>
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-1.5 px-3 py-2 border border-zinc-200 text-zinc-600 text-xs font-semibold rounded-lg hover:bg-zinc-50 transition-colors flex-shrink-0"
+        >
+          Open
+        </a>
+      </div>
     </div>
   )
 }

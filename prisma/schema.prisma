@@ -87,12 +87,17 @@ model Client {
   invoices     Invoice[]
   documents    ClientDocument[]
   deals        Deal[]
-  passwordHash       String?
-  portalPasswordPlain String?
-  portalActive       Boolean   @default(false)
-  lastLoginAt        DateTime?
-  journeyPhase       String?   @default("discovery")
-  messages           Message[]
+  discoveryQuestionnaire DiscoveryQuestionnaire?
+  onboarding           ClientOnboarding?
+  packageSelection     PackageSelection?
+  adminCustomPackage   AdminCustomPackage?
+  passwordHash         String?
+  portalPasswordPlain  String?
+  portalActive         Boolean   @default(false)
+  lastLoginAt          DateTime?
+  journeyPhase         String?   @default("discovery")
+  upfrontDiscountPct   Float?    @default(0)
+  messages             Message[]
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 }
@@ -356,6 +361,71 @@ model Message {
   body      String
   read      Boolean  @default(false)
   createdAt DateTime @default(now())
+}
+
+model DiscoveryQuestionnaire {
+  id          Int       @id @default(autoincrement())
+  clientId    Int       @unique
+  client      Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  section1    String?   // About Your Business
+  section2    String?   // Goals & Objectives
+  section3    String?   // Your Audience
+  section4    String?   // Brand Identity & Visual Style
+  section5    String?   // Website Vision
+  section6    String?   // Design Inspiration
+  section7    String?   // Mobile & User Experience
+  section8    String?   // Content & Messaging
+  section9    String?   // SEO & Growth
+  section10   String?   // Technical Details
+  section11   String?   // Timeline & Budget
+  section12   String?   // Collaboration & Expectations
+  section13   String?   // Final Vision
+  status      String    @default("not_started")
+  submittedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model ClientOnboarding {
+  id                   Int       @id @default(autoincrement())
+  clientId             Int       @unique
+  client               Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  step1Questionnaire   Boolean   @default(false)
+  step2BrandGuide      Boolean   @default(false)
+  step3Package         Boolean   @default(false)
+  step4Checkout        Boolean   @default(false)
+  completedAt          DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+}
+
+model PackageSelection {
+  id          Int      @id @default(autoincrement())
+  clientId    Int      @unique
+  client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  tier        String
+  lineItems   String
+  subtotal    Float    @default(0)
+  total       Float    @default(0)
+  notes       String?
+  proposalId  Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model AdminCustomPackage {
+  id           Int      @id @default(autoincrement())
+  clientId     Int      @unique
+  client       Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  enabled      Boolean  @default(false)
+  lineItems    String   @default("[]")
+  subtotal     Float    @default(0)
+  discountPct  Float    @default(0)
+  total        Float    @default(0)
+  notes        String?
+  paymentTerms String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
 model CalendarEvent {

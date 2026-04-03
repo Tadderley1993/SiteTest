@@ -13,9 +13,87 @@ import api, {
   updateJourneyPhase, JOURNEY_PHASES,
   AdminMessage, getClientMessages, sendAdminMessage,
 } from '../../lib/api'
+import { ALA_CARTE, type AlaCarteItem } from '../../data/pricingTiers'
 import KanbanBoard from './KanbanBoard'
 import StandingSection from './StandingSection'
 import DocumentManager from './DocumentManager'
+
+const ALL_SERVICES = [
+  { id: 'website',   label: 'Website Development' },
+  { id: 'mobile',    label: 'Mobile Development' },
+  { id: 'brand',     label: 'Brand Identity' },
+  { id: 'revamp',    label: 'Identity Revamp' },
+  { id: 'marketing', label: 'Marketing Material' },
+  { id: 'seo',       label: 'SEO Optimization' },
+]
+
+const DISCOVERY_SECTIONS = [
+  { key: 'section1', title: 'About Your Business', questions: [
+    { id: 'businessName', label: 'Business name' },
+    { id: 'industry', label: 'Industry / niche' },
+    { id: 'description', label: 'Business description' },
+    { id: 'uniqueValue', label: 'Unique value / differentiator' },
+  ]},
+  { key: 'section2', title: 'Goals & Objectives', questions: [
+    { id: 'primaryGoal', label: 'Primary goal for the website' },
+    { id: 'successLook', label: 'What success looks like in 6 months' },
+    { id: 'currentPain', label: 'Current pain points' },
+  ]},
+  { key: 'section3', title: 'Your Audience', questions: [
+    { id: 'targetAudience', label: 'Ideal customer profile' },
+    { id: 'audienceNeeds', label: 'Audience pain points / desires' },
+    { id: 'howTheyFind', label: 'How they currently find you' },
+  ]},
+  { key: 'section4', title: 'Brand Identity & Visual Style', questions: [
+    { id: 'brandPersonality', label: 'Brand personality' },
+    { id: 'colors', label: 'Brand colors' },
+    { id: 'fonts', label: 'Typography preferences' },
+    { id: 'existingAssets', label: 'Existing logo / brand assets' },
+  ]},
+  { key: 'section5', title: 'Website Vision', questions: [
+    { id: 'mustHavePages', label: 'Must-have pages' },
+    { id: 'keyFeatures', label: 'Key features needed' },
+    { id: 'callToAction', label: 'Primary call to action' },
+  ]},
+  { key: 'section6', title: 'Design Inspiration', questions: [
+    { id: 'likedSites', label: 'Sites they love and why' },
+    { id: 'dislikedSites', label: 'Sites they dislike and why' },
+    { id: 'styleKeywords', label: 'Style keywords' },
+  ]},
+  { key: 'section7', title: 'Mobile & User Experience', questions: [
+    { id: 'mobileImportance', label: 'Importance of mobile' },
+    { id: 'userJourney', label: 'Ideal visitor journey' },
+  ]},
+  { key: 'section8', title: 'Content & Messaging', questions: [
+    { id: 'copyReady', label: 'Copy ready?' },
+    { id: 'imagesReady', label: 'Professional photos?' },
+    { id: 'headline', label: 'Main message for visitors' },
+  ]},
+  { key: 'section9', title: 'SEO & Growth', questions: [
+    { id: 'seoImportance', label: 'Importance of SEO' },
+    { id: 'targetKeywords', label: 'Target keywords' },
+    { id: 'socialMedia', label: 'Active social platforms' },
+  ]},
+  { key: 'section10', title: 'Technical Details', questions: [
+    { id: 'existingDomain', label: 'Existing domain' },
+    { id: 'hosting', label: 'Hosting preference' },
+    { id: 'integrations', label: 'Required integrations' },
+  ]},
+  { key: 'section11', title: 'Timeline & Budget', questions: [
+    { id: 'launchDate', label: 'Target launch date' },
+    { id: 'hardDeadline', label: 'Deadline flexibility' },
+    { id: 'budget', label: 'Budget range' },
+  ]},
+  { key: 'section12', title: 'Collaboration & Expectations', questions: [
+    { id: 'involvement', label: 'Desired involvement level' },
+    { id: 'revisions', label: 'Expected revision rounds' },
+    { id: 'communicationPref', label: 'Preferred communication' },
+  ]},
+  { key: 'section13', title: 'Final Vision', questions: [
+    { id: 'dreamOutcome', label: 'Dream outcome (10/10 success)' },
+    { id: 'anythingElse', label: 'Anything else' },
+  ]},
+]
 
 interface Props {
   clientId: number
@@ -23,7 +101,47 @@ interface Props {
   onDelete: () => void
 }
 
-type Section = 'profile' | 'scope' | 'kanban' | 'standing' | 'message' | 'chat'
+type Section = 'profile' | 'scope' | 'kanban' | 'standing' | 'message' | 'chat' | 'discovery' | 'package'
+
+interface OnboardingAdminData {
+  onboarding: {
+    step1Questionnaire: boolean
+    step2BrandGuide: boolean
+    step3Package: boolean
+    step4Checkout: boolean
+    completedAt: string | null
+  } | null
+  packageSelection: {
+    tier: string
+    lineItems: string
+    subtotal: number
+    total: number
+    notes: string | null
+    proposalId: number | null
+    signingToken: string | null
+    createdAt: string
+  } | null
+}
+
+interface CustomPackageItem {
+  serviceId: string
+  label: string
+  description: string
+  category: string
+  qty: number
+  unitPrice: number
+  amount: number
+  pages?: Array<{ id: string; title: string }>
+}
+
+interface AdminCustomPkg {
+  enabled: boolean
+  lineItems: CustomPackageItem[]
+  subtotal: number
+  discountPct: number
+  total: number
+  notes: string | null
+}
 
 export default function ClientProfile({ clientId, onBack, onDelete }: Props) {
   const [client, setClient] = useState<Client | null>(null)
@@ -80,6 +198,39 @@ export default function ClientProfile({ clientId, onBack, onDelete }: Props) {
   const [showPortalPassword, setShowPortalPassword] = useState(false)
   const chatBottomRef = useRef<HTMLDivElement>(null)
 
+  // Discovery questionnaire state
+  const [discoveryData, setDiscoveryData] = useState<Record<string, unknown> | null>(null)
+  const [discoveryLoaded, setDiscoveryLoaded] = useState(false)
+
+  // Package / onboarding state
+  const [onboardingAdminData, setOnboardingAdminData] = useState<OnboardingAdminData | null>(null)
+  const [packageLoaded, setPackageLoaded] = useState(false)
+  const [stepOverriding, setStepOverriding] = useState<string | null>(null)
+
+  // Discount state
+  const [upfrontDiscountPct, setUpfrontDiscountPct] = useState(0)
+  const [discountSaving, setDiscountSaving] = useState(false)
+  const [discountMsg, setDiscountMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+
+  // Custom package state
+  const [, setCustomPkg] = useState<AdminCustomPkg | null>(null)
+  const [, setCustomLoaded] = useState(false)
+  const [customEnabled, setCustomEnabled] = useState(false)
+  const [customSelectedIds, setCustomSelectedIds] = useState<Set<string>>(new Set())
+  const [customPrices, setCustomPrices] = useState<Record<string, number>>({})
+  const [customDiscountPct, setCustomDiscountPct] = useState(0)
+  const [customManualTotal, setCustomManualTotal] = useState<number | ''>('')
+  const [customUseManual, setCustomUseManual] = useState(false)
+  const [customPages, setCustomPages] = useState<Array<{ id: string; title: string }>>([])
+  const [customNotes, setCustomNotes] = useState('')
+  const [customScheduleEnabled, setCustomScheduleEnabled] = useState(false)
+  const [customUpfrontType, setCustomUpfrontType] = useState<'percent' | 'amount'>('percent')
+  const [customUpfrontValue, setCustomUpfrontValue] = useState<number | ''>(30)
+  const [customInstallments, setCustomInstallments] = useState<number | ''>(3)
+  const [customFrequency, setCustomFrequency] = useState<'weekly' | 'biweekly' | 'monthly' | 'yearly'>('monthly')
+  const [customSaving, setCustomSaving] = useState(false)
+  const [customMsg, setCustomMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+
   const handleSetPortalPassword = async () => {
     if (!client) return
     if (portalPassword.length < 6) {
@@ -114,6 +265,7 @@ export default function ClientProfile({ clientId, onBack, onDelete }: Props) {
         })
         setScopeForm(data.projectScope ?? {})
         setJourneyPhase(data.journeyPhase ?? 'discovery')
+        setUpfrontDiscountPct(Number((data as unknown as Record<string, unknown>).upfrontDiscountPct ?? 0))
       } catch {
         setError('Failed to load client')
       } finally {
@@ -201,6 +353,133 @@ export default function ClientProfile({ clientId, onBack, onDelete }: Props) {
       setChatLoaded(true)
     }
     setTimeout(() => chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100)
+  }
+
+  const handleOpenDiscovery = async () => {
+    setActiveSection('discovery')
+    if (!discoveryLoaded) {
+      try {
+        const res = await api.get(`/admin/clients/${clientId}/questionnaire`)
+        setDiscoveryData(res.data)
+      } catch { /* silent */ } finally {
+        setDiscoveryLoaded(true)
+      }
+    }
+  }
+
+  const handleOpenPackage = async () => {
+    setActiveSection('package')
+    if (!packageLoaded) {
+      try {
+        const [onbRes, custRes] = await Promise.all([
+          api.get(`/admin/clients/${clientId}/onboarding`),
+          api.get(`/admin/clients/${clientId}/custom-package`),
+        ])
+        setOnboardingAdminData(onbRes.data)
+        if (custRes.data) {
+          const pkg = custRes.data as AdminCustomPkg & { lineItems: string | CustomPackageItem[] }
+          const items: CustomPackageItem[] = typeof pkg.lineItems === 'string'
+            ? JSON.parse(pkg.lineItems) : pkg.lineItems
+          setCustomPkg({ ...pkg, lineItems: items })
+          setCustomEnabled(pkg.enabled)
+          if (items.length > 0) {
+            setCustomSelectedIds(new Set(items.map(i => i.serviceId)))
+            setCustomPrices(Object.fromEntries(items.map(i => [i.serviceId, i.unitPrice])))
+            const pageItem = items.find(i => i.serviceId === 'standard_page')
+            if (pageItem?.pages) setCustomPages(pageItem.pages)
+          }
+          setCustomDiscountPct(Number(pkg.discountPct ?? 0))
+          setCustomNotes(pkg.notes ?? '')
+          const pt = (pkg as AdminCustomPkg & { paymentTerms?: string }).paymentTerms
+          if (pt) {
+            try {
+              const s = JSON.parse(pt) as { upfrontType?: string; upfront?: number; installments?: number; frequency?: string }
+              if (s && typeof s.upfront === 'number') {
+                setCustomScheduleEnabled(true)
+                setCustomUpfrontType((s.upfrontType as 'percent' | 'amount') ?? 'percent')
+                setCustomUpfrontValue(s.upfront)
+                setCustomInstallments(s.installments ?? 3)
+                setCustomFrequency((s.frequency as 'weekly' | 'biweekly' | 'monthly' | 'yearly') ?? 'monthly')
+              }
+            } catch { /* not structured */ }
+          }
+          if (pkg.discountPct === 0 && pkg.total !== pkg.subtotal) {
+            setCustomUseManual(true)
+            setCustomManualTotal(pkg.total)
+          }
+        }
+      } catch { /* silent */ } finally {
+        setPackageLoaded(true)
+        setCustomLoaded(true)
+      }
+    }
+  }
+
+  const handleStepOverride = async (step: string, value: boolean) => {
+    setStepOverriding(step)
+    try {
+      const res = await api.put(`/admin/clients/${clientId}/onboarding`, { step, value })
+      setOnboardingAdminData(prev => prev ? { ...prev, onboarding: res.data.onboarding } : prev)
+    } catch { /* silent */ } finally {
+      setStepOverriding(null)
+    }
+  }
+
+  const handleSaveDiscount = async () => {
+    if (!client) return
+    setDiscountSaving(true)
+    setDiscountMsg(null)
+    try {
+      await api.put(`/admin/clients/${clientId}/discount`, { upfrontDiscountPct })
+      setDiscountMsg({ type: 'success', text: 'Discount saved.' })
+      setTimeout(() => setDiscountMsg(null), 2500)
+    } catch {
+      setDiscountMsg({ type: 'error', text: 'Failed to save discount.' })
+    } finally {
+      setDiscountSaving(false)
+    }
+  }
+
+  const handleSaveCustomPackage = async () => {
+    setCustomSaving(true)
+    setCustomMsg(null)
+    try {
+      const selectedItems: CustomPackageItem[] = ALA_CARTE
+        .filter((s: AlaCarteItem) => customSelectedIds.has(s.id))
+        .map((s: AlaCarteItem) => {
+          const price = customPrices[s.id] ?? s.price
+          if (s.id === 'standard_page') {
+            const qty = customPages.length || 1
+            return { serviceId: s.id, label: s.label, description: s.description, category: s.category, qty, unitPrice: price, amount: qty * price, pages: customPages }
+          }
+          return { serviceId: s.id, label: s.label, description: s.description, category: s.category, qty: 1, unitPrice: price, amount: price }
+        })
+      const subtotal = selectedItems.reduce((sum, i) => sum + i.amount, 0)
+      const discountAmt = Math.round(subtotal * (customDiscountPct / 100) * 100) / 100
+      const total = customUseManual && customManualTotal !== ''
+        ? Number(customManualTotal)
+        : Math.round((subtotal - discountAmt) * 100) / 100
+      const res = await api.put(`/admin/clients/${clientId}/custom-package`, {
+        enabled: customEnabled,
+        lineItems: selectedItems,
+        subtotal,
+        discountPct: customUseManual ? 0 : customDiscountPct,
+        total,
+        notes: customNotes || null,
+        paymentTerms: customScheduleEnabled && customUpfrontValue !== '' && customInstallments !== ''
+          ? JSON.stringify({ upfrontType: customUpfrontType, upfront: Number(customUpfrontValue), installments: Number(customInstallments), frequency: customFrequency })
+          : null,
+      })
+      const pkg = res.data as AdminCustomPkg & { lineItems: string | CustomPackageItem[] }
+      const items: CustomPackageItem[] = typeof pkg.lineItems === 'string' ? JSON.parse(pkg.lineItems) : pkg.lineItems
+      setCustomPkg({ ...pkg, lineItems: items })
+      setCustomMsg({ type: 'success', text: 'Custom package saved.' })
+      setTimeout(() => setCustomMsg(null), 3000)
+    } catch {
+      setCustomMsg({ type: 'error', text: 'Failed to save custom package.' })
+    } finally {
+      setCustomSaving(false)
+    }
   }
 
   const handleSendChat = async () => {
@@ -491,6 +770,28 @@ export default function ClientProfile({ clientId, onBack, onDelete }: Props) {
           <MessageCircle className="w-4 h-4" />
           Chat
         </button>
+        <button
+          onClick={handleOpenDiscovery}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            activeSection === 'discovery'
+              ? 'bg-zinc-100 text-black border border-accent/20'
+              : 'text-zinc-500 hover:text-black hover:bg-[#f3f3f3]'
+          }`}
+        >
+          <span className="material-symbols-outlined text-[16px]">assignment</span>
+          Discovery
+        </button>
+        <button
+          onClick={handleOpenPackage}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            activeSection === 'package'
+              ? 'bg-zinc-100 text-black border border-accent/20'
+              : 'text-zinc-500 hover:text-black hover:bg-[#f3f3f3]'
+          }`}
+        >
+          <span className="material-symbols-outlined text-[16px]">package_2</span>
+          Package
+        </button>
       </div>
 
       {/* ── PROFILE SECTION ── */}
@@ -581,6 +882,44 @@ export default function ClientProfile({ clientId, onBack, onDelete }: Props) {
                 {client.notes || <span className="text-zinc-500">No notes yet.</span>}
               </p>
             )}
+          </div>
+
+          {/* ── BILLING SETTINGS ── */}
+          <div className="bg-[#f3f3f3] border border-zinc-200 rounded-xl p-6">
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="font-semibold text-black flex items-center gap-2">
+                <DollarSign className="w-4 h-4" />
+                Billing Settings
+              </h3>
+              {discountMsg && (
+                <span className={`text-xs font-medium ${discountMsg.type === 'success' ? 'text-green-600' : 'text-red-500'}`}>
+                  {discountMsg.text}
+                </span>
+              )}
+            </div>
+            <div className="flex items-end gap-4">
+              <div className="flex-1 max-w-xs">
+                <label className="block text-xs text-zinc-500 mb-1">Pay-in-Full Discount (%)</label>
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={upfrontDiscountPct}
+                  onChange={e => setUpfrontDiscountPct(Number(e.target.value))}
+                  className="w-full bg-white border border-zinc-200 rounded-lg px-3 py-2 text-black focus:outline-none focus:ring-2 focus:ring-black/10 text-sm"
+                />
+                <p className="text-[11px] text-zinc-400 mt-1">Applied when client selects "Pay in Full" in checkout (e.g. 5 = 5% off)</p>
+              </div>
+              <button
+                type="button"
+                onClick={handleSaveDiscount}
+                disabled={discountSaving}
+                className="flex items-center gap-1.5 px-4 py-2 bg-black text-white text-sm font-medium rounded-lg hover:bg-zinc-800 disabled:opacity-50 transition-colors"
+              >
+                <Save className="w-3.5 h-3.5" />
+                {discountSaving ? 'Saving…' : 'Save'}
+              </button>
+            </div>
           </div>
 
           {/* ── PROJECT JOURNEY ── */}
@@ -991,6 +1330,567 @@ export default function ClientProfile({ clientId, onBack, onDelete }: Props) {
               </button>
             </div>
           </div>
+        </motion.div>
+      )}
+
+      {/* ── PACKAGE SECTION ── */}
+      {activeSection === 'package' && (
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+          {!packageLoaded ? (
+            <div className="text-sm text-zinc-400 py-12 text-center">Loading package data…</div>
+          ) : (
+            <>
+              {/* Custom Package Builder */}
+              <div className="bg-[#f3f3f3] border border-zinc-200 rounded-xl p-6">
+                <div className="flex items-center justify-between mb-5">
+                  <h3 className="font-semibold text-black flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[18px]">tune</span>
+                    Custom Package
+                  </h3>
+                  <div className="flex items-center gap-3">
+                    {customMsg && (
+                      <span className={`text-xs font-medium ${customMsg.type === 'success' ? 'text-green-600' : 'text-red-500'}`}>
+                        {customMsg.text}
+                      </span>
+                    )}
+                    {/* Toggle */}
+                    <button
+                      type="button"
+                      onClick={() => setCustomEnabled(p => !p)}
+                      className={`relative w-11 h-6 rounded-full transition-colors ${customEnabled ? 'bg-black' : 'bg-zinc-300'}`}
+                    >
+                      <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${customEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
+                    </button>
+                  </div>
+                </div>
+
+                {!customEnabled ? (
+                  <p className="text-sm text-zinc-400">
+                    Toggle on to build a custom package for this client. When enabled, the client will only see their custom package during onboarding — not the standard tiers.
+                  </p>
+                ) : (
+                  <div className="space-y-5">
+                    {/* Service list grouped by category */}
+                    {(() => {
+                      const categories = [...new Set(ALA_CARTE.map((s: AlaCarteItem) => s.category))]
+                      return categories.map(cat => (
+                        <div key={cat}>
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-2">{cat}</p>
+                          <div className="space-y-1">
+                            {ALA_CARTE.filter((s: AlaCarteItem) => s.category === cat).map((svc: AlaCarteItem) => {
+                              const checked = customSelectedIds.has(svc.id)
+                              const price = customPrices[svc.id] ?? svc.price
+                              const isPageSvc = svc.id === 'standard_page'
+                              return (
+                                <div key={svc.id} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg border transition-colors ${checked ? 'bg-white border-zinc-300' : 'bg-white/50 border-transparent'}`}>
+                                  <input
+                                    type="checkbox"
+                                    checked={checked}
+                                    onChange={e => {
+                                      if (isPageSvc) {
+                                        if (e.target.checked) {
+                                          setCustomSelectedIds(prev => { const n = new Set(prev); n.add(svc.id); return n })
+                                          if (customPages.length === 0) setCustomPages([{ id: crypto.randomUUID(), title: '' }])
+                                        } else {
+                                          setCustomSelectedIds(prev => { const n = new Set(prev); n.delete(svc.id); return n })
+                                          setCustomPages([])
+                                        }
+                                      } else {
+                                        setCustomSelectedIds(prev => {
+                                          const next = new Set(prev)
+                                          e.target.checked ? next.add(svc.id) : next.delete(svc.id)
+                                          return next
+                                        })
+                                      }
+                                    }}
+                                    className="w-4 h-4 rounded accent-black flex-shrink-0"
+                                  />
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium text-black leading-tight">{svc.label}</p>
+                                    <p className="text-[11px] text-zinc-400 leading-tight">
+                                      {isPageSvc ? `$${price}/page — add page titles below` : svc.description}
+                                    </p>
+                                  </div>
+                                  <div className="flex items-center gap-1 flex-shrink-0">
+                                    <span className="text-zinc-400 text-sm">$</span>
+                                    <input
+                                      type="number"
+                                      min={0}
+                                      value={price}
+                                      disabled={!checked}
+                                      onChange={e => setCustomPrices(prev => ({ ...prev, [svc.id]: Number(e.target.value) }))}
+                                      className="w-20 text-right text-sm font-medium border border-zinc-200 rounded px-2 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-black/20 disabled:opacity-30 disabled:cursor-not-allowed"
+                                    />
+                                    {isPageSvc && checked && <span className="text-[11px] text-zinc-400">/pg</span>}
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      ))
+                    })()}
+
+                    {/* Standard Page builder */}
+                    {customPages.length > 0 && (
+                      <div className="bg-zinc-50 border border-zinc-200 rounded-xl p-4 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <p className="text-xs font-semibold text-black uppercase tracking-wide">Standard Pages</p>
+                          <span className="text-[11px] text-zinc-400">{customPages.length} page{customPages.length !== 1 ? 's' : ''} × ${customPrices['standard_page'] ?? 400}/ea</span>
+                        </div>
+                        <div className="space-y-2">
+                          {customPages.map((pg, idx) => (
+                            <div key={pg.id} className="flex items-center gap-2">
+                              <span className="text-[11px] text-zinc-400 w-5 text-right flex-shrink-0">{idx + 1}.</span>
+                              <input
+                                type="text"
+                                value={pg.title}
+                                onChange={e => setCustomPages(prev => prev.map(p => p.id === pg.id ? { ...p, title: e.target.value } : p))}
+                                placeholder={`Page ${idx + 1} title (e.g. About Us)`}
+                                className="flex-1 border border-zinc-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-black/20 bg-white"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setCustomPages(prev => {
+                                    const next = prev.filter(p => p.id !== pg.id)
+                                    if (next.length === 0) {
+                                      setCustomSelectedIds(ids => { const n = new Set(ids); n.delete('standard_page'); return n })
+                                    }
+                                    return next
+                                  })
+                                }}
+                                className="p-1.5 text-zinc-400 hover:text-red-500 transition-colors rounded flex-shrink-0"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setCustomPages(prev => [...prev, { id: crypto.randomUUID(), title: '' }])}
+                          className="text-xs text-black font-medium hover:underline flex items-center gap-1"
+                        >
+                          + Add Page
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Pricing summary */}
+                    {(() => {
+                      const subtotal = ALA_CARTE
+                        .filter((s: AlaCarteItem) => customSelectedIds.has(s.id))
+                        .reduce((sum: number, s: AlaCarteItem) => {
+                          const price = customPrices[s.id] ?? s.price
+                          if (s.id === 'standard_page') return sum + price * (customPages.length || 1)
+                          return sum + price
+                        }, 0)
+                      const discountAmt = Math.round(subtotal * (customDiscountPct / 100) * 100) / 100
+                      const autoTotal = Math.round((subtotal - discountAmt) * 100) / 100
+                      const finalTotal = customUseManual && customManualTotal !== '' ? Number(customManualTotal) : autoTotal
+
+                      return (
+                        <div className="border-t border-zinc-200 pt-4 space-y-3">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-zinc-500">Subtotal</span>
+                            <span className="font-medium">${subtotal.toLocaleString()}</span>
+                          </div>
+
+                          {/* Discount vs manual toggle */}
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setCustomUseManual(false)}
+                              className={`flex-1 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${!customUseManual ? 'bg-black text-white border-black' : 'bg-white text-zinc-500 border-zinc-200 hover:border-zinc-400'}`}
+                            >
+                              Discount %
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setCustomUseManual(true)}
+                              className={`flex-1 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${customUseManual ? 'bg-black text-white border-black' : 'bg-white text-zinc-500 border-zinc-200 hover:border-zinc-400'}`}
+                            >
+                              Set Total
+                            </button>
+                          </div>
+
+                          {!customUseManual ? (
+                            <div className="flex items-center gap-3">
+                              <div className="flex-1">
+                                <label className="block text-[11px] text-zinc-400 mb-1">Discount (%)</label>
+                                <input
+                                  type="number"
+                                  min={0}
+                                  max={100}
+                                  value={customDiscountPct}
+                                  onChange={e => setCustomDiscountPct(Number(e.target.value))}
+                                  className="w-full border border-zinc-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-black/20"
+                                />
+                              </div>
+                              {customDiscountPct > 0 && (
+                                <p className="text-[11px] text-green-600 mt-4">−${discountAmt.toLocaleString()} off</p>
+                              )}
+                            </div>
+                          ) : (
+                            <div>
+                              <label className="block text-[11px] text-zinc-400 mb-1">Custom Total ($)</label>
+                              <input
+                                type="number"
+                                min={0}
+                                value={customManualTotal}
+                                onChange={e => setCustomManualTotal(e.target.value === '' ? '' : Number(e.target.value))}
+                                className="w-full border border-zinc-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-black/20"
+                                placeholder="e.g. 5000"
+                              />
+                            </div>
+                          )}
+
+                          <div className="flex items-center justify-between py-2 border-t border-zinc-200">
+                            <span className="font-semibold text-black">Total</span>
+                            <span className="text-xl font-black text-black">${finalTotal.toLocaleString()}</span>
+                          </div>
+                        </div>
+                      )
+                    })()}
+
+                    {/* Notes */}
+                    <div>
+                      <label className="block text-[11px] text-zinc-400 mb-1">Internal Notes (optional)</label>
+                      <textarea
+                        rows={2}
+                        value={customNotes}
+                        onChange={e => setCustomNotes(e.target.value)}
+                        placeholder="Any notes about this custom package…"
+                        className="w-full border border-zinc-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-black/20 resize-none bg-white"
+                      />
+                    </div>
+
+                    {/* Custom Payment Schedule */}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xs font-semibold text-black">Custom Payment Schedule</p>
+                          <p className="text-[11px] text-zinc-400">Overrides standard checkout Option B for this client</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setCustomScheduleEnabled(v => !v)}
+                          className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${customScheduleEnabled ? 'bg-black' : 'bg-zinc-300'}`}
+                        >
+                          <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform ${customScheduleEnabled ? 'translate-x-4.5' : 'translate-x-0.5'}`} />
+                        </button>
+                      </div>
+
+                      {customScheduleEnabled && (
+                        <div className="bg-zinc-50 border border-zinc-200 rounded-xl p-4 space-y-4">
+                          {/* Upfront row */}
+                          <div>
+                            <p className="text-[11px] text-zinc-400 mb-2">Upfront payment</p>
+                            <div className="flex items-center gap-2">
+                              <div className="flex rounded-lg overflow-hidden border border-zinc-200">
+                                <button type="button"
+                                  onClick={() => setCustomUpfrontType('percent')}
+                                  className={`px-3 py-1.5 text-xs font-semibold transition-colors ${customUpfrontType === 'percent' ? 'bg-black text-white' : 'bg-white text-zinc-500 hover:bg-zinc-50'}`}
+                                >%</button>
+                                <button type="button"
+                                  onClick={() => setCustomUpfrontType('amount')}
+                                  className={`px-3 py-1.5 text-xs font-semibold transition-colors ${customUpfrontType === 'amount' ? 'bg-black text-white' : 'bg-white text-zinc-500 hover:bg-zinc-50'}`}
+                                >$</button>
+                              </div>
+                              <div className="flex items-center gap-1 flex-1">
+                                {customUpfrontType === 'amount' && <span className="text-zinc-400 text-sm">$</span>}
+                                <input
+                                  type="number"
+                                  min={0}
+                                  max={customUpfrontType === 'percent' ? 100 : undefined}
+                                  value={customUpfrontValue}
+                                  onChange={e => setCustomUpfrontValue(e.target.value === '' ? '' : Number(e.target.value))}
+                                  placeholder={customUpfrontType === 'percent' ? 'e.g. 30' : 'e.g. 1500'}
+                                  className="w-full border border-zinc-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-black/20 bg-white"
+                                />
+                                {customUpfrontType === 'percent' && <span className="text-zinc-400 text-sm">%</span>}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Installments row */}
+                          <div>
+                            <p className="text-[11px] text-zinc-400 mb-2">Remaining balance split into</p>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="number"
+                                min={1}
+                                max={52}
+                                value={customInstallments}
+                                onChange={e => setCustomInstallments(e.target.value === '' ? '' : Number(e.target.value))}
+                                className="w-20 border border-zinc-200 rounded-lg px-3 py-1.5 text-sm text-center font-semibold focus:outline-none focus:ring-1 focus:ring-black/20 bg-white"
+                              />
+                              <span className="text-sm text-zinc-500">payments</span>
+                              <select
+                                value={customFrequency}
+                                onChange={e => setCustomFrequency(e.target.value as 'weekly' | 'biweekly' | 'monthly' | 'yearly')}
+                                className="flex-1 border border-zinc-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-black/20 bg-white"
+                              >
+                                <option value="weekly">Weekly</option>
+                                <option value="biweekly">Bi-weekly</option>
+                                <option value="monthly">Monthly</option>
+                                <option value="yearly">Yearly</option>
+                              </select>
+                            </div>
+                          </div>
+
+                          {/* Preview */}
+                          {customUpfrontValue !== '' && customInstallments !== '' && (
+                            <div className="text-[11px] text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2 leading-relaxed">
+                              ✓ Client pays{' '}
+                              <strong>{customUpfrontType === 'percent' ? `${customUpfrontValue}% upfront` : `$${Number(customUpfrontValue).toLocaleString()} upfront`}</strong>
+                              , then <strong>{customInstallments} {customFrequency}</strong> installments for the balance.
+                              This replaces the standard 30%/3-monthly Option B at checkout.
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleSaveCustomPackage}
+                      disabled={customSaving || customSelectedIds.size === 0}
+                      className="flex items-center gap-1.5 px-4 py-2 bg-black text-white text-sm font-medium rounded-lg hover:bg-zinc-800 disabled:opacity-40 transition-colors"
+                    >
+                      <Save className="w-3.5 h-3.5" />
+                      {customSaving ? 'Saving…' : 'Save Custom Package'}
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Onboarding Progress */}
+              <div className="bg-[#f3f3f3] border border-zinc-200 rounded-xl p-6">
+                <h3 className="font-semibold text-black mb-5 flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[18px]">checklist</span>
+                  Onboarding Progress
+                </h3>
+                {!onboardingAdminData?.onboarding ? (
+                  <p className="text-sm text-zinc-400">No onboarding record yet. Set the portal password to initialize.</p>
+                ) : (
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {([
+                      { key: 'step1Questionnaire', label: 'Discovery' },
+                      { key: 'step2BrandGuide', label: 'Brand Guide' },
+                      { key: 'step3Package', label: 'Package' },
+                      { key: 'step4Checkout', label: 'Checkout' },
+                    ] as const).map(({ key, label }) => {
+                      const done = onboardingAdminData.onboarding![key as keyof typeof onboardingAdminData.onboarding]
+                      const isOverriding = stepOverriding === key
+                      return (
+                        <div
+                          key={key}
+                          className={`rounded-xl border p-4 flex flex-col gap-3 ${done ? 'bg-green-50 border-green-200' : 'bg-white border-zinc-200'}`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-semibold text-zinc-600 uppercase tracking-wider">{label}</span>
+                            <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-black ${done ? 'bg-green-500 text-white' : 'bg-zinc-200 text-zinc-400'}`}>
+                              {done ? '✓' : '✗'}
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            disabled={isOverriding}
+                            onClick={() => handleStepOverride(key, !done)}
+                            className={`text-[11px] font-medium px-2 py-1 rounded-lg border transition-colors disabled:opacity-50 ${
+                              done
+                                ? 'border-red-300 text-red-500 hover:bg-red-50'
+                                : 'border-zinc-300 text-zinc-600 hover:bg-zinc-100'
+                            }`}
+                          >
+                            {isOverriding ? '…' : done ? 'Reset' : 'Mark Complete'}
+                          </button>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+                {onboardingAdminData?.onboarding?.completedAt && (
+                  <p className="text-xs text-zinc-400 mt-4">
+                    Onboarding completed {new Date(onboardingAdminData.onboarding.completedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                  </p>
+                )}
+              </div>
+
+              {/* Package Selection */}
+              <div className="bg-[#f3f3f3] border border-zinc-200 rounded-xl p-6">
+                <h3 className="font-semibold text-black mb-5 flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[18px]">package_2</span>
+                  Selected Package
+                </h3>
+                {!onboardingAdminData?.packageSelection ? (
+                  <p className="text-sm text-zinc-400">No package selected yet.</p>
+                ) : (() => {
+                  const pkg = onboardingAdminData.packageSelection
+                  let lineItems: Array<{ serviceId: string; label: string; description: string; qty: number; unitPrice: number; amount: number; bonus?: boolean; included?: boolean }> = []
+                  try { lineItems = JSON.parse(pkg.lineItems) } catch { /* ignore */ }
+                  const tierColors: Record<string, string> = {
+                    foundation: 'bg-green-100 text-green-700',
+                    growth: 'bg-blue-100 text-blue-700',
+                    authority: 'bg-red-100 text-red-700',
+                    signature: 'bg-zinc-900 text-white',
+                    custom: 'bg-zinc-100 text-zinc-700',
+                  }
+                  return (
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-3">
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${tierColors[pkg.tier] ?? 'bg-zinc-100 text-zinc-700'}`}>
+                          {pkg.tier}
+                        </span>
+                        <span className="text-xs text-zinc-400">
+                          Selected {new Date(pkg.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        </span>
+                        {pkg.proposalId && pkg.signingToken && (
+                          <a
+                            href={`/sign/${pkg.signingToken}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="ml-auto text-xs font-medium text-black border border-zinc-300 px-3 py-1 rounded-lg hover:bg-zinc-100 transition-colors"
+                          >
+                            View Proposal →
+                          </a>
+                        )}
+                      </div>
+
+                      {lineItems.length > 0 && (
+                        <div className="overflow-hidden rounded-xl border border-zinc-200">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="bg-zinc-100 border-b border-zinc-200">
+                                <th className="text-left px-4 py-2.5 text-xs font-semibold text-zinc-500 uppercase tracking-wider">Service</th>
+                                <th className="text-right px-4 py-2.5 text-xs font-semibold text-zinc-500 uppercase tracking-wider">Amount</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-zinc-100">
+                              {lineItems.map((item, i) => (
+                                <tr key={i} className={item.bonus ? 'bg-green-50/50' : 'bg-white'}>
+                                  <td className="px-4 py-2.5">
+                                    <div className="font-medium text-black text-sm">{item.label}</div>
+                                    {item.description && <div className="text-xs text-zinc-400 mt-0.5">{item.description}</div>}
+                                    {item.bonus && <span className="text-[10px] font-bold text-green-600 uppercase tracking-wider">Bundle Bonus</span>}
+                                  </td>
+                                  <td className="px-4 py-2.5 text-right font-medium text-black whitespace-nowrap">
+                                    {item.bonus ? (
+                                      <span className="text-green-600 font-bold text-xs">FREE</span>
+                                    ) : item.included ? (
+                                      <span className="text-zinc-400 text-xs">Included</span>
+                                    ) : (
+                                      `$${item.amount.toLocaleString()}`
+                                    )}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                            <tfoot>
+                              <tr className="bg-zinc-50 border-t border-zinc-200">
+                                <td className="px-4 py-3 font-semibold text-black">Total</td>
+                                <td className="px-4 py-3 text-right font-bold text-black text-base">
+                                  ${pkg.total.toLocaleString()}
+                                </td>
+                              </tr>
+                            </tfoot>
+                          </table>
+                        </div>
+                      )}
+
+                      {pkg.notes && (
+                        <p className="text-sm text-zinc-600 bg-white border border-zinc-200 rounded-xl p-4 whitespace-pre-wrap">{pkg.notes}</p>
+                      )}
+                    </div>
+                  )
+                })()}
+              </div>
+            </>
+          )}
+        </motion.div>
+      )}
+
+      {/* ── DISCOVERY SECTION ── */}
+      {activeSection === 'discovery' && (
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+          {!discoveryLoaded ? (
+            <div className="text-sm text-zinc-400 py-12 text-center">Loading questionnaire…</div>
+          ) : !discoveryData ? (
+            <div className="bg-[#f3f3f3] border border-zinc-200 rounded-xl p-12 text-center space-y-2">
+              <span className="material-symbols-outlined text-4xl text-zinc-300">assignment</span>
+              <p className="text-zinc-500 text-sm">No questionnaire submitted yet.</p>
+              <p className="text-zinc-400 text-xs">The client will see a questionnaire form in their portal.</p>
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-semibold text-black">Discovery Questionnaire</h3>
+                  {(discoveryData as { submittedAt?: string }).submittedAt && (
+                    <p className="text-xs text-zinc-400 mt-0.5">
+                      Submitted {new Date((discoveryData as { submittedAt: string }).submittedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                    </p>
+                  )}
+                </div>
+                <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase ${
+                  (discoveryData as { status?: string }).status === 'submitted'
+                    ? 'bg-green-50 text-green-700'
+                    : 'bg-zinc-100 text-zinc-500'
+                }`}>
+                  {(discoveryData as { status?: string }).status ?? 'not started'}
+                </span>
+              </div>
+              {DISCOVERY_SECTIONS.map(sec => {
+                const raw = (discoveryData as Record<string, string | null>)[sec.key]
+                const submissionSvcs = ((discoveryData as Record<string, unknown>).submissionServices as string[]) ?? []
+                let answers: Record<string, string> = {}
+                if (raw) { try { answers = JSON.parse(raw) } catch { /* ignore */ } }
+                const hasAnswers = Object.values(answers).some(v => v?.trim()) ||
+                  (sec.key === 'section13' && submissionSvcs.length > 0)
+                if (!hasAnswers) return null
+                return (
+                  <div key={sec.key} className="bg-[#f3f3f3] border border-zinc-200 rounded-xl p-6 space-y-4">
+                    <h4 className="text-xs font-bold uppercase tracking-widest text-zinc-400">{sec.title}</h4>
+                    {sec.questions.map(q => {
+                      if (q.id === 'additionalServices') {
+                        const extraIds = answers[q.id] ? answers[q.id].split(',').filter(Boolean) : []
+                        const unique = [...new Set([...submissionSvcs, ...extraIds])]
+                        if (!unique.length) return null
+                        return (
+                          <div key={q.id}>
+                            <p className="text-xs text-zinc-500 mb-2">{q.label}</p>
+                            <div className="flex flex-wrap gap-2">
+                              {unique.map(id => {
+                                const svc = ALL_SERVICES.find(s => s.id === id)
+                                const isOwned = submissionSvcs.includes(id)
+                                return (
+                                  <span key={id} className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold ${
+                                    isOwned ? 'bg-black text-white' : 'bg-white border border-zinc-200 text-zinc-700'
+                                  }`}>
+                                    {svc?.label ?? id}
+                                    {isOwned && <span className="ml-1 opacity-60 font-normal">· Already in package</span>}
+                                  </span>
+                                )
+                              })}
+                            </div>
+                          </div>
+                        )
+                      }
+                      if (!answers[q.id]?.trim()) return null
+                      return (
+                        <div key={q.id}>
+                          <p className="text-xs text-zinc-500 mb-1">{q.label}</p>
+                          <p className="text-sm text-black whitespace-pre-wrap">{answers[q.id]}</p>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )
+              })}
+            </>
+          )}
         </motion.div>
       )}
     </motion.div>

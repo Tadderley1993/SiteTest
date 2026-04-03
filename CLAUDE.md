@@ -59,6 +59,16 @@ Admin: http://localhost:5173/admin — `admin` / `admin123`
 - `GET /admin/financials/summary`, `/admin/analytics/*`
 - `POST /client-auth/login` — client portal login
 - `GET /portal/me`, `/portal/invoices`, `/portal/proposals`, `/portal/files`
+- `GET /portal/custom-package` — returns enabled AdminCustomPackage for client
+- `GET/PUT /portal/questionnaire` — discovery questionnaire (draft + submit)
+- `GET /portal/onboarding` — onboarding step status
+- `PUT /portal/onboarding/step/:step` — mark step complete
+- `GET /portal/package`, `PUT /portal/package/draft` — package selection (draft save)
+- `POST /portal/package` — save selection + generate proposal + sign token
+- `GET /portal/package/proposal` — proposal for signing
+- `POST /portal/checkout` — create invoices (fallback, no Stripe)
+- `POST /portal/checkout/session` — create Stripe Checkout Session → returns `{ url }`
+- `POST /portal/checkout/confirm` — verify Stripe payment + create invoices + complete step 4
 
 ## Design System
 
@@ -92,38 +102,70 @@ ring: ring-1 ring-black/[0.06]   shadow: shadow-sm
 
 ## Client Portal (`/portal`)
 - Separate JWT auth — `clientId` claim vs `adminId` for admin tokens
-- ClientAuthContext.tsx — in-memory auth, never localStorage
+- `ClientAuthContext.tsx` — stores session in `sessionStorage` under key `client_session` (not localStorage)
+- To force logout during dev: `sessionStorage.removeItem('client_session'); location.reload()` in browser console
 - `portalApi.ts` — Axios instance with client Bearer token
 - Admin sets client portal password via ClientProfile → "Portal Access" section
-- Shows: project progress (kanban %), invoices, proposals, files
+- Shows: project progress (kanban %), invoices, proposals, files, messages, questionnaire
 
-## Key Features
-- **Tablet showcase** (Home, desktop only, `hidden md:block`): 300vh sticky scroll, 3 phases
-  - Phase 1 (0–0.35): `rotateX` 62°→0° tilt, `perspective: 1400px`
-  - Phase 2 (0.35–0.75): TabletPreview scrolls via `previewScrollY` (-900px translate)
-  - Phase 3 (≥0.74): tablet exits right, "See, I told ya." reveals
-  - CRITICAL: sticky section must NOT be inside `overflow-hidden` ancestor
-  - Scale math: `window.innerWidth * 0.60 * 0.89 / 1024` (no DOM measurement)
-- **Mobile showcase** (`md:hidden`): static dark section replaces the 3D animation
-- **TabletPreview**: Villa Lumière luxury rental, tropical palette, vw-based fonts
-- Hero text: `clamp(36px, 12vw, 180px)` — prevents mobile overflow
-- Hero image: `/imgs/hero-desk.png` — grayscale, blur-[2px], dark overlay (bg-black/50)
-- Service cards: CSS hover animation disabled on mobile via `@media (max-width: 767px)`
-- CaseStudies article tags: vertical rotated label (`writingMode: vertical-rl`, `rotate(180deg)`)
-- Portfolio filter: All / Branding / Web App / E-Commerce
-- Multi-step form → `/api/submissions`
-- Full admin: submissions (with trash bin), clients, kanban, proposals, financials, GA4 analytics, settings
+## Client Onboarding Funnel (`/portal` — 4 steps)
+Steps tracked in `ClientOnboarding` DB table. Funnel auto-resumes at the first incomplete step on login.
 
-## DB Models
+### Step 1 — Discovery Questionnaire
+- Multi-section form (`Q_SECTIONS`, 13 sections)
+- Auto-saves on "Next" navigation + explicit "Save & Continue Later" button
+- Current section index persisted in `sessionStorage` (`portal_q_step`) — restored on reload
+- Submit calls `PUT /portal/questionnaire` with `{ submit: true }`
+
+### Step 2 — Brand Guide
+- 20 slides in `client/src/data/brandGuideSlides.ts` — Obsidian Prestige theme, no emojis
+- Slide number rendered as large watermark; gold top rule; fluid headline with `clamp()`
+- Free back/forward navigation — dots clickable for any visited slide + next unvisited
+- `maxReached` tracks furthest slide seen; gold "Continue →" banner appears once all viewed
+- Keyboard arrows supported
+
+### Step 3 — Package Selection
+- If admin has enabled a custom package (`AdminCustomPackage.enabled = true`) → shows only that package
+- Otherwise: standard tier cards (Starter / Growth / Scale / Build Your Own à la carte)
+- À la carte: `base_website` auto-required; `standard_page` opens page builder ($150/page with titles)
+- Proposal auto-generated on confirm → client signs with draw or type signature
+- **Save & Continue Later**: `PUT /portal/package/draft` saves tier + lineItems without generating proposal
+- On reload, saved tier + mode (`custom` vs standard) restored from DB; custom pages restored from `standard_page` line item description
+
+### Step 4 — Checkout
+- **Option A**: Pay in Full (with optional upfront discount %)
+- **Option B**: Split Payment — standard 30% + 3 monthly, OR custom schedule if admin set one
+- Custom schedule stored as JSON in `AdminCustomPackage.paymentTerms`:
+  `{ upfrontType: 'percent'|'amount', upfront: number, installments: number, frequency: 'weekly'|'biweekly'|'monthly'|'yearly' }`
+- Stripe Checkout redirect → returns to `/portal?payment_success=1&plan=X&sid=Y`
+- On return: `OnboardingCompleteScreen` shown → auto-enters dashboard after 4 seconds
+- Fallback (no Stripe): `POST /portal/checkout` creates invoices directly
+- Invoice creation uses `buildSplitInvoices()` helper in `client-portal.ts` — reads custom schedule from DB
+
+## Admin Custom Package (per-client)
+- `ClientProfile` → "Package" tab → "Custom Package Builder" toggle (off by default)
+- When enabled: select services from ALA_CARTE catalog, edit prices, set discount % or manual total
+- `standard_page` service opens a page builder (add/delete pages with titles, $X/page)
+- **Custom Payment Schedule**: structured builder (upfront % or $, N installments, frequency) — replaces standard Option B at checkout for this client only
+- Stored in `AdminCustomPackage` table (one row per client, upserted via `PUT /admin/clients/:id/custom-package`)
+- Server helpers in `client-portal.ts`: `getCustomSchedule()`, `buildSplitInvoices()`, `FREQ_DAYS`, `FREQ_LABEL`
+- Standard package prices and checkout terms are NEVER overridden unless `AdminCustomPackage.enabled = true`
+
+## DB Models (runtime tables — created via `runMigrations()` in `server/src/index.ts`)
 `Submission`, `Admin`, `Session`, `LoginAttempt`, `Client`, `ClientDocument`, `ProjectScope`,
-`KanbanTask`, `ClientStanding`, `PaymentEntry`, `Proposal`, `Invoice`, `AdminSettings`, `Expense`
+`KanbanTask`, `ClientStanding`, `PaymentEntry`, `Proposal`, `Invoice`, `AdminSettings`, `Expense`,
+`ClientOnboarding`, `PackageSelection`, `DiscoveryQuestionnaire`, `AdminCustomPackage`
 
 - `Admin`: id, username, passwordHash, role, isActive, lastLoginAt
 - `Session`: adminId, refreshToken (hashed), ipAddress, userAgent, expiresAt, revokedAt
-- `Client`: passwordHash, portalActive, lastLoginAt for client portal
+- `Client`: passwordHash, portalActive, lastLoginAt, upfrontDiscountPct for client portal
 - `Submission`: has `deletedAt DateTime?` for soft delete / 7-day trash bin
-- `AdminSettings`: PayPal creds, GA4 (gaPropertyId, gaCredentials, gaMeasurementId), SMTP config
-- `Invoice`: has `paypalInvoiceId`, `paypalInvoiceUrl`, `paypalStatus` for PayPal integration
+- `AdminSettings`: Stripe creds, GA4 (gaPropertyId, gaCredentials, gaMeasurementId), SMTP config
+- `Invoice`: has `stripeInvoiceId`, `stripeInvoiceUrl`, `stripeStatus`
+- `AdminCustomPackage`: clientId (unique), enabled, lineItems (JSON), subtotal, discountPct, total, notes, paymentTerms (JSON)
+- `PackageSelection`: clientId (unique), tier, lineItems (JSON), subtotal, total, notes, proposalId
+- `ClientOnboarding`: clientId (unique), step1–step4 booleans, completedAt
+- `DiscoveryQuestionnaire`: clientId (unique), section1–section13 (JSON), status, submittedAt
 
 ## Architecture Rules
 - Sub-components at **module level** (not inside parent) — prevents remount/focus bugs
@@ -134,10 +176,11 @@ ring: ring-1 ring-black/[0.06]   shadow: shadow-sm
 - CORS: manual middleware in `server/src/index.ts` — do NOT use the cors npm package
 - `app.set('trust proxy', 1)` required for Railway reverse proxy (rate limiter)
 - Admin refresh token stored in localStorage (`admin_refresh_token`, `admin_username`) for session persistence across page refresh — restored via `/auth/refresh` on mount in AuthContext
+- New DB tables: always add `CREATE TABLE IF NOT EXISTS` to `runMigrations()` in `server/src/index.ts` — Railway cannot run `prisma db push` (pgbouncer blocks DDL)
 
-## PayPal Integration
-- Settings → PayPal Account: enter Live Client ID + Secret, set environment to Live, click Save then Test Connection
-- Invoices → open invoice → "Send via PayPal": creates invoice in PayPal + emails client with "Pay with PayPal" button
-- "Sync PayPal" button on Invoices page updates payment status from PayPal
-- `paypalFetch()` in `server/src/lib/paypal.ts` handles all PayPal API calls
-- Live URL: `https://api-m.paypal.com` / Sandbox: `https://api-m.sandbox.paypal.com`
+## Stripe Integration
+- Settings → Stripe: enter Secret Key + Webhook Secret
+- Client portal checkout: creates Stripe Checkout Session → redirects client → returns to `/portal?payment_success=1`
+- `getStripeSettings()` / `getStripeClient()` in `server/src/lib/stripe.ts`
+- If Stripe not configured, portal checkout falls back to creating invoices directly (no payment link)
+- Invoices page: "Send via Stripe" creates Stripe invoice + emails client

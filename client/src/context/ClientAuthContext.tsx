@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, ReactNode } from 'react'
+import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react'
 import api from '../lib/api'
 
 interface ClientUser {
@@ -15,10 +15,27 @@ interface ClientAuthContextType {
   isClientAuthenticated: boolean
 }
 
+const SESSION_KEY = 'client_session'
 const ClientAuthContext = createContext<ClientAuthContextType | null>(null)
 
 export function ClientAuthProvider({ children }: { children: ReactNode }) {
-  const [clientUser, setClientUser] = useState<ClientUser | null>(null)
+  const [clientUser, setClientUser] = useState<ClientUser | null>(() => {
+    try {
+      const stored = sessionStorage.getItem(SESSION_KEY)
+      return stored ? (JSON.parse(stored) as ClientUser) : null
+    } catch {
+      return null
+    }
+  })
+
+  // Keep sessionStorage in sync whenever clientUser changes
+  useEffect(() => {
+    if (clientUser) {
+      sessionStorage.setItem(SESSION_KEY, JSON.stringify(clientUser))
+    } else {
+      sessionStorage.removeItem(SESSION_KEY)
+    }
+  }, [clientUser])
 
   const clientLogin = useCallback(async (email: string, password: string) => {
     const res = await api.post('/client-auth/login', { email, password })

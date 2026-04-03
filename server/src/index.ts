@@ -17,6 +17,8 @@ import { signingRouter } from './routes/signing.js'
 import { imageGenRouter } from './routes/imageGen.js'
 import { clientAuthRouter } from './routes/client-auth.js'
 import { clientPortalRouter } from './routes/client-portal.js'
+import { onboardingRouter } from './routes/onboarding.js'
+import { packageSelectionRouter } from './routes/package-selection.js'
 import { dealsRouter } from './routes/deals.js'
 import { filesRouter } from './routes/files.js'
 import { automationsRouter } from './routes/automations.js'
@@ -45,6 +47,78 @@ async function runMigrations() {
     await prisma.$executeRawUnsafe(`
       ALTER TABLE "Submission"
         ADD COLUMN IF NOT EXISTS "deletedAt" TIMESTAMPTZ
+    `)
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "ClientOnboarding" (
+        id                    SERIAL PRIMARY KEY,
+        "clientId"            INTEGER NOT NULL UNIQUE REFERENCES "Client"(id) ON DELETE CASCADE,
+        "step1Questionnaire"  BOOLEAN NOT NULL DEFAULT false,
+        "step2BrandGuide"     BOOLEAN NOT NULL DEFAULT false,
+        "step3Package"        BOOLEAN NOT NULL DEFAULT false,
+        "step4Checkout"       BOOLEAN NOT NULL DEFAULT false,
+        "completedAt"         TIMESTAMPTZ,
+        "createdAt"           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        "updatedAt"           TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `)
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "PackageSelection" (
+        id            SERIAL PRIMARY KEY,
+        "clientId"    INTEGER NOT NULL UNIQUE REFERENCES "Client"(id) ON DELETE CASCADE,
+        tier          TEXT NOT NULL,
+        "lineItems"   TEXT NOT NULL,
+        subtotal      FLOAT NOT NULL DEFAULT 0,
+        total         FLOAT NOT NULL DEFAULT 0,
+        notes         TEXT,
+        "proposalId"  INTEGER,
+        "createdAt"   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        "updatedAt"   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `)
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "DiscoveryQuestionnaire" (
+        id            SERIAL PRIMARY KEY,
+        "clientId"    INTEGER NOT NULL UNIQUE REFERENCES "Client"(id) ON DELETE CASCADE,
+        section1      TEXT,
+        section2      TEXT,
+        section3      TEXT,
+        section4      TEXT,
+        section5      TEXT,
+        section6      TEXT,
+        section7      TEXT,
+        section8      TEXT,
+        section9      TEXT,
+        section10     TEXT,
+        section11     TEXT,
+        section12     TEXT,
+        section13     TEXT,
+        status        TEXT NOT NULL DEFAULT 'not_started',
+        "submittedAt" TIMESTAMPTZ,
+        "createdAt"   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        "updatedAt"   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `)
+    await prisma.$executeRawUnsafe(`
+      ALTER TABLE "Client"
+        ADD COLUMN IF NOT EXISTS "upfrontDiscountPct" FLOAT DEFAULT 0
+    `)
+    await prisma.$executeRawUnsafe(`
+      ALTER TABLE "AdminCustomPackage"
+        ADD COLUMN IF NOT EXISTS "paymentTerms" TEXT
+    `)
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "AdminCustomPackage" (
+        id            SERIAL PRIMARY KEY,
+        "clientId"    INTEGER NOT NULL UNIQUE REFERENCES "Client"(id) ON DELETE CASCADE,
+        enabled       BOOLEAN NOT NULL DEFAULT false,
+        "lineItems"   TEXT NOT NULL DEFAULT '[]',
+        subtotal      FLOAT NOT NULL DEFAULT 0,
+        "discountPct" FLOAT NOT NULL DEFAULT 0,
+        total         FLOAT NOT NULL DEFAULT 0,
+        notes         TEXT,
+        "createdAt"   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        "updatedAt"   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
     `)
     logger.info('DB migrations OK')
   } catch (err) {
@@ -116,6 +190,8 @@ app.use('/api/admin/calendar', calendarRouter)
 app.use('/api/sign', signingRouter)
 app.use('/api/admin/image-gen', imageGenRouter)
 app.use('/api/client-auth', clientAuthRouter)
+app.use('/api/portal/onboarding', onboardingRouter)
+app.use('/api/portal/package', packageSelectionRouter)
 app.use('/api/portal', clientPortalRouter)
 
 // Health check

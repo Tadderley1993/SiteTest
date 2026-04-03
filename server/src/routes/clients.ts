@@ -323,10 +323,146 @@ router.post('/:id/set-portal-password', authMiddleware, async (req, res) => {
       `UPDATE "Client" SET "passwordHash"=$1, "portalPasswordPlain"=$2, "portalActive"=true, "updatedAt"=NOW() WHERE id=$3`,
       hash, password, clientId,
     )
+    // Auto-create ClientOnboarding row (safe to call on re-sets too)
+    await prisma.$executeRawUnsafe(`
+      INSERT INTO "ClientOnboarding" ("clientId","createdAt","updatedAt")
+      VALUES ($1, NOW(), NOW())
+      ON CONFLICT ("clientId") DO NOTHING
+    `, clientId)
     res.json({ message: 'Portal password set', clientId, portalActive: true })
   } catch (error) {
     logger.error({ err: error }, 'Error setting portal password')
     res.status(500).json({ error: 'Failed to set portal password' })
+  }
+})
+
+// GET /api/admin/clients/:id/questionnaire
+router.get('/:id/questionnaire', async (req, res) => {
+  const clientId = parseInt(req.params.id)
+  try {
+    const [q, client] = await Promise.all([
+      prisma.discoveryQuestionnaire.findUnique({ where: { clientId } }),
+      prisma.client.findUnique({ where: { id: clientId }, include: { submission: true } }),
+    ])
+    let submissionServices: string[] = []
+    if (client?.submission?.services) {
+      try { submissionServices = JSON.parse(client.submission.services) } catch { /* ignore */ }
+    }
+    res.json(q ? { ...q, submissionServices } : null)
+  } catch (error) {
+    logger.error({ error }, 'Error fetching questionnaire')
+    res.status(500).json({ error: 'Failed to fetch questionnaire' })
+  }
+})
+
+// GET /api/admin/clients/:id/onboarding — admin view of onboarding progress + package
+router.get('/:id/onboarding', authMiddleware, async (req, res) => {
+  const clientId = parseInt(req.params.id)
+  try {
+    const [onboarding, pkg] = await Promise.all([
+      prisma.$queryRawUnsafe(`SELECT * FROM "ClientOnboarding" WHERE "clientId" = $1`, clientId),
+      prisma.$queryRawUnsafe(`
+        SELECT ps.*, p."signingToken"
+        FROM "PackageSelection" ps
+        LEFT JOIN "Proposal" p ON p.id = ps."proposalId"
+        WHERE ps."clientId" = $1
+      `, clientId),
+    ]) as [Array<Record<string, unknown>>, Array<Record<string, unknown>>]
+    res.json({ onboarding: onboarding[0] ?? null, packageSelection: pkg[0] ?? null })
+  } catch (error) {
+    logger.error({ error }, 'Error fetching onboarding')
+    res.status(500).json({ error: 'Failed to fetch onboarding data' })
+  }
+})
+
+// PUT /api/admin/clients/:id/onboarding — admin override any step
+router.put('/:id/onboarding', authMiddleware, async (req, res) => {
+  const clientId = parseInt(req.params.id)
+  const { step, value } = req.body as { step: string; value: boolean }
+  const allowed = ['step1Questionnaire', 'step2BrandGuide', 'step3Package', 'step4Checkout']
+  if (!allowed.includes(step)) return res.status(400).json({ error: 'Invalid step name' })
+  try {
+    // Ensure row exists
+    await prisma.$executeRawUnsafe(`
+      INSERT INTO "ClientOnboarding" ("clientId","createdAt","updatedAt")
+      VALUES ($1, NOW(), NOW())
+      ON CONFLICT ("clientId") DO NOTHING
+    `, clientId)
+    await prisma.$executeRawUnsafe(
+      `UPDATE "ClientOnboarding" SET "${step}"=$1,"updatedAt"=NOW() WHERE "clientId"=$2`,
+      Boolean(value), clientId,
+    )
+    // If completing step4 via admin override, advance journey phase too
+    if (step === 'step4Checkout' && value) {
+      await prisma.$executeRawUnsafe(
+        `UPDATE "Client" SET "journeyPhase"='planning',"updatedAt"=NOW() WHERE id=$1`, clientId,
+      )
+      await prisma.$executeRawUnsafe(
+        `UPDATE "ClientOnboarding" SET "completedAt"=NOW(),"updatedAt"=NOW() WHERE "clientId"=$1`, clientId,
+      )
+    }
+    const rows = await prisma.$queryRawUnsafe(
+      `SELECT * FROM "ClientOnboarding" WHERE "clientId" = $1`, clientId,
+    ) as Array<Record<string, unknown>>
+    res.json(rows[0])
+  } catch (error) {
+    logger.error({ error }, 'Error updating onboarding step')
+    res.status(500).json({ error: 'Failed to update onboarding step' })
+  }
+})
+
+// PUT /api/admin/clients/:id/discount — set per-client upfront discount %
+router.put('/:id/discount', authMiddleware, async (req, res) => {
+  const clientId = parseInt(req.params.id)
+  const { upfrontDiscountPct } = req.body as { upfrontDiscountPct: number }
+  try {
+    await prisma.$executeRawUnsafe(
+      `UPDATE "Client" SET "upfrontDiscountPct"=$1,"updatedAt"=NOW() WHERE id=$2`,
+      Number(upfrontDiscountPct) || 0, clientId,
+    )
+    res.json({ upfrontDiscountPct: Number(upfrontDiscountPct) || 0 })
+  } catch (error) {
+    logger.error({ error }, 'Error setting discount')
+    res.status(500).json({ error: 'Failed to set discount' })
+  }
+})
+
+// GET /api/admin/clients/:id/custom-package
+router.get('/:id/custom-package', authMiddleware, async (req, res) => {
+  const clientId = parseInt(req.params.id)
+  try {
+    const rows = await prisma.$queryRawUnsafe(
+      `SELECT * FROM "AdminCustomPackage" WHERE "clientId" = $1`, clientId,
+    ) as Array<Record<string, unknown>>
+    res.json(rows[0] ?? null)
+  } catch (error) {
+    logger.error({ error }, 'Error fetching custom package')
+    res.status(500).json({ error: 'Failed to fetch custom package' })
+  }
+})
+
+// PUT /api/admin/clients/:id/custom-package
+router.put('/:id/custom-package', authMiddleware, async (req, res) => {
+  const clientId = parseInt(req.params.id)
+  const { enabled, lineItems, subtotal, discountPct, total, notes, paymentTerms } = req.body as {
+    enabled: boolean; lineItems: unknown[]; subtotal: number
+    discountPct: number; total: number; notes?: string; paymentTerms?: string
+  }
+  try {
+    await prisma.$executeRawUnsafe(`
+      INSERT INTO "AdminCustomPackage" ("clientId",enabled,"lineItems",subtotal,"discountPct",total,notes,"paymentTerms","createdAt","updatedAt")
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,NOW(),NOW())
+      ON CONFLICT ("clientId") DO UPDATE SET
+        enabled=$2,"lineItems"=$3,subtotal=$4,"discountPct"=$5,total=$6,notes=$7,"paymentTerms"=$8,"updatedAt"=NOW()
+    `, clientId, Boolean(enabled), JSON.stringify(lineItems ?? []),
+      Number(subtotal ?? 0), Number(discountPct ?? 0), Number(total ?? 0), notes ?? null, paymentTerms ?? null)
+    const rows = await prisma.$queryRawUnsafe(
+      `SELECT * FROM "AdminCustomPackage" WHERE "clientId" = $1`, clientId,
+    ) as Array<Record<string, unknown>>
+    res.json(rows[0])
+  } catch (error) {
+    logger.error({ error }, 'Error saving custom package')
+    res.status(500).json({ error: 'Failed to save custom package' })
   }
 })
 
