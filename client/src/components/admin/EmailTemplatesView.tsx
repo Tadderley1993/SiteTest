@@ -43,14 +43,49 @@ const AI_PROMPTS: Record<DocType, { title: string; text: string }> = {
     title: 'AI Prompt — Email Template',
     text: `Design a professional HTML email template for "Designs By Terrence Adderley" (DTA), a Boston MA freelance web design agency.
 
-Style requirements:
-- Clean, modern, professional design
-- Max width 650px, centered, mobile responsive
-- Brand colors: dark (#08090A), gold accent (#C6A84B), text (#F5F0E8) — or a light/neutral variant
-- Use Google Fonts or system fonts only
-- CRITICAL: Do NOT use icon fonts (Material Icons, Font Awesome, etc.) — email clients like Gmail block external fonts and the icon name will render as raw text (e.g. "rocket_launch"). Use emoji (🚀 ✅ 📧 💼) or inline SVG for any icons.
+━━━ HARD RULES — EMAIL CLIENTS ARE NOT BROWSERS ━━━
 
-Choose one category and build accordingly:
+1. NO external scripts of any kind.
+   ✗ <script src="..."> — blocked by every email client
+   ✗ Tailwind CDN, Bootstrap CDN, any CSS framework loaded via <script>
+   ✗ Any JavaScript whatsoever
+   All styling must be standard CSS only.
+
+2. NO icon fonts. Not Material Icons. Not Font Awesome. Not Material Symbols.
+   Email clients (Gmail, Outlook, Apple Mail) strip external font files.
+   The icon name renders as literal raw text — e.g. "arrow_forward" or "mail".
+   ✓ Use emoji instead: 📧 → 🌐 ✅ 🚀 💼 📄 ⏰ ✍️
+   ✓ Or use inline SVG (self-contained, no external requests).
+
+3. NO CSS frameworks that require a JS runtime.
+   Tailwind utility classes do nothing without the Tailwind script. Do not use them.
+   Write plain CSS in a <style> block in the <head>.
+
+4. Google Fonts via <link> is acceptable — it is a CSS request, not a script.
+   Brand fonts: Manrope (headlines, weights 700–800), Inter (body, weights 400–500).
+
+5. Multi-column layout must use HTML <table role="presentation"> for the grid sections,
+   not CSS Grid or Flexbox — Outlook and many mobile clients ignore those for layout.
+   Single-column sections may use <div> freely.
+
+6. All critical layout/color styles should be inline OR in the <style> block.
+   Do not rely on classes that reference an external stylesheet.
+
+━━━ BRAND ━━━
+
+Dark variant (preferred):
+  background: #121315   surface: #1f2021   surface-low: #0d0e0f
+  accent (gold): #e4c463   accent-dim: #c6a84b   on-accent: #3c2f00
+  text-primary: #e3e2e3   text-muted: #cfc6b2
+
+Light variant (acceptable for simpler templates):
+  background: #ffffff   surface: #f9f9f9
+  accent (gold): #c6a84b   text-primary: #111111   text-muted: #555555
+
+Max width: 650px, centered. Mobile breakpoint at 480px via @media in <style>.
+
+━━━ CATEGORY — pick one and build accordingly ━━━
+
   welcome     – Warm welcome for a new client
   followup    – Following up on an unanswered proposal
   reminder    – Reminder for an upcoming or overdue payment/invoice
@@ -59,19 +94,20 @@ Choose one category and build accordingly:
   proposal    – Notification that a proposal has been shared
   general     – Flexible template for any message
 
-Include these {{tokens}} exactly — they will be replaced with real values at send time:
+━━━ TOKENS — include exactly as shown ━━━
+
   {{clientName}}       Full name of the recipient
   {{clientFirstName}}  First name only
   {{agencyName}}       Agency name (Designs By Terrence Adderley)
   {{agencyEmail}}      terrenceadderley@designsbyta.com
   {{agencyWebsite}}    www.designsbyta.com
-  {{message}}          Main body copy (plain text, can include line breaks)
+  {{message}}          Main body copy (plain text, may contain line breaks)
   {{ctaText}}          Call-to-action button label (e.g. "View Proposal")
   {{ctaUrl}}           Call-to-action button URL
 
-Add any extra {{customTokens}} that make sense for the specific category.
+Add category-specific tokens where they make sense (e.g. {{invoiceNumber}}, {{dueDate}}).
 
-Return ONLY valid HTML (no markdown code fences). Embed all CSS inside a <style> block in the <head>.`,
+Return ONLY valid HTML — no markdown, no code fences, no explanation. The response must start with <!DOCTYPE html>.`,
   },
 
   proposal: {
@@ -1559,7 +1595,7 @@ export default function EmailTemplatesView() {
 
                   <iframe
                     srcDoc={previewDoc}
-                    sandbox="allow-same-origin"
+                    sandbox="allow-same-origin allow-scripts"
                     className="w-full"
                     style={{ height: '700px', border: 'none' }}
                     title="Template Preview"
