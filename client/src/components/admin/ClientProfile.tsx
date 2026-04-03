@@ -2140,57 +2140,82 @@ export default function ClientProfile({ clientId, onBack, onDelete }: Props) {
                       <span className="material-symbols-outlined text-[16px]">{showPromoPreview ? 'expand_less' : 'expand_more'}</span>
                     </button>
                     {showPromoPreview && (() => {
-                      const prevItems = promoCategories.flatMap(c => c.items.map(i => ({ ...i, catName: c.name })))
-                      const prevSubtotal = prevItems.reduce((s, i) => s + i.qty * i.unitPrice, 0)
+                      const prevSubtotal = promoCategories.flatMap(c => c.items).reduce((s, i) => s + i.qty * i.unitPrice, 0)
                       const prevDiscount = Math.round(prevSubtotal * (promoDiscountPct / 100) * 100) / 100
                       const prevTotal = promoUseManual && promoManualTotal !== '' ? Number(promoManualTotal) : Math.round((prevSubtotal - prevDiscount) * 100) / 100
                       const catGroups = promoCategories.filter(c => c.items.length > 0)
+                      const daysLeft = promoExpiresAt ? Math.ceil((new Date(promoExpiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : null
                       return (
-                        <div style={{ background: '#08090D', padding: '24px', fontFamily: 'system-ui, sans-serif' }}>
-                          <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(198,168,75,0.2)', borderRadius: '12px', overflow: 'hidden' }}>
-                            {/* Card header */}
-                            <div style={{ padding: '20px 24px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                                <span style={{ background: '#C6A84B', color: '#08090D', fontSize: '9px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', padding: '3px 8px', borderRadius: '4px' }}>Special Offer</span>
+                        <div style={{ background: '#f9f9f9', padding: '16px', fontFamily: 'system-ui, sans-serif' }}>
+                          {/* Exact replica of the portal Step 3 card */}
+                          <div style={{ background: '#f9f9f9', border: '1px solid #e4e4e7', borderRadius: '16px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+
+                            {/* Header — badge + name + countdown */}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                <span style={{ background: '#f59e0b', color: '#fff', fontSize: '9px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', padding: '3px 10px', borderRadius: '999px' }}>Special Offer</span>
+                                {promoBundleName && <span style={{ fontWeight: 600, color: '#000', fontSize: '14px' }}>{promoBundleName}</span>}
                               </div>
-                              <p style={{ color: '#F5F0E8', fontWeight: 700, fontSize: '16px', marginTop: '8px' }}>{promoBundleName || 'Your Custom Bundle'}</p>
-                              {promoExpiresAt && <p style={{ color: '#C6A84B', fontSize: '11px', marginTop: '4px' }}>Offer expires {new Date(promoExpiresAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>}
+                              {daysLeft !== null && daysLeft <= 7 && (
+                                <span style={{ display: 'inline-block', fontSize: '11px', fontWeight: 600, color: '#d97706', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px', padding: '4px 10px' }}>
+                                  ⏰ Offer expires in {daysLeft <= 0 ? 'less than a day' : `${daysLeft} day${daysLeft === 1 ? '' : 's'}`}
+                                </span>
+                              )}
                             </div>
-                            {/* Items by category */}
-                            <div style={{ padding: '0 24px' }}>
-                              {catGroups.length === 0
-                                ? <p style={{ color: '#6B6560', fontSize: '13px', padding: '20px 0' }}>No items added yet.</p>
-                                : catGroups.map(cat => (
-                                  <div key={cat.id}>
-                                    <p style={{ color: '#C6A84B', fontSize: '9px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.15em', padding: '16px 0 6px' }}>{cat.name}</p>
-                                    {cat.items.map(item => (
-                                      <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderTop: '1px solid rgba(255,255,255,0.04)' }}>
-                                        <div>
-                                          <p style={{ color: '#F5F0E8', fontSize: '13px', fontWeight: 500 }}>{item.name || '—'}</p>
-                                          {item.description && <p style={{ color: '#6B6560', fontSize: '11px' }}>{item.description}</p>}
-                                          {item.qty > 1 && <p style={{ color: '#6B6560', fontSize: '11px' }}>×{item.qty}</p>}
-                                        </div>
-                                        <span style={{ color: '#F5F0E8', fontWeight: 600, fontSize: '13px', whiteSpace: 'nowrap' }}>${(item.qty * item.unitPrice).toLocaleString()}</span>
-                                      </div>
+
+                            {/* Line items table */}
+                            {catGroups.length > 0 && (
+                              <div style={{ border: '1px solid #e4e4e7', borderRadius: '12px', overflow: 'hidden', background: '#fff' }}>
+                                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                                  <thead>
+                                    <tr style={{ borderBottom: '1px solid #f4f4f5' }}>
+                                      <th style={{ textAlign: 'left', padding: '10px 16px', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#a1a1aa' }}>Service</th>
+                                      <th style={{ textAlign: 'right', padding: '10px 16px', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#a1a1aa' }}>Price</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {catGroups.map(cat => (
+                                      <>
+                                        <tr key={`h-${cat.id}`} style={{ background: '#f9f9f9' }}>
+                                          <td colSpan={2} style={{ padding: '8px 16px', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#a1a1aa' }}>{cat.name}</td>
+                                        </tr>
+                                        {cat.items.map(item => (
+                                          <tr key={item.id} style={{ borderTop: '1px solid #f4f4f5' }}>
+                                            <td style={{ padding: '12px 16px' }}>
+                                              <p style={{ fontWeight: 500, color: '#000', margin: 0 }}>{item.name || '—'}</p>
+                                              {item.description && <p style={{ fontSize: '11px', color: '#a1a1aa', margin: '2px 0 0' }}>{item.description}</p>}
+                                              {item.qty > 1 && <p style={{ fontSize: '11px', color: '#a1a1aa', margin: '2px 0 0' }}>×{item.qty}</p>}
+                                            </td>
+                                            <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 500, color: '#000', whiteSpace: 'nowrap' }}>${(item.qty * item.unitPrice).toLocaleString()}</td>
+                                          </tr>
+                                        ))}
+                                        <tr style={{ borderTop: '1px solid #f4f4f5', background: 'rgba(249,249,249,0.5)' }}>
+                                          <td style={{ padding: '6px 16px', fontSize: '11px', color: '#a1a1aa' }}>Subtotal — {cat.name}</td>
+                                          <td style={{ padding: '6px 16px', textAlign: 'right', fontSize: '11px', color: '#a1a1aa' }}>${cat.items.reduce((s, i) => s + i.qty * i.unitPrice, 0).toLocaleString()}</td>
+                                        </tr>
+                                      </>
                                     ))}
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderTop: '1px solid rgba(198,168,75,0.1)' }}>
-                                      <span style={{ color: '#6B6560', fontSize: '11px' }}>Subtotal — {cat.name}</span>
-                                      <span style={{ color: '#8A8278', fontSize: '11px' }}>${cat.items.reduce((s, i) => s + i.qty * i.unitPrice, 0).toLocaleString()}</span>
-                                    </div>
-                                  </div>
-                                ))
-                              }
-                            </div>
-                            {/* Total */}
-                            <div style={{ padding: '16px 24px', borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <span style={{ color: '#F5F0E8', fontWeight: 700, fontSize: '14px' }}>Total</span>
-                              <span style={{ color: '#C6A84B', fontWeight: 700, fontSize: '18px' }}>${prevTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                            </div>
-                            {promoNotes && (
-                              <div style={{ padding: '0 24px 16px' }}>
-                                <p style={{ color: '#6B6560', fontSize: '12px', fontStyle: 'italic' }}>{promoNotes}</p>
+                                  </tbody>
+                                  <tfoot>
+                                    <tr style={{ borderTop: '1px solid #e4e4e7', background: '#f9f9f9' }}>
+                                      <td style={{ padding: '12px 16px', fontWeight: 600, color: '#000' }}>Total</td>
+                                      <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 900, fontSize: '18px', color: '#000' }}>${prevTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                                    </tr>
+                                  </tfoot>
+                                </table>
                               </div>
                             )}
+                            {catGroups.length === 0 && (
+                              <p style={{ color: '#a1a1aa', fontSize: '13px', textAlign: 'center', padding: '16px 0' }}>No items added yet.</p>
+                            )}
+
+                            {promoNotes && <p style={{ fontSize: '13px', color: '#71717a', fontStyle: 'italic', margin: 0 }}>{promoNotes}</p>}
+
+                            {/* CTA button */}
+                            <div style={{ background: '#000', color: '#fff', borderRadius: '12px', padding: '14px', textAlign: 'center', fontWeight: 700, fontSize: '14px', opacity: 0.5, cursor: 'default' }}>
+                              Select This Package →
+                            </div>
+                            <p style={{ fontSize: '10px', color: '#a1a1aa', textAlign: 'center', margin: 0 }}>Preview only — button is disabled</p>
                           </div>
                         </div>
                       )
