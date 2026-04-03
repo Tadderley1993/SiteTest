@@ -112,14 +112,15 @@ router.get('/me', asyncHandler(async (req: ClientRequest, res) => {
     try { submissionServices = JSON.parse(client.submission.services) } catch { /* ignore */ }
   }
 
-  // Fetch upfrontDiscountPct via raw SQL
+  // Fetch upfrontDiscountPct + skipOnboarding via raw SQL
   const discountRows = await prisma.$queryRawUnsafe(
-    `SELECT "upfrontDiscountPct" FROM "Client" WHERE id = $1`, req.clientId!
-  ) as Array<{ upfrontDiscountPct: number | null }>
+    `SELECT "upfrontDiscountPct", "skipOnboarding" FROM "Client" WHERE id = $1`, req.clientId!
+  ) as Array<{ upfrontDiscountPct: number | null; skipOnboarding: boolean | null }>
   const upfrontDiscountPct = discountRows[0]?.upfrontDiscountPct ?? 0
+  const skipOnboarding = discountRows[0]?.skipOnboarding ?? false
 
   const { passwordHash: _, submission: __, ...safe } = client
-  res.json({ ...safe, journeyPhase, submissionServices, upfrontDiscountPct })
+  res.json({ ...safe, journeyPhase, submissionServices, upfrontDiscountPct, skipOnboarding })
 }))
 
 // GET /api/portal/invoices — only show sent/paid/cancelled (never drafts)

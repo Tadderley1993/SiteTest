@@ -2675,6 +2675,11 @@ function OnboardingGate() {
       api.get('/portal/package'),
       api.get('/portal/custom-package'),
     ]).then(([onb, me, pkg, cust]) => {
+      // If admin toggled skip onboarding, go straight to dashboard
+      if (me.data.skipOnboarding) {
+        setOnboarding(null)
+        return
+      }
       setOnboarding(onb.data as OnboardingStatus)
       setUpfrontDiscountPct(Number(me.data.upfrontDiscountPct ?? 0))
       if (pkg.data?.total) setPackageTotal(Number(pkg.data.total))

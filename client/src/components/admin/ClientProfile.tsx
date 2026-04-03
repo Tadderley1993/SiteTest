@@ -185,6 +185,8 @@ export default function ClientProfile({ clientId, onBack, onDelete }: Props) {
   const [portalPassword, setPortalPassword] = useState('')
   const [portalSaving, setPortalSaving] = useState(false)
   const [portalMsg, setPortalMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [skipOnboarding, setSkipOnboarding] = useState(false)
+  const [skipOnboardingSaving, setSkipOnboardingSaving] = useState(false)
 
   // Journey phase state
   const [journeyPhase, setJourneyPhase] = useState<string>('discovery')
@@ -306,6 +308,7 @@ export default function ClientProfile({ clientId, onBack, onDelete }: Props) {
         setScopeForm(data.projectScope ?? {})
         setJourneyPhase(data.journeyPhase ?? 'discovery')
         setUpfrontDiscountPct(Number((data as unknown as Record<string, unknown>).upfrontDiscountPct ?? 0))
+        setSkipOnboarding(Boolean((data as unknown as Record<string, unknown>).skipOnboarding))
       } catch {
         setError('Failed to load client')
       } finally {
@@ -558,6 +561,16 @@ export default function ClientProfile({ clientId, onBack, onDelete }: Props) {
       setCustomMsg({ type: 'error', text: 'Failed to save custom package.' })
     } finally {
       setCustomSaving(false)
+    }
+  }
+
+  const handleToggleSkipOnboarding = async (val: boolean) => {
+    setSkipOnboardingSaving(true)
+    try {
+      await api.put(`/admin/clients/${clientId}/skip-onboarding`, { skipOnboarding: val })
+      setSkipOnboarding(val)
+    } catch { /* silent */ } finally {
+      setSkipOnboardingSaving(false)
     }
   }
 
@@ -897,6 +910,21 @@ export default function ClientProfile({ clientId, onBack, onDelete }: Props) {
                 {portalMsg.text}
               </p>
             )}
+            {/* Skip onboarding toggle */}
+            <div className="flex items-center justify-between pt-3 border-t border-black/10">
+              <div>
+                <p className="text-sm font-medium text-black">Skip onboarding funnel</p>
+                <p className="text-xs text-zinc-400 mt-0.5">Client goes directly to the dashboard — no questionnaire, brand guide, or checkout required.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleToggleSkipOnboarding(!skipOnboarding)}
+                disabled={skipOnboardingSaving}
+                className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${skipOnboarding ? 'bg-black' : 'bg-zinc-300'} disabled:opacity-50`}
+              >
+                <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${skipOnboarding ? 'translate-x-5' : 'translate-x-0'}`} />
+              </button>
+            </div>
           </div>
         </div>
       )}

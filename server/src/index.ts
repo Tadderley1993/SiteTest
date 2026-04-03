@@ -107,6 +107,10 @@ async function runMigrations() {
         ADD COLUMN IF NOT EXISTS "paymentTerms" TEXT
     `)
     await prisma.$executeRawUnsafe(`
+      ALTER TABLE "Client"
+        ADD COLUMN IF NOT EXISTS "skipOnboarding" BOOLEAN NOT NULL DEFAULT false
+    `)
+    await prisma.$executeRawUnsafe(`
       ALTER TABLE "AdminCustomPackage"
         ADD COLUMN IF NOT EXISTS "bundleName" TEXT
     `)

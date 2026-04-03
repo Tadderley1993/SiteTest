@@ -427,6 +427,22 @@ router.put('/:id/discount', authMiddleware, async (req, res) => {
   }
 })
 
+// PUT /api/admin/clients/:id/skip-onboarding
+router.put('/:id/skip-onboarding', authMiddleware, async (req, res) => {
+  const clientId = parseInt(req.params.id)
+  const { skipOnboarding } = req.body as { skipOnboarding: boolean }
+  try {
+    await prisma.$executeRawUnsafe(
+      `UPDATE "Client" SET "skipOnboarding" = $1 WHERE id = $2`,
+      Boolean(skipOnboarding), clientId,
+    )
+    res.json({ skipOnboarding: Boolean(skipOnboarding) })
+  } catch (error) {
+    logger.error({ error }, 'Error updating skipOnboarding')
+    res.status(500).json({ error: 'Failed to update setting' })
+  }
+})
+
 // GET /api/admin/clients/:id/custom-package
 router.get('/:id/custom-package', authMiddleware, async (req, res) => {
   const clientId = parseInt(req.params.id)

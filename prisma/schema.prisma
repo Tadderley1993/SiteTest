@@ -94,6 +94,7 @@ model Client {
   passwordHash         String?
   portalPasswordPlain  String?
   portalActive         Boolean   @default(false)
+  skipOnboarding       Boolean   @default(false)
   lastLoginAt          DateTime?
   journeyPhase         String?   @default("discovery")
   upfrontDiscountPct   Float?    @default(0)
