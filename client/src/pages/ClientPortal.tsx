@@ -1174,6 +1174,9 @@ interface AdminCustomPkgData {
   total: number
   notes: string | null
   paymentTerms: string | null
+  bundleName?: string | null
+  bundleType?: string | null
+  bundleExpiresAt?: string | null
 }
 
 interface OnboardingStatus {
@@ -1957,54 +1960,111 @@ function OnboardingStep3({ onAdvance, adminCustomPkg }: {
       </div>
 
       {/* Custom package (admin-created) */}
-      {hasCustomPkg && !proposal && (
-        <div className="bg-[#f9f9f9] border border-zinc-200 rounded-2xl p-6 space-y-5">
-          <div className="flex items-center gap-2">
-            <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest bg-black text-white">Custom</span>
-            <span className="text-xs text-zinc-400">Curated for you by Terrence Adderley</span>
-          </div>
-          {customItems.length > 0 && (
-            <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-zinc-100">
-                    <th className="text-left px-4 py-2.5 text-[10px] font-bold uppercase tracking-widest text-zinc-400">Service</th>
-                    <th className="text-right px-4 py-2.5 text-[10px] font-bold uppercase tracking-widest text-zinc-400">Price</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-zinc-50">
-                  {customItems.map((item, i) => (
-                    <tr key={i}>
-                      <td className="px-4 py-3">
-                        <p className="font-medium text-black">{item.label}</p>
-                        {item.description && <p className="text-[11px] text-zinc-400 mt-0.5">{item.description}</p>}
-                      </td>
-                      <td className="px-4 py-3 text-right font-medium text-black">${item.amount.toLocaleString()}</td>
-                    </tr>
-                  ))}
-                </tbody>
-                <tfoot>
-                  <tr className="border-t border-zinc-200 bg-zinc-50">
-                    <td className="px-4 py-3 font-semibold text-black">Total</td>
-                    <td className="px-4 py-3 text-right font-black text-lg text-black">${adminCustomPkg!.total.toLocaleString()}</td>
-                  </tr>
-                </tfoot>
-              </table>
+      {hasCustomPkg && !proposal && (() => {
+        const isPromo = adminCustomPkg?.bundleType === 'promo'
+        const expiresAt = adminCustomPkg?.bundleExpiresAt ? new Date(adminCustomPkg.bundleExpiresAt) : null
+        const daysLeft = expiresAt ? Math.ceil((expiresAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : null
+
+        // Group items by category for promo bundles
+        const catGroups: { name: string; items: typeof customItems }[] = []
+        if (isPromo && customItems.length > 0) {
+          const seen = new Map<string, typeof customItems>()
+          customItems.forEach(item => {
+            const cat = (item as typeof item & { category?: string }).category ?? 'General'
+            if (!seen.has(cat)) seen.set(cat, [])
+            seen.get(cat)!.push(item)
+          })
+          seen.forEach((items, name) => catGroups.push({ name, items }))
+        }
+
+        return (
+          <div className="bg-[#f9f9f9] border border-zinc-200 rounded-2xl p-6 space-y-5">
+            {/* Header */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                {isPromo ? (
+                  <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest bg-amber-500 text-white">Special Offer</span>
+                ) : (
+                  <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest bg-black text-white">Custom</span>
+                )}
+                {isPromo && adminCustomPkg?.bundleName && (
+                  <span className="font-semibold text-black">{adminCustomPkg.bundleName}</span>
+                )}
+                {!isPromo && <span className="text-xs text-zinc-400">Curated for you by Terrence Adderley</span>}
+              </div>
+              {daysLeft !== null && daysLeft <= 7 && (
+                <p className="text-xs font-semibold text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5 w-fit">
+                  ⏰ Offer expires in {daysLeft <= 0 ? 'less than a day' : `${daysLeft} day${daysLeft === 1 ? '' : 's'}`}
+                </p>
+              )}
             </div>
-          )}
-          {adminCustomPkg?.notes && (
-            <p className="text-sm text-zinc-500 italic">{adminCustomPkg.notes}</p>
-          )}
-          <button
-            type="button"
-            onClick={handleSelectCustom}
-            disabled={generating}
-            className="w-full py-3.5 bg-black text-white font-bold rounded-xl hover:bg-zinc-800 disabled:opacity-40 transition-colors"
-          >
-            {generating ? 'Generating Proposal…' : 'Select This Package →'}
-          </button>
-        </div>
-      )}
+
+            {/* Line items — grouped by category for promo, flat for catalog */}
+            {customItems.length > 0 && (
+              <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-zinc-100">
+                      <th className="text-left px-4 py-2.5 text-[10px] font-bold uppercase tracking-widest text-zinc-400">Service</th>
+                      <th className="text-right px-4 py-2.5 text-[10px] font-bold uppercase tracking-widest text-zinc-400">Price</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {isPromo && catGroups.length > 0
+                      ? catGroups.map(group => (
+                        <>
+                          <tr key={`cat-${group.name}`} className="bg-zinc-50">
+                            <td colSpan={2} className="px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-zinc-400">{group.name}</td>
+                          </tr>
+                          {group.items.map((item, i) => (
+                            <tr key={i} className="border-t border-zinc-50">
+                              <td className="px-4 py-3">
+                                <p className="font-medium text-black">{item.label}</p>
+                                {item.description && <p className="text-[11px] text-zinc-400 mt-0.5">{item.description}</p>}
+                              </td>
+                              <td className="px-4 py-3 text-right font-medium text-black">${item.amount.toLocaleString()}</td>
+                            </tr>
+                          ))}
+                          <tr className="border-t border-zinc-100 bg-zinc-50/50">
+                            <td className="px-4 py-1.5 text-[11px] text-zinc-400">Subtotal — {group.name}</td>
+                            <td className="px-4 py-1.5 text-right text-[11px] text-zinc-400">${group.items.reduce((s, i) => s + i.amount, 0).toLocaleString()}</td>
+                          </tr>
+                        </>
+                      ))
+                      : customItems.map((item, i) => (
+                        <tr key={i} className="border-t border-zinc-50">
+                          <td className="px-4 py-3">
+                            <p className="font-medium text-black">{item.label}</p>
+                            {item.description && <p className="text-[11px] text-zinc-400 mt-0.5">{item.description}</p>}
+                          </td>
+                          <td className="px-4 py-3 text-right font-medium text-black">${item.amount.toLocaleString()}</td>
+                        </tr>
+                      ))
+                    }
+                  </tbody>
+                  <tfoot>
+                    <tr className="border-t border-zinc-200 bg-zinc-50">
+                      <td className="px-4 py-3 font-semibold text-black">Total</td>
+                      <td className="px-4 py-3 text-right font-black text-lg text-black">${adminCustomPkg!.total.toLocaleString()}</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            )}
+            {adminCustomPkg?.notes && (
+              <p className="text-sm text-zinc-500 italic">{adminCustomPkg.notes}</p>
+            )}
+            <button
+              type="button"
+              onClick={handleSelectCustom}
+              disabled={generating}
+              className="w-full py-3.5 bg-black text-white font-bold rounded-xl hover:bg-zinc-800 disabled:opacity-40 transition-colors"
+            >
+              {generating ? 'Generating Proposal…' : 'Select This Package →'}
+            </button>
+          </div>
+        )
+      })()}
 
       {/* Standard tier cards */}
       {!hasCustomPkg && !proposal && (

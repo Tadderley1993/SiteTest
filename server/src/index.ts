@@ -107,6 +107,18 @@ async function runMigrations() {
         ADD COLUMN IF NOT EXISTS "paymentTerms" TEXT
     `)
     await prisma.$executeRawUnsafe(`
+      ALTER TABLE "AdminCustomPackage"
+        ADD COLUMN IF NOT EXISTS "bundleName" TEXT
+    `)
+    await prisma.$executeRawUnsafe(`
+      ALTER TABLE "AdminCustomPackage"
+        ADD COLUMN IF NOT EXISTS "bundleType" TEXT NOT NULL DEFAULT 'catalog'
+    `)
+    await prisma.$executeRawUnsafe(`
+      ALTER TABLE "AdminCustomPackage"
+        ADD COLUMN IF NOT EXISTS "bundleExpiresAt" TIMESTAMPTZ
+    `)
+    await prisma.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS "AdminCustomPackage" (
         id            SERIAL PRIMARY KEY,
         "clientId"    INTEGER NOT NULL UNIQUE REFERENCES "Client"(id) ON DELETE CASCADE,

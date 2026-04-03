@@ -444,18 +444,23 @@ router.get('/:id/custom-package', authMiddleware, async (req, res) => {
 // PUT /api/admin/clients/:id/custom-package
 router.put('/:id/custom-package', authMiddleware, async (req, res) => {
   const clientId = parseInt(req.params.id)
-  const { enabled, lineItems, subtotal, discountPct, total, notes, paymentTerms } = req.body as {
+  const { enabled, lineItems, subtotal, discountPct, total, notes, paymentTerms, bundleName, bundleType, bundleExpiresAt } = req.body as {
     enabled: boolean; lineItems: unknown[]; subtotal: number
     discountPct: number; total: number; notes?: string; paymentTerms?: string
+    bundleName?: string; bundleType?: string; bundleExpiresAt?: string | null
   }
   try {
+    const expiresAt = bundleExpiresAt ? new Date(bundleExpiresAt).toISOString() : null
     await prisma.$executeRawUnsafe(`
-      INSERT INTO "AdminCustomPackage" ("clientId",enabled,"lineItems",subtotal,"discountPct",total,notes,"paymentTerms","createdAt","updatedAt")
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,NOW(),NOW())
+      INSERT INTO "AdminCustomPackage" ("clientId",enabled,"lineItems",subtotal,"discountPct",total,notes,"paymentTerms","bundleName","bundleType","bundleExpiresAt","createdAt","updatedAt")
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11::TIMESTAMPTZ,NOW(),NOW())
       ON CONFLICT ("clientId") DO UPDATE SET
-        enabled=$2,"lineItems"=$3,subtotal=$4,"discountPct"=$5,total=$6,notes=$7,"paymentTerms"=$8,"updatedAt"=NOW()
+        enabled=$2,"lineItems"=$3,subtotal=$4,"discountPct"=$5,total=$6,notes=$7,"paymentTerms"=$8,
+        "bundleName"=$9,"bundleType"=$10,"bundleExpiresAt"=$11::TIMESTAMPTZ,"updatedAt"=NOW()
     `, clientId, Boolean(enabled), JSON.stringify(lineItems ?? []),
-      Number(subtotal ?? 0), Number(discountPct ?? 0), Number(total ?? 0), notes ?? null, paymentTerms ?? null)
+      Number(subtotal ?? 0), Number(discountPct ?? 0), Number(total ?? 0),
+      notes ?? null, paymentTerms ?? null,
+      bundleName ?? null, bundleType ?? 'catalog', expiresAt)
     const rows = await prisma.$queryRawUnsafe(
       `SELECT * FROM "AdminCustomPackage" WHERE "clientId" = $1`, clientId,
     ) as Array<Record<string, unknown>>

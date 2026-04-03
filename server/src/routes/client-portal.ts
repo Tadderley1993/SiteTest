@@ -554,10 +554,13 @@ router.post('/checkout/confirm', asyncHandler(async (req: ClientRequest, res) =>
   res.json({ success: true, planType, onboarding: onboarding[0] })
 }))
 
-// GET /api/portal/custom-package — returns admin's custom package if enabled
+// GET /api/portal/custom-package — returns admin's custom package if enabled and not expired
 router.get('/custom-package', asyncHandler(async (req: ClientRequest, res) => {
   const rows = await prisma.$queryRawUnsafe(
-    `SELECT * FROM "AdminCustomPackage" WHERE "clientId" = $1 AND enabled = true`,
+    `SELECT * FROM "AdminCustomPackage"
+     WHERE "clientId" = $1
+       AND enabled = true
+       AND ("bundleExpiresAt" IS NULL OR "bundleExpiresAt" > NOW())`,
     req.clientId!,
   ) as Array<Record<string, unknown>>
   res.json(rows[0] ?? null)

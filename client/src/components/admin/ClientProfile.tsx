@@ -141,6 +141,24 @@ interface AdminCustomPkg {
   discountPct: number
   total: number
   notes: string | null
+  paymentTerms?: string | null
+  bundleName?: string | null
+  bundleType?: string | null
+  bundleExpiresAt?: string | null
+}
+
+interface PromoItem {
+  id: string
+  name: string
+  description: string
+  qty: number
+  unitPrice: number
+}
+
+interface PromoCategory {
+  id: string
+  name: string
+  items: PromoItem[]
 }
 
 export default function ClientProfile({ clientId, onBack, onDelete }: Props) {
@@ -230,6 +248,28 @@ export default function ClientProfile({ clientId, onBack, onDelete }: Props) {
   const [customFrequency, setCustomFrequency] = useState<'weekly' | 'biweekly' | 'monthly' | 'yearly'>('monthly')
   const [customSaving, setCustomSaving] = useState(false)
   const [customMsg, setCustomMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+
+  // Package sub-tab
+  const [pkgSubTab, setPkgSubTab] = useState<'catalog' | 'promo'>('catalog')
+
+  // Promo bundle state
+  const [promoBundleName, setPromoBundleName] = useState('')
+  const [promoCategories, setPromoCategories] = useState<PromoCategory[]>([])
+  const [promoEnabled, setPromoEnabled] = useState(false)
+  const [promoDiscountPct, setPromoDiscountPct] = useState(0)
+  const [promoManualTotal, setPromoManualTotal] = useState<number | ''>('')
+  const [promoUseManual, setPromoUseManual] = useState(false)
+  const [promoNotes, setPromoNotes] = useState('')
+  const [promoScheduleEnabled, setPromoScheduleEnabled] = useState(false)
+  const [promoUpfrontType, setPromoUpfrontType] = useState<'percent' | 'amount'>('percent')
+  const [promoUpfrontValue, setPromoUpfrontValue] = useState<number | ''>(30)
+  const [promoInstallments, setPromoInstallments] = useState<number | ''>(3)
+  const [promoFrequency, setPromoFrequency] = useState<'weekly' | 'biweekly' | 'monthly' | 'yearly'>('monthly')
+  const [promoExpiresAt, setPromoExpiresAt] = useState('')
+  const [promoSaving, setPromoSaving] = useState(false)
+  const [promoMsg, setPromoMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [showPromoPreview, setShowPromoPreview] = useState(false)
+  const [copyConfirm, setCopyConfirm] = useState(false)
 
   const handleSetPortalPassword = async () => {
     if (!client) return
@@ -407,6 +447,42 @@ export default function ClientProfile({ clientId, onBack, onDelete }: Props) {
             setCustomUseManual(true)
             setCustomManualTotal(pkg.total)
           }
+
+          // Restore promo bundle state if bundleType is 'promo'
+          const raw = custRes.data as AdminCustomPkg & { bundleType?: string; bundleName?: string; bundleExpiresAt?: string }
+          if (raw.bundleType === 'promo') {
+            setPkgSubTab('promo')
+            setPromoBundleName(raw.bundleName ?? '')
+            setPromoEnabled(raw.enabled)
+            setPromoExpiresAt(raw.bundleExpiresAt ? raw.bundleExpiresAt.slice(0, 10) : '')
+            const catMap = new Map<string, PromoItem[]>()
+            items.forEach(item => {
+              const cat = item.category ?? 'General'
+              if (!catMap.has(cat)) catMap.set(cat, [])
+              catMap.get(cat)!.push({ id: crypto.randomUUID(), name: item.label, description: item.description ?? '', qty: item.qty, unitPrice: item.unitPrice })
+            })
+            setPromoCategories(Array.from(catMap.entries()).map(([name, pitems]) => ({ id: crypto.randomUUID(), name, items: pitems })))
+            setPromoDiscountPct(Number(pkg.discountPct ?? 0))
+            setPromoNotes(pkg.notes ?? '')
+            if (pkg.discountPct === 0 && pkg.total !== pkg.subtotal) {
+              setPromoUseManual(true)
+              setPromoManualTotal(pkg.total)
+            }
+            if (pt) {
+              try {
+                const s = JSON.parse(pt) as { upfrontType?: string; upfront?: number; installments?: number; frequency?: string }
+                if (s && typeof s.upfront === 'number') {
+                  setPromoScheduleEnabled(true)
+                  setPromoUpfrontType((s.upfrontType as 'percent' | 'amount') ?? 'percent')
+                  setPromoUpfrontValue(s.upfront)
+                  setPromoInstallments(s.installments ?? 3)
+                  setPromoFrequency((s.frequency as 'weekly' | 'biweekly' | 'monthly' | 'yearly') ?? 'monthly')
+                }
+              } catch { /* ignore */ }
+            }
+          } else {
+            setPkgSubTab('catalog')
+          }
         }
       } catch { /* silent */ } finally {
         setPackageLoaded(true)
@@ -469,6 +545,9 @@ export default function ClientProfile({ clientId, onBack, onDelete }: Props) {
         paymentTerms: customScheduleEnabled && customUpfrontValue !== '' && customInstallments !== ''
           ? JSON.stringify({ upfrontType: customUpfrontType, upfront: Number(customUpfrontValue), installments: Number(customInstallments), frequency: customFrequency })
           : null,
+        bundleType: 'catalog',
+        bundleName: null,
+        bundleExpiresAt: null,
       })
       const pkg = res.data as AdminCustomPkg & { lineItems: string | CustomPackageItem[] }
       const items: CustomPackageItem[] = typeof pkg.lineItems === 'string' ? JSON.parse(pkg.lineItems) : pkg.lineItems
@@ -479,6 +558,100 @@ export default function ClientProfile({ clientId, onBack, onDelete }: Props) {
       setCustomMsg({ type: 'error', text: 'Failed to save custom package.' })
     } finally {
       setCustomSaving(false)
+    }
+  }
+
+  // ── Mutual exclusivity ─────────────────────────────────────────────────────
+  const handleSetCustomEnabled = (val: boolean) => { setCustomEnabled(val); if (val) setPromoEnabled(false) }
+  const handleSetPromoEnabled  = (val: boolean) => { setPromoEnabled(val);  if (val) setCustomEnabled(false) }
+
+  // ── Promo category / item CRUD ──────────────────────────────────────────────
+  const addPromoCategory = () =>
+    setPromoCategories(prev => [...prev, { id: crypto.randomUUID(), name: '', items: [] }])
+
+  const updatePromoCategoryName = (catId: string, name: string) =>
+    setPromoCategories(prev => prev.map(c => c.id === catId ? { ...c, name } : c))
+
+  const deletePromoCategory = (catId: string) =>
+    setPromoCategories(prev => prev.filter(c => c.id !== catId))
+
+  const addPromoItem = (catId: string) =>
+    setPromoCategories(prev => prev.map(c => c.id === catId
+      ? { ...c, items: [...c.items, { id: crypto.randomUUID(), name: '', description: '', qty: 1, unitPrice: 0 }] }
+      : c))
+
+  const updatePromoItem = (catId: string, itemId: string, patch: Partial<PromoItem>) =>
+    setPromoCategories(prev => prev.map(c => c.id === catId
+      ? { ...c, items: c.items.map(i => i.id === itemId ? { ...i, ...patch } : i) }
+      : c))
+
+  const deletePromoItem = (catId: string, itemId: string) =>
+    setPromoCategories(prev => prev.map(c => c.id === catId
+      ? { ...c, items: c.items.filter(i => i.id !== itemId) }
+      : c))
+
+  // ── Copy catalog items → promo builder ─────────────────────────────────────
+  const handleCopyFromCatalog = () => {
+    const catalogItems: CustomPackageItem[] = ALA_CARTE
+      .filter((s: AlaCarteItem) => customSelectedIds.has(s.id))
+      .map((s: AlaCarteItem) => {
+        const price = customPrices[s.id] ?? s.price
+        if (s.id === 'standard_page') {
+          return { serviceId: s.id, label: s.label, description: s.description, category: s.category, qty: customPages.length || 1, unitPrice: price, amount: (customPages.length || 1) * price }
+        }
+        return { serviceId: s.id, label: s.label, description: s.description, category: s.category, qty: 1, unitPrice: price, amount: price }
+      })
+    const catMap = new Map<string, PromoItem[]>()
+    catalogItems.forEach(item => {
+      const cat = item.category ?? 'General'
+      if (!catMap.has(cat)) catMap.set(cat, [])
+      catMap.get(cat)!.push({ id: crypto.randomUUID(), name: item.label, description: item.description ?? '', qty: item.qty, unitPrice: item.unitPrice })
+    })
+    setPromoCategories(Array.from(catMap.entries()).map(([name, pitems]) => ({ id: crypto.randomUUID(), name, items: pitems })))
+    setCopyConfirm(false)
+  }
+
+  // ── Save promo bundle ───────────────────────────────────────────────────────
+  const handleSavePromoBundle = async () => {
+    setPromoSaving(true)
+    setPromoMsg(null)
+    try {
+      const lineItems: CustomPackageItem[] = promoCategories.flatMap(cat =>
+        cat.items.map(item => ({
+          serviceId: `promo_${crypto.randomUUID()}`,
+          label: item.name,
+          description: item.description,
+          category: cat.name,
+          qty: item.qty,
+          unitPrice: item.unitPrice,
+          amount: item.qty * item.unitPrice,
+        }))
+      )
+      const subtotal = lineItems.reduce((sum, i) => sum + i.amount, 0)
+      const discountAmt = Math.round(subtotal * (promoDiscountPct / 100) * 100) / 100
+      const total = promoUseManual && promoManualTotal !== ''
+        ? Number(promoManualTotal)
+        : Math.round((subtotal - discountAmt) * 100) / 100
+      await api.put(`/admin/clients/${clientId}/custom-package`, {
+        enabled: promoEnabled,
+        lineItems,
+        subtotal,
+        discountPct: promoUseManual ? 0 : promoDiscountPct,
+        total,
+        notes: promoNotes || null,
+        paymentTerms: promoScheduleEnabled && promoUpfrontValue !== '' && promoInstallments !== ''
+          ? JSON.stringify({ upfrontType: promoUpfrontType, upfront: Number(promoUpfrontValue), installments: Number(promoInstallments), frequency: promoFrequency })
+          : null,
+        bundleName: promoBundleName.trim() || null,
+        bundleType: 'promo',
+        bundleExpiresAt: promoExpiresAt || null,
+      })
+      setPromoMsg({ type: 'success', text: 'Promo bundle saved.' })
+      setTimeout(() => setPromoMsg(null), 3000)
+    } catch {
+      setPromoMsg({ type: 'error', text: 'Failed to save promo bundle.' })
+    } finally {
+      setPromoSaving(false)
     }
   }
 
@@ -1340,8 +1513,20 @@ export default function ClientProfile({ clientId, onBack, onDelete }: Props) {
             <div className="text-sm text-zinc-400 py-12 text-center">Loading package data…</div>
           ) : (
             <>
-              {/* Custom Package Builder */}
-              <div className="bg-[#f3f3f3] border border-zinc-200 rounded-xl p-6">
+              {/* Sub-tab switcher */}
+              <div className="flex gap-1 p-1 bg-zinc-100 rounded-xl w-fit border border-zinc-200">
+                <button type="button" onClick={() => setPkgSubTab('catalog')}
+                  className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${pkgSubTab === 'catalog' ? 'bg-white text-black shadow-sm' : 'text-zinc-500 hover:text-black'}`}>
+                  Custom Package
+                </button>
+                <button type="button" onClick={() => setPkgSubTab('promo')}
+                  className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${pkgSubTab === 'promo' ? 'bg-white text-black shadow-sm' : 'text-zinc-500 hover:text-black'}`}>
+                  Promo Bundle
+                </button>
+              </div>
+
+              {/* ── CATALOG BUILDER (existing) ── */}
+              {pkgSubTab === 'catalog' && <div className="bg-[#f3f3f3] border border-zinc-200 rounded-xl p-6">
                 <div className="flex items-center justify-between mb-5">
                   <h3 className="font-semibold text-black flex items-center gap-2">
                     <span className="material-symbols-outlined text-[18px]">tune</span>
@@ -1356,7 +1541,7 @@ export default function ClientProfile({ clientId, onBack, onDelete }: Props) {
                     {/* Toggle */}
                     <button
                       type="button"
-                      onClick={() => setCustomEnabled(p => !p)}
+                      onClick={() => handleSetCustomEnabled(!customEnabled)}
                       className={`relative w-11 h-6 rounded-full transition-colors ${customEnabled ? 'bg-black' : 'bg-zinc-300'}`}
                     >
                       <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${customEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
@@ -1664,7 +1849,355 @@ export default function ClientProfile({ clientId, onBack, onDelete }: Props) {
                     </button>
                   </div>
                 )}
-              </div>
+              </div>}
+
+              {/* ── PROMO BUNDLE BUILDER ── */}
+              {pkgSubTab === 'promo' && (
+                <div className="bg-[#f3f3f3] border border-zinc-200 rounded-xl p-6 space-y-6">
+
+                  {/* Header row */}
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-black flex items-center gap-2 mb-3">
+                        <span className="material-symbols-outlined text-[18px]">sell</span>
+                        Custom Promotion Bundle
+                      </h3>
+                      <input
+                        type="text"
+                        value={promoBundleName}
+                        onChange={e => setPromoBundleName(e.target.value)}
+                        placeholder="Bundle name — e.g. Summer Pool Bundle"
+                        className="w-full border border-zinc-200 rounded-lg px-3 py-2 text-sm font-medium focus:outline-none focus:ring-1 focus:ring-black/20 bg-white placeholder:text-zinc-400"
+                      />
+                    </div>
+                    <div className="flex items-center gap-3 pt-8 flex-shrink-0">
+                      {promoMsg && (
+                        <span className={`text-xs font-medium ${promoMsg.type === 'success' ? 'text-green-600' : 'text-red-500'}`}>
+                          {promoMsg.text}
+                        </span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => handleSetPromoEnabled(!promoEnabled)}
+                        className={`relative w-11 h-6 rounded-full transition-colors ${promoEnabled ? 'bg-black' : 'bg-zinc-300'}`}
+                      >
+                        <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${promoEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Expiry date */}
+                  <div className="flex items-center gap-3">
+                    <label className="text-[11px] font-semibold uppercase tracking-widest text-zinc-400 w-24 flex-shrink-0">Expires</label>
+                    <input
+                      type="date"
+                      value={promoExpiresAt}
+                      onChange={e => setPromoExpiresAt(e.target.value)}
+                      className="border border-zinc-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-black/20 bg-white"
+                    />
+                    {promoExpiresAt && (
+                      <button type="button" onClick={() => setPromoExpiresAt('')} className="text-xs text-zinc-400 hover:text-red-500">Clear</button>
+                    )}
+                    <span className="text-[11px] text-zinc-400">Optional — bundle auto-hides after this date in the client portal.</span>
+                  </div>
+
+                  {/* Copy from catalog */}
+                  {customSelectedIds.size > 0 && (
+                    <div className="flex items-center gap-3 py-2 px-3 bg-blue-50 border border-blue-100 rounded-lg">
+                      <span className="text-xs text-blue-700 flex-1">You have saved items in the Custom Package builder. Import them as a starting point?</span>
+                      {copyConfirm ? (
+                        <div className="flex gap-2">
+                          <button type="button" onClick={handleCopyFromCatalog} className="text-xs font-semibold text-blue-700 hover:text-blue-900">Yes, import</button>
+                          <button type="button" onClick={() => setCopyConfirm(false)} className="text-xs text-zinc-400 hover:text-zinc-600">Cancel</button>
+                        </div>
+                      ) : (
+                        <button type="button" onClick={() => setCopyConfirm(true)} className="text-xs font-semibold text-blue-700 hover:text-blue-900 whitespace-nowrap">Import items</button>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Category + Item builder */}
+                  <div className="space-y-4">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Categories &amp; Items</p>
+                    {promoCategories.length === 0 && (
+                      <p className="text-sm text-zinc-400 py-4 text-center border border-dashed border-zinc-300 rounded-lg">No categories yet. Add one below.</p>
+                    )}
+                    {promoCategories.map((cat, ci) => (
+                      <div key={cat.id} className="border border-zinc-200 rounded-xl bg-white overflow-hidden">
+                        {/* Category header */}
+                        <div className="flex items-center gap-2 px-4 py-3 bg-zinc-50 border-b border-zinc-200">
+                          <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 w-6">{ci + 1}</span>
+                          <input
+                            type="text"
+                            value={cat.name}
+                            onChange={e => updatePromoCategoryName(cat.id, e.target.value)}
+                            placeholder="Category name — e.g. Website, Mobile, Branding"
+                            className="flex-1 bg-transparent text-sm font-semibold text-black focus:outline-none placeholder:text-zinc-300"
+                          />
+                          <button type="button" onClick={() => deletePromoCategory(cat.id)} className="text-zinc-300 hover:text-red-400 transition-colors">
+                            <span className="material-symbols-outlined text-[16px]">delete</span>
+                          </button>
+                        </div>
+
+                        {/* Items */}
+                        <div className="divide-y divide-zinc-100">
+                          {cat.items.map(item => (
+                            <div key={item.id} className="px-4 py-3 space-y-2">
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="text"
+                                  value={item.name}
+                                  onChange={e => updatePromoItem(cat.id, item.id, { name: e.target.value })}
+                                  placeholder="Item name"
+                                  className="flex-1 border border-zinc-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-black/20 bg-white"
+                                />
+                                <div className="flex items-center gap-1 w-20">
+                                  <span className="text-zinc-400 text-xs">Qty</span>
+                                  <input
+                                    type="number"
+                                    min={1}
+                                    value={item.qty}
+                                    onChange={e => updatePromoItem(cat.id, item.id, { qty: Math.max(1, Number(e.target.value)) })}
+                                    className="w-full border border-zinc-200 rounded-lg px-2 py-1.5 text-sm text-center focus:outline-none focus:ring-1 focus:ring-black/20 bg-white"
+                                  />
+                                </div>
+                                <div className="flex items-center gap-1 w-28">
+                                  <span className="text-zinc-400 text-xs">$</span>
+                                  <input
+                                    type="number"
+                                    min={0}
+                                    value={item.unitPrice}
+                                    onChange={e => updatePromoItem(cat.id, item.id, { unitPrice: Number(e.target.value) })}
+                                    placeholder="Price"
+                                    className="w-full border border-zinc-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-black/20 bg-white"
+                                  />
+                                </div>
+                                <button type="button" onClick={() => deletePromoItem(cat.id, item.id)} className="text-zinc-300 hover:text-red-400 transition-colors flex-shrink-0">
+                                  <span className="material-symbols-outlined text-[16px]">close</span>
+                                </button>
+                              </div>
+                              <input
+                                type="text"
+                                value={item.description}
+                                onChange={e => updatePromoItem(cat.id, item.id, { description: e.target.value })}
+                                placeholder="Description (optional)"
+                                className="w-full border border-zinc-100 rounded-lg px-3 py-1.5 text-xs text-zinc-500 focus:outline-none focus:ring-1 focus:ring-black/10 bg-zinc-50"
+                              />
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Add item */}
+                        <div className="px-4 py-2.5 border-t border-zinc-100">
+                          <button type="button" onClick={() => addPromoItem(cat.id)}
+                            className="text-xs font-medium text-zinc-400 hover:text-black transition-colors flex items-center gap-1">
+                            <span className="material-symbols-outlined text-[14px]">add</span> Add item
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+
+                    <button type="button" onClick={addPromoCategory}
+                      className="flex items-center gap-1.5 text-sm font-medium text-zinc-500 hover:text-black transition-colors border border-dashed border-zinc-300 hover:border-black rounded-lg px-4 py-2.5 w-full justify-center">
+                      <span className="material-symbols-outlined text-[16px]">add</span> Add category
+                    </button>
+                  </div>
+
+                  {/* Pricing summary */}
+                  {(() => {
+                    const promoSubtotal = promoCategories.flatMap(c => c.items).reduce((s, i) => s + i.qty * i.unitPrice, 0)
+                    const promoDiscountAmt = Math.round(promoSubtotal * (promoDiscountPct / 100) * 100) / 100
+                    const promoFinalTotal = promoUseManual && promoManualTotal !== '' ? Number(promoManualTotal) : Math.round((promoSubtotal - promoDiscountAmt) * 100) / 100
+                    return (
+                      <div className="bg-white border border-zinc-200 rounded-xl p-4 space-y-3">
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Pricing</p>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-zinc-500">Subtotal</span>
+                          <span className="font-medium">${promoSubtotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                        </div>
+                        {/* Discount vs manual toggle */}
+                        <div className="flex items-center gap-2">
+                          <button type="button" onClick={() => setPromoUseManual(false)}
+                            className={`px-3 py-1 text-xs rounded-lg border transition-colors ${!promoUseManual ? 'bg-black text-white border-black' : 'bg-white text-zinc-500 border-zinc-200 hover:bg-zinc-50'}`}>
+                            Discount %
+                          </button>
+                          <button type="button" onClick={() => setPromoUseManual(true)}
+                            className={`px-3 py-1 text-xs rounded-lg border transition-colors ${promoUseManual ? 'bg-black text-white border-black' : 'bg-white text-zinc-500 border-zinc-200 hover:bg-zinc-50'}`}>
+                            Set total
+                          </button>
+                        </div>
+                        {promoUseManual ? (
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-zinc-400">$</span>
+                            <input type="number" min={0} value={promoManualTotal} onChange={e => setPromoManualTotal(e.target.value === '' ? '' : Number(e.target.value))}
+                              placeholder="Enter total" className="flex-1 border border-zinc-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-black/20 bg-white" />
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <input type="number" min={0} max={100} value={promoDiscountPct} onChange={e => setPromoDiscountPct(Number(e.target.value))}
+                              className="w-20 border border-zinc-200 rounded-lg px-3 py-1.5 text-sm text-center focus:outline-none focus:ring-1 focus:ring-black/20 bg-white" />
+                            <span className="text-sm text-zinc-400">% discount</span>
+                            {promoDiscountPct > 0 && <span className="text-xs text-green-600 font-medium">−${promoDiscountAmt.toLocaleString(undefined, { minimumFractionDigits: 2 })} off</span>}
+                          </div>
+                        )}
+                        <div className="flex justify-between text-sm font-semibold border-t border-zinc-100 pt-3">
+                          <span>Total</span>
+                          <span>${promoFinalTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                        </div>
+                      </div>
+                    )
+                  })()}
+
+                  {/* Notes */}
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-2">Notes <span className="normal-case font-normal">(shown to client)</span></p>
+                    <textarea
+                      value={promoNotes}
+                      onChange={e => setPromoNotes(e.target.value)}
+                      placeholder="Any notes visible to the client under their bundle…"
+                      rows={2}
+                      className="w-full border border-zinc-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-black/20 bg-white resize-none"
+                    />
+                  </div>
+
+                  {/* Payment schedule */}
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Custom Payment Schedule</p>
+                        <p className="text-[11px] text-zinc-400 mt-0.5">Overrides standard 30%/3-monthly Option B at checkout.</p>
+                      </div>
+                      <button type="button" onClick={() => setPromoScheduleEnabled(v => !v)}
+                        className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${promoScheduleEnabled ? 'bg-black' : 'bg-zinc-300'}`}>
+                        <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform ${promoScheduleEnabled ? 'translate-x-4.5' : 'translate-x-0.5'}`} />
+                      </button>
+                    </div>
+                    {promoScheduleEnabled && (
+                      <div className="bg-zinc-50 border border-zinc-200 rounded-xl p-4 space-y-4">
+                        <div>
+                          <p className="text-[11px] text-zinc-400 mb-2">Upfront payment</p>
+                          <div className="flex items-center gap-2">
+                            <div className="flex rounded-lg overflow-hidden border border-zinc-200">
+                              <button type="button" onClick={() => setPromoUpfrontType('percent')}
+                                className={`px-3 py-1.5 text-xs font-semibold transition-colors ${promoUpfrontType === 'percent' ? 'bg-black text-white' : 'bg-white text-zinc-500 hover:bg-zinc-50'}`}>%</button>
+                              <button type="button" onClick={() => setPromoUpfrontType('amount')}
+                                className={`px-3 py-1.5 text-xs font-semibold transition-colors ${promoUpfrontType === 'amount' ? 'bg-black text-white' : 'bg-white text-zinc-500 hover:bg-zinc-50'}`}>$</button>
+                            </div>
+                            <div className="flex items-center gap-1 flex-1">
+                              {promoUpfrontType === 'amount' && <span className="text-zinc-400 text-sm">$</span>}
+                              <input type="number" min={0} max={promoUpfrontType === 'percent' ? 100 : undefined}
+                                value={promoUpfrontValue} onChange={e => setPromoUpfrontValue(e.target.value === '' ? '' : Number(e.target.value))}
+                                placeholder={promoUpfrontType === 'percent' ? 'e.g. 30' : 'e.g. 1500'}
+                                className="w-full border border-zinc-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-black/20 bg-white" />
+                              {promoUpfrontType === 'percent' && <span className="text-zinc-400 text-sm">%</span>}
+                            </div>
+                          </div>
+                        </div>
+                        <div>
+                          <p className="text-[11px] text-zinc-400 mb-2">Remaining balance split into</p>
+                          <div className="flex items-center gap-2">
+                            <input type="number" min={1} max={52} value={promoInstallments}
+                              onChange={e => setPromoInstallments(e.target.value === '' ? '' : Number(e.target.value))}
+                              className="w-20 border border-zinc-200 rounded-lg px-3 py-1.5 text-sm text-center font-semibold focus:outline-none focus:ring-1 focus:ring-black/20 bg-white" />
+                            <span className="text-sm text-zinc-500">payments</span>
+                            <select value={promoFrequency} onChange={e => setPromoFrequency(e.target.value as 'weekly' | 'biweekly' | 'monthly' | 'yearly')}
+                              className="flex-1 border border-zinc-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-black/20 bg-white">
+                              <option value="weekly">Weekly</option>
+                              <option value="biweekly">Bi-weekly</option>
+                              <option value="monthly">Monthly</option>
+                              <option value="yearly">Yearly</option>
+                            </select>
+                          </div>
+                        </div>
+                        {promoUpfrontValue !== '' && promoInstallments !== '' && (
+                          <div className="text-[11px] text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2 leading-relaxed">
+                            ✓ Client pays <strong>{promoUpfrontType === 'percent' ? `${promoUpfrontValue}% upfront` : `$${Number(promoUpfrontValue).toLocaleString()} upfront`}</strong>, then <strong>{promoInstallments} {promoFrequency}</strong> installments for the balance.
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Save button */}
+                  <button
+                    type="button"
+                    onClick={handleSavePromoBundle}
+                    disabled={promoSaving || promoCategories.every(c => c.items.length === 0)}
+                    className="flex items-center gap-1.5 px-4 py-2 bg-black text-white text-sm font-medium rounded-lg hover:bg-zinc-800 disabled:opacity-40 transition-colors"
+                  >
+                    <Save className="w-3.5 h-3.5" />
+                    {promoSaving ? 'Saving…' : 'Save Promo Bundle'}
+                  </button>
+
+                  {/* Live preview panel */}
+                  <div className="border border-zinc-200 rounded-xl overflow-hidden">
+                    <button type="button" onClick={() => setShowPromoPreview(p => !p)}
+                      className="w-full flex items-center justify-between px-4 py-3 bg-zinc-50 hover:bg-zinc-100 transition-colors text-sm font-medium text-zinc-600">
+                      <span className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-[16px]">preview</span>
+                        Preview as Client
+                      </span>
+                      <span className="material-symbols-outlined text-[16px]">{showPromoPreview ? 'expand_less' : 'expand_more'}</span>
+                    </button>
+                    {showPromoPreview && (() => {
+                      const prevItems = promoCategories.flatMap(c => c.items.map(i => ({ ...i, catName: c.name })))
+                      const prevSubtotal = prevItems.reduce((s, i) => s + i.qty * i.unitPrice, 0)
+                      const prevDiscount = Math.round(prevSubtotal * (promoDiscountPct / 100) * 100) / 100
+                      const prevTotal = promoUseManual && promoManualTotal !== '' ? Number(promoManualTotal) : Math.round((prevSubtotal - prevDiscount) * 100) / 100
+                      const catGroups = promoCategories.filter(c => c.items.length > 0)
+                      return (
+                        <div style={{ background: '#08090D', padding: '24px', fontFamily: 'system-ui, sans-serif' }}>
+                          <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(198,168,75,0.2)', borderRadius: '12px', overflow: 'hidden' }}>
+                            {/* Card header */}
+                            <div style={{ padding: '20px 24px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                                <span style={{ background: '#C6A84B', color: '#08090D', fontSize: '9px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', padding: '3px 8px', borderRadius: '4px' }}>Special Offer</span>
+                              </div>
+                              <p style={{ color: '#F5F0E8', fontWeight: 700, fontSize: '16px', marginTop: '8px' }}>{promoBundleName || 'Your Custom Bundle'}</p>
+                              {promoExpiresAt && <p style={{ color: '#C6A84B', fontSize: '11px', marginTop: '4px' }}>Offer expires {new Date(promoExpiresAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>}
+                            </div>
+                            {/* Items by category */}
+                            <div style={{ padding: '0 24px' }}>
+                              {catGroups.length === 0
+                                ? <p style={{ color: '#6B6560', fontSize: '13px', padding: '20px 0' }}>No items added yet.</p>
+                                : catGroups.map(cat => (
+                                  <div key={cat.id}>
+                                    <p style={{ color: '#C6A84B', fontSize: '9px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.15em', padding: '16px 0 6px' }}>{cat.name}</p>
+                                    {cat.items.map(item => (
+                                      <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+                                        <div>
+                                          <p style={{ color: '#F5F0E8', fontSize: '13px', fontWeight: 500 }}>{item.name || '—'}</p>
+                                          {item.description && <p style={{ color: '#6B6560', fontSize: '11px' }}>{item.description}</p>}
+                                          {item.qty > 1 && <p style={{ color: '#6B6560', fontSize: '11px' }}>×{item.qty}</p>}
+                                        </div>
+                                        <span style={{ color: '#F5F0E8', fontWeight: 600, fontSize: '13px', whiteSpace: 'nowrap' }}>${(item.qty * item.unitPrice).toLocaleString()}</span>
+                                      </div>
+                                    ))}
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderTop: '1px solid rgba(198,168,75,0.1)' }}>
+                                      <span style={{ color: '#6B6560', fontSize: '11px' }}>Subtotal — {cat.name}</span>
+                                      <span style={{ color: '#8A8278', fontSize: '11px' }}>${cat.items.reduce((s, i) => s + i.qty * i.unitPrice, 0).toLocaleString()}</span>
+                                    </div>
+                                  </div>
+                                ))
+                              }
+                            </div>
+                            {/* Total */}
+                            <div style={{ padding: '16px 24px', borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <span style={{ color: '#F5F0E8', fontWeight: 700, fontSize: '14px' }}>Total</span>
+                              <span style={{ color: '#C6A84B', fontWeight: 700, fontSize: '18px' }}>${prevTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                            </div>
+                            {promoNotes && (
+                              <div style={{ padding: '0 24px 16px' }}>
+                                <p style={{ color: '#6B6560', fontSize: '12px', fontStyle: 'italic' }}>{promoNotes}</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })()}
+                  </div>
+                </div>
+              )}
 
               {/* Onboarding Progress */}
               <div className="bg-[#f3f3f3] border border-zinc-200 rounded-xl p-6">
