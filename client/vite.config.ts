@@ -1,9 +1,28 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
+import sitemap from 'vite-plugin-sitemap'
+
+const PUBLIC_ROUTES = [
+  '/',
+  '/why-choose-me',
+  '/about',
+  '/services',
+  '/portfolio',
+  '/case-studies',
+  '/demo/fintech',
+  '/demo/restaurant',
+  '/demo/product',
+]
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    sitemap({
+      hostname: 'https://designsbyta.com',
+      dynamicRoutes: PUBLIC_ROUTES,
+    }),
+  ],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
