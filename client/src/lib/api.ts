@@ -405,6 +405,7 @@ export interface LineItem {
   qty: number
   unitPrice: number
   total: number
+  category?: string
 }
 
 export interface Proposal {

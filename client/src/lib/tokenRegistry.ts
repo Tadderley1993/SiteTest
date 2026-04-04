@@ -8,6 +8,7 @@ export interface LineItem {
   description: string
   qty: number
   unitPrice: number
+  category?: string
 }
 
 export type FieldType = 'text' | 'textarea' | 'url' | 'email' | 'number' | 'date' | 'line-items'
@@ -95,18 +96,59 @@ export function getTokenDef(token: string): TokenDef {
  * Drop these rows inside a <tbody> in your template.
  * Style via .line-item-row / .line-item-desc / .line-item-qty /
  * .line-item-price / .line-item-total in your template CSS.
+ * When items have a `category` field, renders category header + subtotal rows.
  */
 export function renderLineItemsHtml(items: LineItem[]): string {
   if (!items.length) return ''
-  return items
-    .map(item => {
-      const lineTotal = (item.qty * item.unitPrice).toFixed(2)
-      return `<tr class="line-item-row">
+
+  const hasCategories = items.some(i => i.category)
+
+  if (!hasCategories) {
+    return items
+      .map(item => {
+        const lineTotal = (item.qty * item.unitPrice).toFixed(2)
+        return `<tr class="line-item-row">
   <td class="line-item-desc">${item.description}</td>
   <td class="line-item-qty">${item.qty}</td>
   <td class="line-item-price">$${Number(item.unitPrice).toFixed(2)}</td>
   <td class="line-item-total">$${lineTotal}</td>
 </tr>`
+      })
+      .join('\n')
+  }
+
+  // Grouped mode — preserve category order from the items array
+  const categoryOrder: string[] = []
+  for (const item of items) {
+    const cat = item.category ?? ''
+    if (!categoryOrder.includes(cat)) categoryOrder.push(cat)
+  }
+
+  return categoryOrder
+    .map(cat => {
+      const catItems = items.filter(i => (i.category ?? '') === cat)
+      const catTotal = catItems.reduce((s, i) => s + i.qty * i.unitPrice, 0)
+      const headerRow = cat
+        ? `<tr class="line-item-category-header">
+  <td colspan="4" class="line-item-category-name">${cat}</td>
+</tr>`
+        : ''
+      const itemRows = catItems
+        .map(item => {
+          const lineTotal = (item.qty * item.unitPrice).toFixed(2)
+          return `<tr class="line-item-row">
+  <td class="line-item-desc">${item.description}</td>
+  <td class="line-item-qty">${item.qty}</td>
+  <td class="line-item-price">$${Number(item.unitPrice).toFixed(2)}</td>
+  <td class="line-item-total">$${lineTotal}</td>
+</tr>`
+        })
+        .join('\n')
+      const subtotalRow = `<tr class="line-item-category-subtotal">
+  <td colspan="3" class="line-item-category-subtotal-label">${cat ? `Subtotal — ${cat}` : 'Subtotal'}</td>
+  <td class="line-item-category-subtotal-amount">$${catTotal.toFixed(2)}</td>
+</tr>`
+      return [headerRow, itemRows, subtotalRow].filter(Boolean).join('\n')
     })
     .join('\n')
 }

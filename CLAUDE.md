@@ -143,13 +143,32 @@ Steps tracked in `ClientOnboarding` DB table. Funnel auto-resumes at the first i
 - Invoice creation uses `buildSplitInvoices()` helper in `client-portal.ts` — reads custom schedule from DB
 
 ## Admin Custom Package (per-client)
-- `ClientProfile` → "Package" tab → "Custom Package Builder" toggle (off by default)
-- When enabled: select services from ALA_CARTE catalog, edit prices, set discount % or manual total
-- `standard_page` service opens a page builder (add/delete pages with titles, $X/page)
+- `ClientProfile` → "Package" tab → two sub-tabs: **Custom Package** (catalog) and **Promo Bundle** (freeform)
+- Enabling one auto-disables the other — mutual exclusivity enforced in UI and DB via `bundleType`
+- **Custom Package Builder**: select services from ALA_CARTE catalog, edit prices, set discount % or manual total
+- **Promo Bundle Builder**: freeform — name the bundle, add unlimited categories + items from scratch; supports expiry date (auto-hides after expiry in portal), copy-from-catalog import, live preview panel
+- `standard_page` service opens a page builder (add/delete pages with titles, $X/page) — catalog mode only
 - **Custom Payment Schedule**: structured builder (upfront % or $, N installments, frequency) — replaces standard Option B at checkout for this client only
 - Stored in `AdminCustomPackage` table (one row per client, upserted via `PUT /admin/clients/:id/custom-package`)
+  - `bundleType`: `'catalog'` (ALA_CARTE builder) | `'promo'` (freeform builder)
+  - `bundleName`: display name shown in portal Step 3 header (promo only)
+  - `bundleExpiresAt`: TIMESTAMPTZ — portal hides bundle after this date; countdown badge if ≤ 7 days away
 - Server helpers in `client-portal.ts`: `getCustomSchedule()`, `buildSplitInvoices()`, `FREQ_DAYS`, `FREQ_LABEL`
+- Portal `GET /portal/custom-package` filters out expired bundles (`bundleExpiresAt > NOW()`)
 - Standard package prices and checkout terms are NEVER overridden unless `AdminCustomPackage.enabled = true`
+
+## Skip Onboarding (per-client)
+- `ClientProfile` → "Portal Access" panel → "Skip Onboarding" toggle
+- When enabled: client lands directly on the dashboard after login — bypasses all 4 funnel steps
+- Stored as `Client.skipOnboarding BOOLEAN` — `PUT /admin/clients/:id/skip-onboarding`
+- Portal `GET /portal/me` returns `skipOnboarding`; `OnboardingGate` reads it on mount
+
+## Proposal Builder — Grouped Line Items
+- Pricing section has a **"Group by category"** toggle button (top-right of section)
+- **Flat mode** (default): standard single-table line items — backward compatible with all existing proposals
+- **Grouped mode**: category cards each with editable name, items table, per-category subtotal, delete button; "Add item" per category; "Add category" at bottom
+- `category` field stored on each `LineItem` in the JSON — on reload, grouped mode auto-restores from saved data
+- `renderLineItemsHtml()` in `tokenRegistry.ts` detects `category` fields and renders `<tr class="line-item-category-header">` + `<tr class="line-item-category-subtotal">` rows for email/PDF templates
 
 ## DB Models (runtime tables — created via `runMigrations()` in `server/src/index.ts`)
 `Submission`, `Admin`, `Session`, `LoginAttempt`, `Client`, `ClientDocument`, `ProjectScope`,
@@ -158,11 +177,11 @@ Steps tracked in `ClientOnboarding` DB table. Funnel auto-resumes at the first i
 
 - `Admin`: id, username, passwordHash, role, isActive, lastLoginAt
 - `Session`: adminId, refreshToken (hashed), ipAddress, userAgent, expiresAt, revokedAt
-- `Client`: passwordHash, portalActive, lastLoginAt, upfrontDiscountPct for client portal
+- `Client`: passwordHash, portalActive, lastLoginAt, upfrontDiscountPct, skipOnboarding for client portal
 - `Submission`: has `deletedAt DateTime?` for soft delete / 7-day trash bin
 - `AdminSettings`: Stripe creds, GA4 (gaPropertyId, gaCredentials, gaMeasurementId), SMTP config
 - `Invoice`: has `stripeInvoiceId`, `stripeInvoiceUrl`, `stripeStatus`
-- `AdminCustomPackage`: clientId (unique), enabled, lineItems (JSON), subtotal, discountPct, total, notes, paymentTerms (JSON)
+- `AdminCustomPackage`: clientId (unique), enabled, lineItems (JSON), subtotal, discountPct, total, notes, paymentTerms (JSON), bundleName, bundleType ('catalog'|'promo'), bundleExpiresAt
 - `PackageSelection`: clientId (unique), tier, lineItems (JSON), subtotal, total, notes, proposalId
 - `ClientOnboarding`: clientId (unique), step1–step4 booleans, completedAt
 - `DiscoveryQuestionnaire`: clientId (unique), section1–section13 (JSON), status, submittedAt

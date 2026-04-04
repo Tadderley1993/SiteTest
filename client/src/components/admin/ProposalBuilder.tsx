@@ -3,7 +3,7 @@ import { motion } from 'framer-motion'
 import { PDFDownloadLink, BlobProvider } from '@react-pdf/renderer'
 import {
   ArrowLeft, Plus, Trash2, Save, Send, Download, Eye, EyeOff,
-  ChevronDown, ChevronUp, X, Users, Search, PenLine, FileCode,
+  ChevronDown, ChevronUp, X, Users, Search, PenLine, FileCode, Layers,
 } from 'lucide-react'
 import { createProposal, updateProposal, sendProposalEmail, getClients, getEmailTemplates, Proposal, LineItem, Client, EmailTemplate } from '../../lib/api'
 import ProposalPDF from './ProposalPDF'
@@ -22,6 +22,11 @@ const inputCls = 'w-full px-3 py-2 bg-[#f3f3f3] border border-zinc-200 rounded-l
 const textareaCls = `${inputCls} resize-none`
 
 // ── Helpers (module level) ────────────────────────────────────────────────────
+
+interface ProposalCategory {
+  id: string
+  name: string
+}
 
 function newLineItem(): LineItem {
   return { id: crypto.randomUUID(), description: '', qty: 1, unitPrice: 0, total: 0 }
@@ -328,6 +333,61 @@ export default function ProposalBuilder({ initial, onBack, onSaved }: Props) {
   })
   const [saveError, setSaveError] = useState('')
 
+  // ── Grouped line-item mode ────────────────────────────────────────────────
+  const [groupMode, setGroupMode] = useState<boolean>(() => {
+    if (initial?.lineItems) {
+      try { return (JSON.parse(initial.lineItems) as LineItem[]).some(i => i.category) } catch {}
+    }
+    return false
+  })
+  const [categories, setCategories] = useState<ProposalCategory[]>(() => {
+    if (initial?.lineItems) {
+      try {
+        const items: LineItem[] = JSON.parse(initial.lineItems)
+        const seen: string[] = []
+        for (const i of items) { if (i.category && !seen.includes(i.category)) seen.push(i.category) }
+        if (seen.length) return seen.map(name => ({ id: crypto.randomUUID(), name }))
+      } catch {}
+    }
+    return []
+  })
+
+  const handleToggleGroupMode = () => {
+    if (!groupMode) {
+      const existingCats = [...new Set(lineItems.filter(i => i.category).map(i => i.category!))]
+      if (existingCats.length) {
+        setCategories(existingCats.map(name => ({ id: crypto.randomUUID(), name })))
+      } else {
+        const defaultCat: ProposalCategory = { id: crypto.randomUUID(), name: 'Services' }
+        setCategories([defaultCat])
+        setLineItems(items => items.map(item => ({ ...item, category: defaultCat.name })))
+      }
+    }
+    setGroupMode(v => !v)
+  }
+
+  const addCategory = () => {
+    const cat: ProposalCategory = { id: crypto.randomUUID(), name: 'New Category' }
+    setCategories(cats => [...cats, cat])
+  }
+
+  const updateCategoryName = (catId: string, newName: string) => {
+    const oldCat = categories.find(c => c.id === catId)
+    if (!oldCat) return
+    setCategories(cats => cats.map(c => c.id === catId ? { ...c, name: newName } : c))
+    setLineItems(items => items.map(i => i.category === oldCat.name ? { ...i, category: newName } : i))
+  }
+
+  const deleteCategory = (catId: string) => {
+    const cat = categories.find(c => c.id === catId)
+    setCategories(cats => cats.filter(c => c.id !== catId))
+    if (cat) setLineItems(items => items.filter(i => i.category !== cat.name))
+  }
+
+  const addItemToCategory = (catName: string) => {
+    setLineItems(items => [...items, { ...newLineItem(), category: catName }])
+  }
+
   useEffect(() => {
     getClients().then(setClients).catch(() => {})
     getEmailTemplates()
@@ -624,69 +684,198 @@ export default function ProposalBuilder({ initial, onBack, onSaved }: Props) {
 
           {/* Pricing */}
           <Section title="Pricing" isOpen={openSections.pricing} onToggle={() => toggleSection('pricing')}>
-            <div className="overflow-x-auto -mx-1">
-              <table className="w-full text-sm min-w-[480px]">
-                <thead>
-                  <tr className="border-b border-zinc-200">
-                    <th className="text-left text-xs text-zinc-500 font-medium pb-2">Description</th>
-                    <th className="text-center text-xs text-zinc-500 font-medium pb-2 w-16 pl-2">Qty</th>
-                    <th className="text-right text-xs text-zinc-500 font-medium pb-2 w-28 pl-2">Rate</th>
-                    <th className="text-right text-xs text-zinc-500 font-medium pb-2 w-28 pl-2">Amount</th>
-                    <th className="w-8" />
-                  </tr>
-                </thead>
-                <tbody>
-                  {lineItems.map(item => (
-                    <tr key={item.id} className="border-b border-zinc-200/50">
-                      <td className="py-2 pr-2">
-                        <input
-                          value={item.description}
-                          onChange={e => updateLineItem(item.id, 'description', e.target.value)}
-                          placeholder="Design & Development"
-                          className="w-full px-2 py-1.5 bg-[#f3f3f3] border border-zinc-200 rounded text-black text-sm focus:outline-none focus:border-black/20"
-                        />
-                      </td>
-                      <td className="py-2 px-1">
-                        <input
-                          type="number"
-                          value={item.qty}
-                          onChange={e => updateLineItem(item.id, 'qty', parseFloat(e.target.value) || 0)}
-                          min={0}
-                          className="w-14 px-2 py-1.5 bg-[#f3f3f3] border border-zinc-200 rounded text-black text-sm text-center focus:outline-none focus:border-black/20"
-                        />
-                      </td>
-                      <td className="py-2 px-1">
-                        <div className="flex items-center justify-end gap-1">
-                          <span className="text-zinc-500 text-xs">{sym}</span>
-                          <input
-                            type="number"
-                            value={item.unitPrice}
-                            onChange={e => updateLineItem(item.id, 'unitPrice', parseFloat(e.target.value) || 0)}
-                            min={0}
-                            className="w-24 px-2 py-1.5 bg-[#f3f3f3] border border-zinc-200 rounded text-black text-sm text-right focus:outline-none focus:border-black/20"
-                          />
-                        </div>
-                      </td>
-                      <td className="py-2 pl-1 text-right text-black font-medium whitespace-nowrap">
-                        {sym}{item.total.toFixed(2)}
-                      </td>
-                      <td className="py-2 pl-2">
-                        <button type="button" onClick={() => removeLineItem(item.id)} disabled={lineItems.length === 1}
-                          className="p-1 text-zinc-500 hover:text-red-500 transition-colors disabled:opacity-30">
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            {/* Group mode toggle */}
+            <div className="flex items-center justify-end -mt-1 mb-1">
+              <button
+                type="button"
+                onClick={handleToggleGroupMode}
+                className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg border transition-colors ${
+                  groupMode
+                    ? 'bg-black text-white border-black'
+                    : 'border-zinc-200 text-zinc-500 hover:text-black hover:border-zinc-400'
+                }`}
+              >
+                <Layers className="w-3 h-3" />
+                {groupMode ? 'Grouped' : 'Group by category'}
+              </button>
             </div>
 
-            <button type="button" onClick={addLineItem}
-              className="flex items-center gap-2 text-sm text-zinc-500 hover:text-black transition-colors">
-              <Plus className="w-4 h-4" />
-              Add line item
-            </button>
+            {groupMode ? (
+              /* ── Grouped view ─────────────────────────────────────────────── */
+              <div className="space-y-3">
+                {categories.map(cat => {
+                  const catItems = lineItems.filter(i => i.category === cat.name)
+                  const catSubtotal = catItems.reduce((s, i) => s + i.total, 0)
+                  return (
+                    <div key={cat.id} className="border border-zinc-200 rounded-xl overflow-hidden">
+                      {/* Category header */}
+                      <div className="flex items-center gap-2 px-3 py-2 bg-[#f3f3f3] border-b border-zinc-200">
+                        <input
+                          value={cat.name}
+                          onChange={e => updateCategoryName(cat.id, e.target.value)}
+                          className="flex-1 bg-transparent text-sm font-semibold text-black focus:outline-none min-w-0"
+                          placeholder="Category name"
+                        />
+                        <span className="text-xs text-zinc-500 whitespace-nowrap">{sym}{catSubtotal.toFixed(2)}</span>
+                        <button
+                          type="button"
+                          onClick={() => deleteCategory(cat.id)}
+                          disabled={categories.length === 1}
+                          className="p-1 text-zinc-400 hover:text-red-500 transition-colors disabled:opacity-30"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                      {/* Items */}
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm min-w-[480px]">
+                          <thead>
+                            <tr className="border-b border-zinc-100">
+                              <th className="text-left text-xs text-zinc-400 font-medium py-1.5 px-3">Description</th>
+                              <th className="text-center text-xs text-zinc-400 font-medium py-1.5 w-16">Qty</th>
+                              <th className="text-right text-xs text-zinc-400 font-medium py-1.5 w-28">Rate</th>
+                              <th className="text-right text-xs text-zinc-400 font-medium py-1.5 w-28 pr-3">Amount</th>
+                              <th className="w-8" />
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {catItems.map(item => (
+                              <tr key={item.id} className="border-b border-zinc-100/60">
+                                <td className="py-2 px-3 pr-2">
+                                  <input
+                                    value={item.description}
+                                    onChange={e => updateLineItem(item.id, 'description', e.target.value)}
+                                    placeholder="Item description"
+                                    className="w-full px-2 py-1.5 bg-[#f3f3f3] border border-zinc-200 rounded text-black text-sm focus:outline-none focus:border-black/20"
+                                  />
+                                </td>
+                                <td className="py-2 px-1">
+                                  <input
+                                    type="number"
+                                    value={item.qty}
+                                    onChange={e => updateLineItem(item.id, 'qty', parseFloat(e.target.value) || 0)}
+                                    min={0}
+                                    className="w-14 px-2 py-1.5 bg-[#f3f3f3] border border-zinc-200 rounded text-black text-sm text-center focus:outline-none focus:border-black/20"
+                                  />
+                                </td>
+                                <td className="py-2 px-1">
+                                  <div className="flex items-center justify-end gap-1">
+                                    <span className="text-zinc-500 text-xs">{sym}</span>
+                                    <input
+                                      type="number"
+                                      value={item.unitPrice}
+                                      onChange={e => updateLineItem(item.id, 'unitPrice', parseFloat(e.target.value) || 0)}
+                                      min={0}
+                                      className="w-24 px-2 py-1.5 bg-[#f3f3f3] border border-zinc-200 rounded text-black text-sm text-right focus:outline-none focus:border-black/20"
+                                    />
+                                  </div>
+                                </td>
+                                <td className="py-2 pl-1 pr-3 text-right text-black font-medium whitespace-nowrap">
+                                  {sym}{item.total.toFixed(2)}
+                                </td>
+                                <td className="py-2 pr-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => removeLineItem(item.id)}
+                                    className="p-1 text-zinc-400 hover:text-red-500 transition-colors"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                      <div className="px-3 py-2">
+                        <button
+                          type="button"
+                          onClick={() => addItemToCategory(cat.name)}
+                          className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-black transition-colors"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          Add item
+                        </button>
+                      </div>
+                    </div>
+                  )
+                })}
+                <button
+                  type="button"
+                  onClick={addCategory}
+                  className="flex items-center gap-2 text-sm text-zinc-500 hover:text-black transition-colors"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add category
+                </button>
+              </div>
+            ) : (
+              /* ── Flat view (default) ────────────────────────────────────── */
+              <>
+                <div className="overflow-x-auto -mx-1">
+                  <table className="w-full text-sm min-w-[480px]">
+                    <thead>
+                      <tr className="border-b border-zinc-200">
+                        <th className="text-left text-xs text-zinc-500 font-medium pb-2">Description</th>
+                        <th className="text-center text-xs text-zinc-500 font-medium pb-2 w-16 pl-2">Qty</th>
+                        <th className="text-right text-xs text-zinc-500 font-medium pb-2 w-28 pl-2">Rate</th>
+                        <th className="text-right text-xs text-zinc-500 font-medium pb-2 w-28 pl-2">Amount</th>
+                        <th className="w-8" />
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {lineItems.map(item => (
+                        <tr key={item.id} className="border-b border-zinc-200/50">
+                          <td className="py-2 pr-2">
+                            <input
+                              value={item.description}
+                              onChange={e => updateLineItem(item.id, 'description', e.target.value)}
+                              placeholder="Design & Development"
+                              className="w-full px-2 py-1.5 bg-[#f3f3f3] border border-zinc-200 rounded text-black text-sm focus:outline-none focus:border-black/20"
+                            />
+                          </td>
+                          <td className="py-2 px-1">
+                            <input
+                              type="number"
+                              value={item.qty}
+                              onChange={e => updateLineItem(item.id, 'qty', parseFloat(e.target.value) || 0)}
+                              min={0}
+                              className="w-14 px-2 py-1.5 bg-[#f3f3f3] border border-zinc-200 rounded text-black text-sm text-center focus:outline-none focus:border-black/20"
+                            />
+                          </td>
+                          <td className="py-2 px-1">
+                            <div className="flex items-center justify-end gap-1">
+                              <span className="text-zinc-500 text-xs">{sym}</span>
+                              <input
+                                type="number"
+                                value={item.unitPrice}
+                                onChange={e => updateLineItem(item.id, 'unitPrice', parseFloat(e.target.value) || 0)}
+                                min={0}
+                                className="w-24 px-2 py-1.5 bg-[#f3f3f3] border border-zinc-200 rounded text-black text-sm text-right focus:outline-none focus:border-black/20"
+                              />
+                            </div>
+                          </td>
+                          <td className="py-2 pl-1 text-right text-black font-medium whitespace-nowrap">
+                            {sym}{item.total.toFixed(2)}
+                          </td>
+                          <td className="py-2 pl-2">
+                            <button type="button" onClick={() => removeLineItem(item.id)} disabled={lineItems.length === 1}
+                              className="p-1 text-zinc-500 hover:text-red-500 transition-colors disabled:opacity-30">
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <button type="button" onClick={addLineItem}
+                  className="flex items-center gap-2 text-sm text-zinc-500 hover:text-black transition-colors">
+                  <Plus className="w-4 h-4" />
+                  Add line item
+                </button>
+              </>
+            )}
 
             <div className="border-t border-zinc-200 pt-4 space-y-3">
               <div className="flex items-center justify-between text-sm">
