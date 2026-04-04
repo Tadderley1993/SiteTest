@@ -30,6 +30,12 @@ Admin: http://localhost:5173/admin — `admin` / `admin123`
 - **Schema changes**: run `npx prisma db push --schema=prisma/schema.prisma --accept-data-loss` locally BEFORE pushing to GitHub. Do NOT add db push to Railway start command (Railway has no DIRECT_URL and pgbouncer blocks DDL)
 - Railway `startCommand`: `npx prisma generate --schema=prisma/schema.prisma && cd server && npm start`
 
+## Sitemap
+- Static file at `client/public/sitemap.xml` — copied to `dist/` on every build, served at `https://designsbyta.com/sitemap.xml`
+- **When adding a new public page**: add a `<url>` entry to `client/public/sitemap.xml` alongside the new route
+- Only include public-facing pages — never `/admin`, `/portal`, `/sign/*`
+- After pushing, resubmit in Google Search Console → Sitemaps
+
 ## Routes
 | Route | Page | SEO Target |
 |-------|------|------------|
